@@ -688,7 +688,7 @@
         </div>
         <div id="ai-hub-footer" style="flex-shrink:0; padding:12px 20px 20px; border-top:1px solid var(--md-outline-variant); background:var(--md-surface-container-low);">
             <div style="display:flex; gap:8px; background:var(--md-surface); border:1.5px solid var(--md-outline-variant); border-radius:16px; padding:6px 6px 6px 14px; align-items:center;">
-                <input type="text" id="ai-hub-input" style="flex:1; background:transparent; border:none; outline:none; color:var(--md-on-surface); font-size:14px;" placeholder="Ask about your wealth..." onkeypress="if(event.key==='Enter')sendAIChatInHub()">
+                <input type="text" id="ai-hub-input" style="flex:1; background:transparent; border:none; outline:none; color:var(--md-on-surface); font-size:14px;" placeholder="Ask about your wealth..." onkeydown="if(event.key==='Enter'){event.preventDefault(); sendAIChatInHub();}">
                 <button id="ai-hub-send-btn" style="width:36px; height:36px; border-radius:12px; background:var(--md-primary); color:var(--md-on-primary); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="sendAIChatInHub()"><span class="material-symbols-rounded" style="font-size:18px;">send</span></button>
             </div>
         </div>

@@ -232,6 +232,19 @@ const CORS_PROXIES = [
   'https://api.allorigins.win/get?url=',
 ];
 
+function parseProxyBody(bodyText) {
+  if (!bodyText || typeof bodyText !== 'string') return bodyText;
+  try {
+    const parsed = JSON.parse(bodyText);
+    if (parsed && typeof parsed === 'object' && typeof parsed.contents === 'string') {
+      try { return JSON.parse(parsed.contents); } catch (_) { return parsed.contents; }
+    }
+    return parsed;
+  } catch (_) {
+    return bodyText;
+  }
+}
+
 async function fetchJSON(url, retries = 3) {
   let lastErr;
   let idx = 0;
@@ -241,11 +254,15 @@ async function fetchJSON(url, retries = 3) {
       const r = await fetchWithTimeout(proxy + encodeURIComponent(url), 8000);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const bodyText = await r.text();
-      try {
-        return JSON.parse(bodyText);
-      } catch (_) {
-        return bodyText;
+      const parsed = parseProxyBody(bodyText);
+      if (typeof parsed === 'string') {
+        try {
+          return JSON.parse(parsed);
+        } catch (_) {
+          return parsed;
+        }
       }
+      return parsed;
     } catch (e) {
       lastErr = e;
     }
@@ -434,8 +451,12 @@ let commodityData = null;
 async function renderCommodities() {
     try {
         commodityData = await fetchMintedMetal();
-        const m = commodityData.metals;
+        const m = commodityData?.metals;
         const grid = document.getElementById('commodity-grid');
+        if (!grid) return;
+        if (!m || typeof m !== 'object') {
+            throw new Error('Invalid commodity payload');
+        }
         const list = [
             { key:'gold', label:'Gold', usdUnit:'/oz', inrUnit:'₹/10g', inrFn: p => p * 0.3215 * usdInrRate },
             { key:'silver', label:'Silver', usdUnit:'/oz', inrUnit:'₹/kg', inrFn: p => p * 32.1507 * usdInrRate },
@@ -458,7 +479,10 @@ async function renderCommodities() {
             </div>`;
         }).join('');
     } catch(e) {
-        document.getElementById('commodity-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--md-outline);font-size:13px;">Unable to load commodity prices</div>';
+        const grid = document.getElementById('commodity-grid');
+        if (grid) {
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--md-outline);font-size:13px;">Unable to load commodity prices</div>';
+        }
     }
 }
 
