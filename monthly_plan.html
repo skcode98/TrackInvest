@@ -871,8 +871,8 @@ function updateIncomeAmount(index, el) {
     recalc();
 }
 
-function updateCustomInvestAmount(index, val) {
-    plan.customInvestments[index].amount = validatePlanInputBox(event.target);
+function updateCustomInvestAmount(index, el) {
+    plan.customInvestments[index].amount = validatePlanInputBox(el);
     recalc();
     updateCustomInvestTotal();
 }

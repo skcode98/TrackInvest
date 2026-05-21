@@ -240,7 +240,12 @@ async function fetchJSON(url, retries = 3) {
     try {
       const r = await fetchWithTimeout(proxy + encodeURIComponent(url), 8000);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
+      const bodyText = await r.text();
+      try {
+        return JSON.parse(bodyText);
+      } catch (_) {
+        return bodyText;
+      }
     } catch (e) {
       lastErr = e;
     }
