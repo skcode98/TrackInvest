@@ -23,92 +23,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="./version.js"></script>
-    <style>
-        :root { --cat-food:#E3724A; --cat-transport:#415F91; --cat-bills:#186D33; --cat-entertainment:#9C27B0; --cat-health:#D96200; --cat-shopping:#E91E63; --cat-groceries:#388E3C; --cat-rent:#5C6BC0; --cat-travel:#00ACC1; --cat-education:#7B1FA2; --cat-investment:#F57C00; --cat-income:#2E7D32; --cat-other:#8E9099; }
-
-        /* ── Hero overrides ── */
-        .hero-decor { position:absolute; top:-20px; right:-20px; width:140px; height:140px; border-radius:50%; background:var(--md-primary); opacity:0.06; pointer-events:none; }
-        .hero-decor2 { position:absolute; bottom:-40px; left:-30px; width:100px; height:100px; border-radius:50%; background:var(--md-primary); opacity:0.04; pointer-events:none; }
-
-        /* ── Quick add bar ── */
-        .quick-add-bar { display:flex; gap:8px; margin-bottom:16px; align-items:center; }
-        .quick-add-bar .md-input { flex:1; min-width:0; background:var(--md-surface-container-highest); padding:14px 16px; border-radius:16px; border:1.5px solid transparent; font-size:16px; transition:0.2s; }
-        .quick-add-bar .md-input:focus { border-color:var(--md-primary); outline:none; }
-        .quick-add-bar .btn-primary { padding:14px 20px; border-radius:16px; white-space:nowrap; flex-shrink:0; }
-
-        /* ── Budget section ── */
-        .budget-rows { background:var(--md-surface-container); border-radius:20px; padding:12px 16px; }
-        .budget-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--md-outline-variant); }
-        .budget-row:last-child { border-bottom:none; }
-        .budget-row .cat-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-        .budget-row .b-label { flex:1; font-size:13px; font-weight:500; color:var(--md-on-surface); }
-        .budget-row .b-budget { font-size:12px; color:var(--md-outline); text-align:right; min-width:60px; }
-        .budget-row .b-actual { font-size:14px; font-weight:600; text-align:right; min-width:70px; }
-        .budget-row .b-status { font-size:11px; font-weight:600; min-width:40px; text-align:right; }
-        .status-ok { color:var(--md-success); }
-        .status-over { color:var(--md-error); }
-
-        /* ── Filters ── */
-        .filter-tabs { display:flex; gap:4px; padding:4px; background:var(--md-surface-container-high); border-radius:14px; margin-bottom:12px; overflow-x:auto; scrollbar-width:none; }
-        .filter-tab { flex-shrink:0; padding:8px 16px; border:none; background:transparent; border-radius:10px; font-size:13px; font-weight:500; cursor:pointer; color:var(--md-on-surface-variant); transition:0.2s; white-space:nowrap; }
-        .filter-tab.active { background:var(--md-primary-container); color:var(--md-on-primary-container); font-weight:600; }
-
-        /* ── Spend list ── */
-        .spend-list { display:flex; flex-direction:column; gap:8px; }
-        .spend-card { display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--md-surface-container); border-radius:18px; transition:0.2s; border:1px solid transparent; }
-        .spend-card:active { background:var(--md-surface-container-highest); border-color:var(--md-outline-variant); transform:scale(0.99); }
-        .spend-date { font-size:11px; color:var(--md-outline); min-width:36px; font-weight:500; }
-        .spend-comment { font-size:14px; color:var(--md-on-surface); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .spend-amt { font-size:15px; font-weight:600; white-space:nowrap; color:var(--md-on-surface); min-width:65px; text-align:right; }
-
-        /* ── Category badge (MD3 chip style) ── */
-        .cat-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:10px; font-size:11px; font-weight:600; cursor:pointer; border:none; font-family:inherit; white-space:nowrap; transition:0.2s; }
-        .cat-badge:hover { filter:brightness(1.1); }
-
-        /* ── Charts ── */
-        .chart-grid { display:flex; gap:12px; margin-bottom:16px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:4px; }
-        .chart-card { background:var(--md-surface-container); border-radius:24px; padding:16px; border:1px solid var(--md-outline-variant); flex-shrink:0; min-width:280px; }
-        .chart-card canvas { max-height:170px; max-width:100%; }
-        .chart-card-title { font-size:11px; font-weight:600; color:var(--md-on-surface-variant); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px; }
-        .sankey-svg { width:100%; max-width:100%; height:180px; overflow:visible; }
-
-        /* ── Sheet (MD3 bottom sheet style) ── */
-        .import-sheet { position:fixed; bottom:0; left:0; right:0; margin:0 auto; max-width:600px; background:var(--md-surface-container-low); border-radius:28px 28px 0 0; padding:24px 24px 32px; z-index:1001; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.1,0.7,0.1,1); max-height:75vh; overflow-y:auto; box-shadow:0 -8px 32px rgba(0,0,0,0.18); }
-        .import-sheet.open { transform:translateY(0); }
-        .import-scrim { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:1000; opacity:0; visibility:hidden; transition:0.3s; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
-        .import-scrim.open { opacity:1; visibility:visible; }
-
-        /* ── Biggest item ── */
-        .biggest-item { background:var(--md-surface-container); border-radius:20px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:0.2s; border:1px solid var(--md-error-container); }
-        .biggest-item:active { transform:scale(0.98); background:var(--md-surface-container-highest); }
-
-        /* ── Section headers ── */
-        .st-section { font-size:14px; font-weight:500; color:var(--md-primary); margin:24px 0 16px 4px; display:flex; align-items:center; gap:8px; }
-        .month-nav { display:flex; align-items:center; justify-content:space-between; background:var(--md-surface-container-highest); border-radius:100px; padding:4px 12px; margin-bottom:20px; }
-        .month-nav .icon-btn { color:var(--md-on-surface-variant); }
-        .spend-empty { padding:48px 20px; text-align:center; background:var(--md-surface-container); border-radius:24px; border:1px solid var(--md-outline-variant); }
-        .spend-empty .material-symbols-rounded { font-size:40px; color:var(--md-outline); display:block; margin:0 auto 12px; }
-        .spend-empty div { font-size:14px; color:var(--md-on-surface-variant); }
-
-        @media(max-width:480px) {
-            .chart-card { min-width:240px; padding:12px; }
-            .chart-card canvas { max-height:140px !important; }
-            .quick-add-bar { flex-wrap:wrap; }
-            .quick-add-bar .btn-primary { width:100%; }
-            .import-sheet { max-width:100%; border-radius:20px 20px 0 0; padding:16px; }
-            .budget-rows { padding:8px 12px; }
-            .budget-row { flex-wrap:wrap; gap:4px; padding:8px 0; }
-            .budget-row .b-label { width:100%; font-size:12px; }
-            .budget-row .b-budget { font-size:11px; min-width:50px; }
-            .budget-row .b-actual { font-size:13px; min-width:60px; }
-            .spend-card { padding:10px 12px; gap:6px; }
-            .spend-comment { font-size:13px; }
-            .spend-amt { font-size:14px; min-width:55px; }
-            .sankey-svg { height:140px; }
-            .filter-tabs { gap:2px; padding:3px; }
-            .filter-tab { padding:6px 10px; font-size:12px; }
-        }
-    </style>
+        <style>
+            .budget-header { display:flex; align-items:center; gap:8px; padding:8px 0 4px; font-size:11px; font-weight:600; color:var(--md-outline); border-bottom:1px solid var(--md-outline-variant); margin-bottom:4px; }
+            .budget-header .bh-label { flex:1; }
+            .budget-header .bh-budget { text-align:right; min-width:60px; }
+            .budget-header .bh-target { text-align:right; min-width:60px; }
+            .budget-header .bh-actual { text-align:right; min-width:70px; }
+            .budget-header .bh-status { text-align:right; min-width:40px; }
+        </style>
 </head>
 <body>
     <!-- Import Sheet -->
@@ -432,59 +354,79 @@
 
             // Build budget categories → spend mapping
             const rows = [];
-            let totalBudget = 0, totalActual = 0;
+            let totalBudget = 0, totalTarget = 0, totalActual = 0;
+
+            // Calculate aggregated targets from plan items
+            function getTargetForCategories(planArr) {
+                return (planArr||[]).reduce((s, i) => s + (parseFloat(i.target)||0), 0);
+            }
 
             // Income
             const incomeBudget = plan.income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
-            rows.push({ label: 'Income', budget: incomeBudget, actual: 0, color: '#2E7D32', isIncome: true });
+            rows.push({ label: 'Income', budget: incomeBudget, target: 0, actual: 0, color: '#2E7D32', isIncome: true });
 
             // Needs
             const needsBudget = (plan.needs||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
+            const needsTarget = getTargetForCategories(plan.needs);
             const needsActual = sumOfCategories(totals, BUDGET_CAT_MAP.needs);
-            if (needsBudget > 0 || needsActual > 0) rows.push({ label: 'Needs (Bills, Food, Rent)', budget: needsBudget, actual: needsActual, color: '#186D33' });
+            if (needsBudget > 0 || needsActual > 0 || needsTarget > 0) rows.push({ label: 'Needs (Bills, Food, Rent)', budget: needsBudget, target: needsTarget, actual: needsActual, color: '#186D33' });
 
             // Wants
             const wantsBudget = (plan.wants||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
+            const wantsTarget = getTargetForCategories(plan.wants);
             const wantsActual = sumOfCategories(totals, BUDGET_CAT_MAP.wants);
-            if (wantsBudget > 0 || wantsActual > 0) rows.push({ label: 'Wants (Fun, Shopping, Travel)', budget: wantsBudget, actual: wantsActual, color: '#E91E63' });
+            if (wantsBudget > 0 || wantsActual > 0 || wantsTarget > 0) rows.push({ label: 'Wants (Fun, Shopping, Travel)', budget: wantsBudget, target: wantsTarget, actual: wantsActual, color: '#E91E63' });
 
             // Investments
             const invBudget = (plan.investments||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
+            const invTarget = getTargetForCategories(plan.investments);
             const invActual = sumOfCategories(totals, BUDGET_CAT_MAP.investments);
-            if (invBudget > 0 || invActual > 0) rows.push({ label: 'Investments', budget: invBudget, actual: invActual, color: '#F57C00' });
+            if (invBudget > 0 || invActual > 0 || invTarget > 0) rows.push({ label: 'Investments', budget: invBudget, target: invTarget, actual: invActual, color: '#F57C00' });
 
             // Custom Investments
             const custInvBudget = (plan.customInvestments||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
+            const custInvTarget = getTargetForCategories(plan.customInvestments);
             const custInvActual = sumOfCategories(totals, BUDGET_CAT_MAP.customInvestments);
-            if (custInvBudget > 0 || custInvActual > 0) rows.push({ label: 'Extra Investments', budget: custInvBudget, actual: custInvActual, color: '#F57C00' });
+            if (custInvBudget > 0 || custInvActual > 0 || custInvTarget > 0) rows.push({ label: 'Extra Investments', budget: custInvBudget, target: custInvTarget, actual: custInvActual, color: '#F57C00' });
 
             // Other (uncategorized spend)
             const otherActual = entries.filter(e => !e.category || e.category==='Uncategorized').reduce((s,e) => s+e.amount, 0);
-            if (otherActual > 0) rows.push({ label: 'Uncategorized', budget: 0, actual: otherActual, color: '#8E9099' });
+            if (otherActual > 0) rows.push({ label: 'Uncategorized', budget: 0, target: 0, actual: otherActual, color: '#8E9099' });
 
             totalActual = entries.reduce((s,e) => s+e.amount, 0);
-            // budget total = wants + needs + investments
             totalBudget = rows.filter(r => !r.isIncome).reduce((s,r) => s+r.budget, 0);
+            totalTarget = rows.filter(r => !r.isIncome).reduce((s,r) => s+r.target, 0);
 
-            let html = '';
+            // Header
+            let html = `<div class="budget-header">
+                <div class="bh-label">Category</div>
+                <div class="bh-budget">Budget</div>
+                <div class="bh-target">Target</div>
+                <div class="bh-actual">Actual</div>
+                <div class="bh-status">Status</div>
+            </div>`;
+
             rows.forEach(r => {
-                const diff = r.budget - r.actual;
+                const diff = r.isIncome ? 0 : (r.target > 0 ? r.target - r.actual : r.budget - r.actual);
                 const status = r.isIncome ? '' : (diff >= 0 ? `<span class="status-ok">✓</span>` : `<span class="status-over">! ${Math.abs(diff).toLocaleString('en-IN')}</span>`);
+                const showTarget = r.target > 0;
                 html += `<div class="budget-row">
                     <div class="cat-dot" style="background:${r.color}"></div>
                     <div class="b-label">${r.label}</div>
                     <div class="b-budget">${r.isIncome ? '' : '₹' + r.budget.toLocaleString('en-IN')}</div>
+                    <div class="b-target">${showTarget ? '₹' + r.target.toLocaleString('en-IN') : ''}</div>
                     <div class="b-actual" style="color:${r.isIncome ? 'var(--md-success)' : (diff < 0 ? 'var(--md-error)' : 'var(--md-on-surface)')}">₹${r.actual.toLocaleString('en-IN')}</div>
                     <div class="b-status">${status}</div>
                 </div>`;
             });
 
             // Total row
-            const totalDiff = totalBudget - totalActual;
+            const totalDiff = totalTarget > 0 ? totalTarget - totalActual : totalBudget - totalActual;
             html += `<div class="budget-row" style="border-top:2px solid var(--md-surface-container-highest);padding-top:12px;margin-top:4px;font-weight:700;">
                 <div class="cat-dot" style="background:var(--md-primary)"></div>
                 <div class="b-label">Total Spend</div>
                 <div class="b-budget">₹${totalBudget.toLocaleString('en-IN')}</div>
+                <div class="b-target">${totalTarget > 0 ? '₹' + totalTarget.toLocaleString('en-IN') : ''}</div>
                 <div class="b-actual" style="color:${totalDiff < 0 ? 'var(--md-error)' : 'var(--md-success)'}">₹${totalActual.toLocaleString('en-IN')}</div>
                 <div class="b-status">${totalDiff >= 0 ? `<span class="status-ok">✓ ${totalDiff.toLocaleString('en-IN')}</span>` : `<span class="status-over">+${Math.abs(totalDiff).toLocaleString('en-IN')}</span>`}</div>
             </div>`;
@@ -494,8 +436,9 @@
             // Update hero with budget info
             const heroBudget = document.getElementById('hero-vs-budget');
             if (totalBudget > 0) {
-                heroBudget.innerText = totalActual <= totalBudget ? `✓ Under budget by ₹${(totalBudget-totalActual).toLocaleString('en-IN')}` : `⚠ Over budget by ₹${(totalActual-totalBudget).toLocaleString('en-IN')}`;
-                heroBudget.style.color = totalActual <= totalBudget ? 'rgba(255,255,255,0.8)' : 'rgba(255,200,200,0.9)';
+                const compareBudget = totalTarget > 0 ? totalTarget : totalBudget;
+                heroBudget.innerText = totalActual <= compareBudget ? `✓ Under budget by ₹${(compareBudget-totalActual).toLocaleString('en-IN')}` : `⚠ Over budget by ₹${(totalActual-compareBudget).toLocaleString('en-IN')}`;
+                heroBudget.style.color = totalActual <= compareBudget ? 'rgba(255,255,255,0.8)' : 'rgba(255,200,200,0.9)';
             }
         }
         function sumOfCategories(totals, cats) { return cats.reduce((s,c) => s + (totals[c]||0), 0); }
