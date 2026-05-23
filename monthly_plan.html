@@ -489,7 +489,7 @@
                 <div id="goals-breakdown-list"></div>
             </div>
 
-            <div class="total-row" style="margin-top:14px;">
+            <div class="total-row" style="margin-top:14px;cursor:pointer;" onclick="showInvestBreakdown()" title="Tap to see detailed investment entries">
                 <span>Total Planned Investments<span id="invest-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
                 <strong id="total-invest-val">₹0</strong>
             </div>
@@ -506,7 +506,7 @@
             <button class="add-row-btn" onclick="addRow('needs')">
                 <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Expense
             </button>
-            <div class="total-row">
+            <div class="total-row" style="cursor:pointer;" onclick="showSpendBreakdown('needs')" title="Tap to see detailed spend entries">
                 <span>Subtotal<span id="needs-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
                 <strong id="total-needs-val">₹0</strong>
             </div>
@@ -524,11 +524,14 @@
                 <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Category
             </button>
             <div style="display:flex; gap:8px; margin-top:10px;">
+                <button class="btn-secondary" style="flex:1; padding:10px; font-size:13px;" onclick="autoMatchSpend()">
+                    <span class="material-symbols-rounded" style="font-size:16px;">sync</span> Sync Spend
+                </button>
                 <button class="btn-secondary" style="flex:1; padding:10px; font-size:13px;" onclick="autoFillWants()">
                     <span class="material-symbols-rounded" style="font-size:16px;">magic_button</span> Auto-split Surplus
                 </button>
             </div>
-            <div class="total-row">
+            <div class="total-row" style="cursor:pointer;" onclick="showSpendBreakdown('wants')" title="Tap to see detailed spend entries">
                 <span>Subtotal<span id="wants-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
                 <strong id="total-wants-val">₹0</strong>
             </div>
@@ -774,6 +777,7 @@ window.onload = function () {
     } catch (e) { console.warn('DB read failed', e); }
 
     window.__aiEnabled = db.aiEnabled !== false;
+    window.__webEnabled = db.webEnabled !== false;
 
     if (!Array.isArray(db.investments)) db.investments = [];
 
@@ -1894,6 +1898,80 @@ function escapeHtml(str) {
     return String(str || '')
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function showSpendBreakdown(type) {
+    if (actualSpendTotal <= 0) { snack('No spend data for this month.', 'info'); return; }
+    const entries = ((db.spendTracker && db.spendTracker.entries) || []).filter(e => {
+        const ed = new Date(e.date);
+        const d = getViewDate();
+        let m = d.getMonth(), y = d.getFullYear();
+        if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+        return ed.getMonth() === m && ed.getFullYear() === y;
+    });
+    const classified = entries.filter(e => {
+        const cls = classifySpendCategory(e.category || '');
+        return type === 'needs' ? cls === 'needs' : cls !== 'needs';
+    });
+    if (classified.length === 0) { snack('No ' + type + ' entries found.', 'info'); return; }
+    let total = classified.reduce((s, e) => s + (e.amount || 0), 0);
+    let html = classified.map(e =>
+        `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
+            <div><div style="font-weight:500;font-size:13px;">${escapeHtml(e.comment || e.category)}</div>
+            <div style="font-size:11px;color:var(--md-outline);">${escapeHtml(e.category || '')} · ${e.date}</div></div>
+            <div style="font-weight:600;color:${type === 'needs' ? 'var(--cat-needs)' : 'var(--cat-wants)'};">₹${Math.round(e.amount).toLocaleString('en-IN')}</div>
+        </div>`
+    ).join('');
+    html += `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:700;border-top:2px solid var(--md-on-surface);">
+        <span>Total ${type}</span><span>₹${Math.round(total).toLocaleString('en-IN')}</span></div>`;
+    showOverlay(type === 'needs' ? 'Needs Breakdown' : 'Wants Breakdown', html);
+}
+
+function showInvestBreakdown() {
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+    const entries = (db.investments || []).filter(i => {
+        const id = parseDate(i.date);
+        return id.getMonth() === m && id.getFullYear() === y;
+    });
+    if (entries.length === 0) { snack('No investment entries for this month.', 'info'); return; }
+    let total = entries.reduce((s, i) => s + i.amount, 0);
+    let html = entries.map(i => {
+        let meta = db.categories[i.type] || { icon: 'savings', color: '#8D6E63' };
+        return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
+            <div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="material-symbols-rounded" style="font-size:16px;color:${escapeHtml(meta.color)};">${escapeHtml(meta.icon)}</span>
+                    <span style="font-weight:500;font-size:13px;">${escapeHtml(i.note || i.type)}</span>
+                </div>
+                <div style="font-size:11px;color:var(--md-outline);margin-left:22px;">${escapeHtml(i.type)} · ${i.date}</div>
+            </div>
+            <div style="font-weight:600;color:var(--md-success);">₹${Math.round(i.amount).toLocaleString('en-IN')}</div>
+        </div>`;
+    }).join('');
+    html += `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:700;border-top:2px solid var(--md-on-surface);">
+        <span>Total Investments</span><span>₹${Math.round(total).toLocaleString('en-IN')}</span></div>`;
+    showOverlay('Investment Breakdown', html);
+}
+
+function showOverlay(title, bodyHtml) {
+    let overlay = document.getElementById('breakdown-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'breakdown-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.style.display = 'none'; };
+        document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `<div style="background:var(--md-surface);border-radius:20px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,0.3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:18px;font-weight:600;">${escapeHtml(title)}</div>
+            <button onclick="document.getElementById('breakdown-overlay').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:24px;color:var(--md-outline);">&times;</button>
+        </div>
+        ${bodyHtml}
+    </div>`;
+    overlay.style.display = 'flex';
 }
 
 // FIX #9: Enhanced cross-tab sync listener with error handling
