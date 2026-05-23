@@ -235,10 +235,31 @@
         /* ── SAVE BAR ── */
         .save-bar {
             position:fixed; bottom:0; left:0; right:0;
-            padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+            padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
             background:var(--md-surface-container-low);
             border-top:1px solid var(--md-outline-variant);
-            z-index:20; display:flex; gap:10px;
+            z-index:20; display:flex; flex-wrap:wrap; gap:6px;
+            justify-content:center;
+        }
+        .save-bar .btn-primary,
+        .save-bar .btn-secondary {
+            flex:1 1 auto; min-width:0; padding:12px 8px; font-size:12px;
+            border-radius:14px; display:inline-flex; align-items:center;
+            justify-content:center; gap:4px; white-space:nowrap;
+        }
+        .save-bar .btn-primary { flex:1 1 100%; order:99; margin-top:2px; }
+        .save-bar .icon-btn-like {
+            flex:0 0 auto; padding:10px; border-radius:12px;
+            background:var(--md-surface-container); border:none;
+            color:var(--md-on-surface-variant); cursor:pointer;
+            display:inline-flex; align-items:center; justify-content:center;
+        }
+        .save-bar .icon-btn-like:active { background:var(--md-surface-container-highest); }
+        @media(max-width:480px) {
+            .save-bar { padding:8px 12px calc(8px + env(safe-area-inset-bottom)); gap:4px; }
+            .save-bar .btn-primary,
+            .save-bar .btn-secondary { padding:10px 6px; font-size:11px; flex:1 1 auto; min-width:0; }
+            .save-bar .btn-secondary .material-symbols-rounded { font-size:16px; }
         }
 
         /* ── MONTH NAV ── */
@@ -440,6 +461,7 @@
 
             <!-- Plan vs Actual: investments -->
             <div id="invest-pva" class="pva-bar" style="display:none;"></div>
+            <div id="actual-invest-breakdown" style="margin-bottom:12px;"></div>
 
             <div class="extracted-row">
                 <div>
@@ -552,22 +574,22 @@
     </main>
 
     <div class="save-bar">
-        <button class="btn-secondary" style="padding:14px 10px; font-size:13px;" onclick="copyPrevMonthPlan()" title="Copy budget from last month">
-            <span class="material-symbols-rounded" style="font-size:18px;">content_copy</span>
+        <button class="btn-secondary" onclick="copyPrevMonthPlan()" title="Copy from last month">
+            <span class="material-symbols-rounded">content_copy</span>
         </button>
-        <button class="btn-secondary" style="flex:0.3; padding:14px 10px; font-size:13px;" onclick="resetPlanner()">
-            Reset
+        <button class="btn-secondary" onclick="resetPlanner()" title="Reset this month">
+            <span class="material-symbols-rounded">refresh</span> Reset
         </button>
-        <button class="btn-secondary" style="flex:0.9; padding:14px 10px; font-size:13px;" onclick="autoMatchSpend()" title="Auto-match spend categories to plan">
-            <span class="material-symbols-rounded" style="font-size:18px;">link</span> Auto-match
+        <button class="btn-secondary" onclick="autoMatchSpend()" title="Auto-match spend categories">
+            <span class="material-symbols-rounded">link</span> Match
         </button>
-        <button class="btn-secondary" style="padding:14px 10px; font-size:13px;" onclick="showYearlyOverview()" title="Yearly overview">
-            <span class="material-symbols-rounded" style="font-size:18px;">calendar_view_month</span>
+        <button class="btn-secondary" onclick="showYearlyOverview()" title="Yearly overview">
+            <span class="material-symbols-rounded">calendar_view_month</span>
         </button>
-        <button class="btn-secondary" style="padding:14px 10px; font-size:13px;" onclick="exportPlanPDF()" title="Export as PDF">
-            <span class="material-symbols-rounded" style="font-size:18px;">picture_as_pdf</span>
+        <button class="btn-secondary" onclick="exportPlanPDF()" title="Export PDF">
+            <span class="material-symbols-rounded">picture_as_pdf</span>
         </button>
-        <button class="btn-primary" style="flex:1;" onclick="savePlanner()">
+        <button class="btn-primary" onclick="savePlanner()">
             <span class="material-symbols-rounded">save</span> Save Plan
         </button>
     </div>
@@ -582,7 +604,14 @@
         <div class="yearly-card">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
                 <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;">calendar_view_month</span>
-                <span style="font-weight:600;font-size:17px;flex:1;">Yearly Overview</span>
+                <span style="font-weight:600;font-size:17px;flex:1;" id="yearly-title">Yearly Overview</span>
+                <button class="icon-btn" onclick="shiftYearlyView(-1)" title="Previous year">
+                    <span class="material-symbols-rounded">chevron_left</span>
+                </button>
+                <span style="font-weight:600;font-size:16px;min-width:60px;text-align:center;" id="yearly-year-label">2026</span>
+                <button class="icon-btn" onclick="shiftYearlyView(1)" title="Next year">
+                    <span class="material-symbols-rounded">chevron_right</span>
+                </button>
                 <button class="btn-secondary" style="padding:8px 12px;font-size:12px;" onclick="applyPlanToRestOfYear()">
                     <span class="material-symbols-rounded" style="font-size:14px;">playlist_add</span> Apply to All
                 </button>
@@ -596,8 +625,9 @@
         </div>
     </div>
 
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
-<script src="./shared_ai.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="./shared_ai.js"></script>
 <script>
     window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
     // ──────────────────────────────────────────────────────────────
@@ -612,6 +642,7 @@ let actualSpendTotal = 0;
 let actualSpendByCategory = {};
 let actualNeedsFromSpend = 0;
 let actualWantsFromSpend = 0;
+let yearlyViewYear = new Date().getFullYear();
 
 let plan = getDefaultPlan();
 
@@ -751,7 +782,7 @@ function saveCurrentPlanSilent() {
         income: plan.income.map(x => ({...x})),
         needs: plan.needs.map(x => ({...x, target: x.target || 0})),
         wants: plan.wants.map(x => ({...x, target: x.target || 0})),
-        customInvestments: plan.customInvestments.map(x => ({...x, category: x.category || 'SIP'})),
+        customInvestments: plan.customInvestments.map(x => ({...x, category: x.category || 'SIP', target: x.target || 0})),
         goalHorizon: parseInt(document.getElementById('goal-horizon').value, 10) || 24
     };
 }
@@ -867,7 +898,15 @@ function updateTotalInvestDisplay() {
 // ──────────────────────────────────────────────────────────────
 function loadActuals() {
     const d = getViewDate();
-    const m = d.getMonth(), y = d.getFullYear();
+    let m = d.getMonth(), y = d.getFullYear();
+    let labelMonth = m, labelYear = y;
+
+    // For future months, show current month actuals as reference
+    const isFuture = viewOffset > 0;
+    if (isFuture) {
+        const now = new Date();
+        m = now.getMonth(); y = now.getFullYear();
+    }
 
     actualInvest = (db.investments || [])
         .filter(i => {
@@ -876,8 +915,8 @@ function loadActuals() {
         })
         .reduce((s, i) => s + i.amount, 0);
 
-    document.getElementById('m-actual-invest').textContent =
-        '₹' + Math.round(actualInvest).toLocaleString('en-IN');
+    const investLabel = isFuture ? `₹${Math.round(actualInvest).toLocaleString('en-IN')} (curr month)` : '₹' + Math.round(actualInvest).toLocaleString('en-IN');
+    document.getElementById('m-actual-invest').textContent = investLabel;
 
     // Load actual spending from spend tracker
     const entries = (db.spendTracker && db.spendTracker.entries) || [];
@@ -900,6 +939,12 @@ function loadActuals() {
         if (cls === 'needs') actualNeedsFromSpend += amt; else actualWantsFromSpend += amt;
     });
 
+    // PVA label: show "Actual (curr)" for future months
+    document.querySelectorAll('.pva-label').forEach(el => {
+        if (el.textContent === 'Actual' && isFuture) el.textContent = 'Actual (curr)';
+    });
+
+    renderActualInvestBreakdown();
     updatePVABars();
     renderSpendSummary();
 }
@@ -1115,17 +1160,51 @@ Return ONLY JSON, no other text.`;
 }
 
 // ──────────────────────────────────────────────────────────────
+// ACTUAL INVESTMENTS BREAKDOWN
+// ──────────────────────────────────────────────────────────────
+function renderActualInvestBreakdown() {
+    const container = document.getElementById('actual-invest-breakdown');
+    if (!container) return;
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+
+    const actualEntries = (db.investments || []).filter(i => {
+        const id = new Date(i.date);
+        return id.getMonth() === m && id.getFullYear() === y;
+    });
+    if (actualEntries.length === 0) { container.innerHTML = ''; return; }
+
+    const total = actualEntries.reduce((s, i) => s + i.amount, 0);
+    let html = `<div style="font-size:11px;font-weight:600;color:var(--md-outline);margin-bottom:6px;display:flex;justify-content:space-between;">
+        <span><span class="material-symbols-rounded" style="font-size:12px;vertical-align:middle;">account_balance</span> Actual Investments</span>
+        <span>₹${Math.round(total).toLocaleString('en-IN')}</span>
+    </div>`;
+    actualEntries.forEach(e => {
+        const dt = e.date ? new Date(e.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
+        html += `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--md-surface-container);border-radius:8px;margin-bottom:3px;font-size:12px;">
+            <span style="color:var(--md-outline);min-width:32px;font-size:10px;">${dt}</span>
+            <span style="flex:1;font-weight:500;">${escapeHtml(e.note || e.type || 'Investment')}</span>
+            <span style="color:var(--md-on-surface);font-weight:600;">₹${Math.round(e.amount).toLocaleString('en-IN')}</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+// ──────────────────────────────────────────────────────────────
 // PLAN vs ACTUAL BARS
 // ──────────────────────────────────────────────────────────────
 function updatePVABars() {
-    const plannedInvest = extractedSIPTotal + extractedGoalTotal;
+    const customInvestTarget = plan.customInvestments.reduce((s, i) => s + (i.target||0), 0);
+    const plannedInvest = extractedSIPTotal + extractedGoalTotal + plan.customInvestments.reduce((s, i) => s + (i.amount||0), 0);
+    const targetInvest  = extractedSIPTotal + extractedGoalTotal + customInvestTarget;
     const plannedNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
     const plannedWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
     const targetNeeds   = plan.needs.reduce((s, i) => s + (i.target||0), 0);
     const targetWants   = plan.wants.reduce((s, i) => s + (i.target||0), 0);
 
     // Investments: always show (actual from ledger)
-    renderPVA('invest-pva', plannedInvest, actualInvest, true);
+    renderPVA('invest-pva', plannedInvest, actualInvest, true, targetInvest);
 
     // Needs & Wants actual from spend tracker (show for all months with data)
     const actualNeeds = actualSpendTotal > 0 ? Math.round(actualNeedsFromSpend) : 0;
@@ -1392,6 +1471,12 @@ function makeCustomInvestRow(item, index) {
                 ${catOptions}
             </select>
         </div>
+        <div class="plan-target-box">
+            <span>🎯</span>
+            <input type="number" class="plan-target-input" value="${item.target || ''}" placeholder="tgt"
+                oninput="updateCustomInvestTarget(${index},this)" title="Custom target (optional)">
+            <div class="target-label">Target</div>
+        </div>
         <div class="plan-input-box">
             <span>₹</span>
             <input type="number" class="plan-input" value="${item.amount || ''}" placeholder="0"
@@ -1405,6 +1490,12 @@ function makeCustomInvestRow(item, index) {
 
 function updateCustomInvestCat(index, val) {
     plan.customInvestments[index].category = val;
+    markDirty();
+}
+
+function updateCustomInvestTarget(index, el) {
+    plan.customInvestments[index].target = Math.max(0, parseFloat(el.value) || 0);
+    updatePVABars();
     markDirty();
 }
 
@@ -1669,7 +1760,7 @@ function savePlanner(silent = false) {
             income:      plan.income.map(x => ({...x})),
             needs:       plan.needs.map(x => ({...x, target: x.target || 0})),
             wants:       plan.wants.map(x => ({...x, target: x.target || 0})),
-            customInvestments: plan.customInvestments.map(x => ({...x, category: x.category || 'SIP'})),
+            customInvestments: plan.customInvestments.map(x => ({...x, category: x.category || 'SIP', target: x.target || 0})),
             goalHorizon: parseInt(document.getElementById('goal-horizon').value, 10) || 24
         };
         if (!db.userProfile) db.userProfile = {};
@@ -1706,29 +1797,33 @@ function resetPlanner() {
 // ──────────────────────────────────────────────────────────────
 // YEARLY OVERVIEW
 // ──────────────────────────────────────────────────────────────
-function showYearlyOverview() {
+function showYearlyOverview(year) {
     const overlay = document.getElementById('yearly-overlay');
     const grid = document.getElementById('yearly-grid');
     if (!overlay || !grid) return;
+    yearlyViewYear = (year !== undefined) ? year : yearlyViewYear;
+    const cy = yearlyViewYear;
+
+    document.getElementById('yearly-year-label').textContent = cy;
 
     const today = new Date();
     const curKey = getMonthKey(today);
     let html = '';
 
     for (let m = 0; m < 12; m++) {
-        const d = new Date(today.getFullYear(), m, 1);
+        const d = new Date(cy, m, 1);
         const key = getMonthKey(d);
         const isCurrent = key === curKey;
 
         // Actual from ledger
         const actual = (db.investments || [])
-            .filter(inv => { const id = new Date(inv.date); return id.getMonth() === m && id.getFullYear() === today.getFullYear(); })
+            .filter(inv => { const id = new Date(inv.date); return id.getMonth() === m && id.getFullYear() === cy; })
             .reduce((s, inv) => s + inv.amount, 0);
 
         // Spend from tracker
         const spendEntries = (db.spendTracker && db.spendTracker.entries || []).filter(e => {
             const ed = new Date(e.date);
-            return ed.getMonth() === m && ed.getFullYear() === today.getFullYear();
+            return ed.getMonth() === m && ed.getFullYear() === cy;
         });
         const spendTotal = spendEntries.reduce((s, e) => s + (e.amount||0), 0);
 
@@ -1739,22 +1834,45 @@ function showYearlyOverview() {
             : 0;
         const plannedNeeds = savedPlan ? (savedPlan.needs||[]).reduce((s, x) => s + (x.amount||0), 0) : 0;
 
-        const targetInvest = plannedInvest; // reuse planned
-        const invOk = actual <= plannedInvest * 1.1 || plannedInvest === 0;
+        // Targets from plan
+        const targetInvest = savedPlan
+            ? (savedPlan.customInvestments||[]).reduce((s, x) => s + (x.target||0), 0) + (db.recurring || []).reduce((s, r) => s + (parseFloat(r.amount)||0), 0)
+            : 0;
 
         const monthLabel = d.toLocaleString('default', { month: 'short' });
 
-        html += `<div class="yearly-cell ${isCurrent ? 'current' : ''}">
+        html += `<div class="yearly-cell ${isCurrent ? 'current' : ''}" onclick="closeYearlyOverview();goToMonth(${m})" style="cursor:pointer;">
             <div class="ym">${monthLabel}</div>
             <div class="yv" style="font-size:13px;">₹${actual.toLocaleString('en-IN')}</div>
             <div class="ys">Plan: ₹${Math.round(plannedInvest).toLocaleString('en-IN')}</div>
+            ${targetInvest > 0 ? `<div class="yo" style="color:var(--md-tertiary);">Tgt: ₹${Math.round(targetInvest).toLocaleString('en-IN')}</div>` : ''}
             ${spendTotal > 0 ? `<div class="yo" style="color:var(--md-secondary);">Spend: ₹${Math.round(spendTotal).toLocaleString('en-IN')}</div>` : ''}
-            ${invOk ? '' : `<div class="yo" style="color:var(--cat-needs);">⚠ Over invest</div>`}
+            ${(plannedInvest > 0 && actual > plannedInvest * 1.1) ? `<div class="yo" style="color:var(--cat-needs);">⚠ Over invest</div>` : ''}
         </div>`;
     }
 
     grid.innerHTML = html;
     overlay.classList.add('open');
+}
+
+function shiftYearlyView(delta) {
+    yearlyViewYear += delta;
+    showYearlyOverview(yearlyViewYear);
+}
+
+function goToMonth(monthIndex) {
+    const now = new Date();
+    viewOffset = (yearlyViewYear - now.getFullYear()) * 12 + (monthIndex - now.getMonth());
+    updateMonthLabel();
+    const key = getMonthKey(getViewDate());
+    loadPlanForMonth(key);
+    renderAll();
+    renderCustomInvestments();
+    loadActuals();
+    recalc();
+    updateMonthUI(key);
+    renderMonthAnalysis();
+    closeYearlyOverview();
 }
 
 function closeYearlyOverview() {
@@ -1763,19 +1881,22 @@ function closeYearlyOverview() {
 
 function applyPlanToRestOfYear() {
     const today = new Date();
-    const curKey = getMonthKey(today);
     const currentMonth = today.getMonth();
+    const year = yearlyViewYear;
+
+    // Only apply to future months within the selected year
+    const startMonth = yearlyViewYear > today.getFullYear() ? 0 : (yearlyViewYear < today.getFullYear() ? 0 : currentMonth + 1);
 
     let count = 0;
-    for (let m = currentMonth + 1; m < 12; m++) {
-        const d = new Date(today.getFullYear(), m, 1);
+    for (let m = startMonth; m < 12; m++) {
+        const d = new Date(year, m, 1);
         const key = getMonthKey(d);
         if (!db.monthlyPlans) db.monthlyPlans = {};
         db.monthlyPlans[key] = {
             income: plan.income.map(x => ({...x})),
             needs: plan.needs.map(x => ({...x, target: x.target || 0})),
             wants: plan.wants.map(x => ({...x, target: x.target || 0})),
-            customInvestments: plan.customInvestments.map(x => ({...x, category: x.category || 'SIP'})),
+            customInvestments: plan.customInvestments.map(x => ({...x, category: x.category || 'SIP', target: x.target || 0})),
             goalHorizon: parseInt(document.getElementById('goal-horizon').value, 10) || 24
         };
         count++;
@@ -1798,9 +1919,11 @@ function exportPlanPDF() {
 
     const el = document.createElement('div');
     el.style.cssText = 'padding:24px;font-family:Roboto,sans-serif;color:#111318;background:#fff;';
+    const totalInvest = extractedSIPTotal + extractedGoalTotal + plan.customInvestments.reduce((s,i)=>s+(i.amount||0),0);
     el.innerHTML = `
         <h2 style="color:#415F91;margin-bottom:16px;">Monthly Plan — ${getViewDate().toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
         <div style="margin-bottom:12px;"><strong>Income:</strong> ₹${Math.round(plan.income.reduce((s,i)=>s+i.amount,0)).toLocaleString('en-IN')}</div>
+        <div style="margin-bottom:12px;"><strong>Actual Invested:</strong> ₹${Math.round(actualInvest).toLocaleString('en-IN')}</div>
         <h3 style="color:#BA1A1A;">Needs</h3>
         ${plan.needs.map(n => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;"><span>${escapeHtml(n.name)}</span><span>₹${Math.round(n.amount).toLocaleString('en-IN')}${n.target ? ' (target: ₹'+Math.round(n.target).toLocaleString('en-IN')+')' : ''}</span></div>`).join('')}
         <h3 style="color:#186D33;margin-top:12px;">Wants</h3>
@@ -1808,12 +1931,16 @@ function exportPlanPDF() {
         <h3 style="margin-top:12px;">Investments</h3>
         <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>SIPs (auto)</span><span>₹${Math.round(extractedSIPTotal).toLocaleString('en-IN')}</span></div>
         <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Goals (auto)</span><span>₹${Math.round(extractedGoalTotal).toLocaleString('en-IN')}</span></div>
-        ${plan.customInvestments.map(n => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;"><span>${escapeHtml(n.name)}</span><span>₹${Math.round(n.amount).toLocaleString('en-IN')}</span></div>`).join('')}
+        ${plan.customInvestments.map(n => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;"><span>${escapeHtml(n.name)}</span><span>₹${Math.round(n.amount).toLocaleString('en-IN')}${n.target ? ' (target: ₹'+Math.round(n.target).toLocaleString('en-IN')+')' : ''}</span></div>`).join('')}
         <div style="margin-top:16px;padding:12px;background:#f5f5f5;border-radius:8px;font-weight:700;display:flex;justify-content:space-between;">
-            <span>Balance</span>
-            <span>₹${Math.round(plan.income.reduce((s,i)=>s+i.amount,0) - (plan.needs.reduce((s,i)=>s+i.amount,0) + plan.wants.reduce((s,i)=>s+i.amount,0) + extractedSIPTotal + extractedGoalTotal + plan.customInvestments.reduce((s,i)=>s+(i.amount||0),0))).toLocaleString('en-IN')}</span>
+            <span>Total Planned</span>
+            <span>₹${Math.round(totalInvest).toLocaleString('en-IN')}</span>
         </div>
-        <div style="margin-top:8px;font-size:11px;color:#999;">Generated by TrackInvest v2.8</div>
+        <div style="margin-top:4px;padding:12px;background:#f5f5f5;border-radius:8px;display:flex;justify-content:space-between;">
+            <span>Balance</span>
+            <span>₹${Math.round(plan.income.reduce((s,i)=>s+i.amount,0) - (plan.needs.reduce((s,i)=>s+i.amount,0) + plan.wants.reduce((s,i)=>s+i.amount,0) + totalInvest)).toLocaleString('en-IN')}</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#999;">Generated by TrackInvest ${APP_VERSION}</div>
     `;
     document.body.appendChild(el);
 
