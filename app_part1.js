@@ -769,25 +769,6 @@ function openSettings() {
     haptic(40);
     if (document.getElementById('settings-sheet')) { openSheet('settings-sheet'); }
 }
-function closeSubSheet(fromPopState = false) {
-    // Save main sheet scroll position before closing sub-sheet
-    const mainSheetEl = activeMain ? document.getElementById(activeMain) : null;
-    const savedScrollTop = mainSheetEl ? mainSheetEl.scrollTop : 0;
-
-    document.getElementById('scrim-sub')?.classList.remove('active');
-    document.querySelectorAll('.sheet.sub-sheet').forEach(el => el.classList.remove('active'));
-    activeSub = null;
-    // Close any remaining sheet and clear scroll lock
-    document.querySelectorAll('.sheet.active').forEach(el => el.classList.remove('active'));
-    const mainScrim = document.getElementById('scrim');
-    if (mainScrim) mainScrim.classList.remove('active');
-    const subScrim = document.getElementById('scrim-sub');
-    if (subScrim) subScrim.classList.remove('active');
-    document.body.classList.remove('lock-scroll');
-    // Restore main sheet scroll position
-    if (mainSheetEl) mainSheetEl.scrollTop = savedScrollTop;
-}
-
 function openSettings() {
     haptic(40);
     if (document.getElementById('settings-sheet')) { openSheet('settings-sheet'); }
@@ -880,13 +861,20 @@ function closeSubSheet(fromPopState = false) {
     document.querySelectorAll('.sheet.sub-sheet').forEach(el => el.classList.remove('active'));
     activeSub = null;
 
-    // Restore parent sheet scroll position
-    if (mainSheetEl) {
-        requestAnimationFrame(() => { mainSheetEl.scrollTop = savedScrollTop; });
+    // If no main sheet remains, clean up main scrim + scroll lock too
+    const mainSheet = document.querySelector('.sheet.active:not(.sub-sheet)');
+    if (!mainSheet) {
+        document.getElementById('scrim')?.classList.remove('active');
+        document.body.classList.remove('lock-scroll');
+        try { sessionStorage.removeItem('currentSheet'); } catch (e) {}
+        activeMain = null;
+    } else {
+        // Restore parent sheet scroll position
+        if (mainSheetEl) {
+            requestAnimationFrame(() => { mainSheetEl.scrollTop = savedScrollTop; });
+        }
+        if (activeMain) sessionStorage.setItem('currentSheet', activeMain);
     }
-
-    if (activeMain) sessionStorage.setItem('currentSheet', activeMain);
-    else sessionStorage.removeItem('currentSheet');
 
     if (!fromPopState && history.state && history.state.sheetId) {
         history.back();
