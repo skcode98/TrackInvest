@@ -193,6 +193,7 @@
     <script>document.getElementById('version-badge').textContent=APP_VERSION;</script>
 
 <script>
+window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
 let indexChart = null;
 let searchTab = 'stocks';
 let searchTimer = null;
@@ -314,7 +315,19 @@ function toggleBm(type, key, name) {
     if (idx >= 0) bmData.splice(idx, 1); else bmData.push({ type, key, name, added: Date.now() });
     saveBm(); renderBm(); refreshBmPrices(); refreshSearch();
 }
-function clearAllBookmarks() { if (bmData.length && confirm('Clear all saved items?')) { bmData = []; saveBm(); renderBm(); refreshSearch(); } }
+function clearAllBookmarks() { if (bmData.length) _confirmDialog('Clear all saved items?', () => { bmData = []; saveBm(); renderBm(); refreshSearch(); }); }
+
+function _confirmDialog(msg, onConfirm) {
+    const scrim = document.createElement('div');
+    scrim.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:2000;display:flex;align-items:center;justify-content:center;';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--md-surface-container-low);border-radius:20px;padding:24px;max-width:300px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
+    box.innerHTML = `<div style="font-size:15px;font-weight:500;margin-bottom:20px;color:var(--md-on-surface);">${msg}</div><div style="display:flex;gap:12px;justify-content:center;"><button id="_cnf_cancel" style="flex:1;padding:10px;border:1px solid var(--md-outline);background:transparent;border-radius:12px;font-size:13px;cursor:pointer;color:var(--md-on-surface);">Cancel</button><button id="_cnf_ok" style="flex:1;padding:10px;background:var(--md-primary);color:var(--md-on-primary);border:none;border-radius:12px;font-size:13px;cursor:pointer;font-weight:600;">Clear</button></div>`;
+    scrim.appendChild(box);
+    document.body.appendChild(scrim);
+    document.getElementById('_cnf_cancel').onclick = () => { document.body.removeChild(scrim); };
+    document.getElementById('_cnf_ok').onclick = () => { document.body.removeChild(scrim); onConfirm(); };
+}
 
 async function refreshBmPrices() {
     const items = document.querySelectorAll('[data-bm-key]');

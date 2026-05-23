@@ -466,11 +466,13 @@
         onclick="navigator.clipboard.writeText(APP_VERSION);snack('Version copied','check_circle')" id="version-badge"></div>
     <script>document.getElementById('version-badge').textContent=APP_VERSION;</script>
 
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
 <script src="./shared_ai.js"></script>
 <script>
-// ──────────────────────────────────────────────────────────────
-// STATE
-// ──────────────────────────────────────────────────────────────
+    window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
+    // ──────────────────────────────────────────────────────────────
+    // STATE
+    // ──────────────────────────────────────────────────────────────
 let db = {};
 let extractedSIPTotal  = 0;
 let extractedGoalTotal = 0;
@@ -917,7 +919,9 @@ function syncCustomInvestments() {
     });
 
     if (syncedCount > 0) {
-        localStorage.setItem('appHubInvestDb', JSON.stringify(db));
+        let existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}');
+        Object.assign(existing, db);
+        localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
         snack(`Synced ${syncedCount} investment(s) to ledger!`, 'check_circle');
         
         // Clear synced investments from planner

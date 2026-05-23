@@ -1976,12 +1976,17 @@ function exportSyncUrl() {
 }
 
 async function generatePDFWealthReport() {
+    if (window._generatingPDF) { showSnackbar('Already generating...', 'info'); return; }
     if (!db.geminiKey && !db.groqKey) {
         showSnackbar('AI key needed for commentary — set in Profile settings', 'error');
         return;
     }
+    window._generatingPDF = true;
     showSnackbar('Generating wealth report...', 'auto_awesome');
     try {
+        if (document.getElementById('pdf-report-container')) {
+            document.body.removeChild(document.getElementById('pdf-report-container'));
+        }
         let reportDiv = document.createElement('div');
         reportDiv.id = 'pdf-report-container';
         reportDiv.style.cssText = 'padding:24px;font-family:Roboto,sans-serif;max-width:800px;margin:auto;background:#fff;color:#1a1a1a;';
@@ -2060,6 +2065,8 @@ async function generatePDFWealthReport() {
     } catch(e) {
         console.error('PDF generation error:', e);
         showSnackbar('PDF generation failed: ' + e.message, 'error');
+    } finally {
+        window._generatingPDF = false;
     }
 }
 

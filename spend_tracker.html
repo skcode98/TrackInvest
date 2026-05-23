@@ -239,9 +239,10 @@
 
     <script src="./shared_ai.js"></script>
     <script>
+        window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
         const STORAGE_KEY = 'appHubInvestDb';
         function loadDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; } }
-        function saveDB() { try { let existing = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; Object.assign(existing, db); localStorage.setItem(STORAGE_KEY, JSON.stringify(existing)); } catch(e) { alert('Storage failed'); } }
+        function saveDB() { try { let existing = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; Object.assign(existing, db); localStorage.setItem(STORAGE_KEY, JSON.stringify(existing)); Object.assign(db, existing); } catch(e) { showSnackbar('Storage failed','error'); } }
         function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
         let db = loadDB();
         if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
@@ -590,7 +591,7 @@
             const byCat={}; entries.forEach(e=>{const c=e.category||'Uncategorized';if(!byCat[c])byCat[c]=0;byCat[c]+=e.amount;});
             const total=entries.reduce((s,e)=>s+e.amount,0); const days=Math.min(new Date().getDate(), new Date(currentYear,currentMonth+1,0).getDate());
             const prompt = `Monthly spending analysis. 3-5 insights as simple HTML paragraphs with <strong> for numbers. No markdown, no codeblocks.\n\nTotal: ₹${total}\nTxns: ${entries.length}\nCategories: ${JSON.stringify(byCat)}\nAvg/day: ₹${Math.round(total/days)}`;
-            try { const r=await callAI(prompt,'spend_insight_2'); const o=document.getElementById('ai-insights-output'); o.innerHTML=r.replace(/```html|```/gi,''); o.style.display='block'; } catch(e) { Swal.fire('Error','AI failed. Check API keys.','error'); }
+            try { const r=await callAI(prompt,'spend_insight_2'); const o=document.getElementById('ai-insights-output'); o.innerHTML=DOMPurify.sanitize(r,{ALLOWED_TAGS:['p','b','i','strong','em','br','ul','ol','li'],ALLOWED_ATTR:[]}); o.style.display='block'; } catch(e) { Swal.fire('Error','AI failed. Check API keys.','error'); }
             btn.disabled=false; btn.innerHTML='<span class="material-symbols-rounded">insights</span> Insights';
         }
 

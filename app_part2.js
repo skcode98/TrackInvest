@@ -496,16 +496,16 @@ function getSearchHistory() {
 }
 
 function addSearchHistory(term) {
-    if (!term || term.length < 2) return; // Don't save very short terms
+    if (!term || term.length < 2) return;
     let history = getSearchHistory();
-    history = history.filter(h => h.toLowerCase() !== term.toLowerCase()); // Remove duplicates
+    history = history.filter(h => h.toLowerCase() !== term.toLowerCase());
     history.unshift(term);
     history = history.slice(0, MAX_RECENT_SEARCHES);
-    sessionStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+    try { sessionStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history)); } catch (e) {}
 }
 
 function clearSearchHistory() {
-    sessionStorage.removeItem(SEARCH_HISTORY_KEY);
+    try { sessionStorage.removeItem(SEARCH_HISTORY_KEY); } catch (e) {}
     renderSearchHistory();
 }
 
@@ -1525,7 +1525,9 @@ async function checkAppLock() {
     }
 
     // Check if already unlocked in this session
-    if (sessionStorage.getItem('appUnlocked') === 'true') {
+    let appUnlocked = false;
+    try { appUnlocked = sessionStorage.getItem('appUnlocked') === 'true'; } catch (e) {}
+    if (appUnlocked) {
         hideLockScreen();
         startAutoLockTimer();
         return true;
@@ -1688,7 +1690,7 @@ function unlockSuccess() {
     haptic(50);
     appLockState.failedAttempts = 0;
     appLockState.lockoutEndTime = null;
-    sessionStorage.setItem('appUnlocked', 'true');
+    try { sessionStorage.setItem('appUnlocked', 'true'); } catch (e) {}
     hideLockScreen();
 
     const pinInput = document.getElementById('pin-input-auth');
@@ -1697,7 +1699,8 @@ function unlockSuccess() {
     updateLockScreenMessage('Enter your 4-digit PIN');
 
     // Restore last active sheet if any
-    let lastSheet = sessionStorage.getItem('currentSheet');
+    let lastSheet = null;
+    try { lastSheet = sessionStorage.getItem('currentSheet'); } catch (e) {}
     if (lastSheet) {
         setTimeout(() => openSheet(lastSheet), 100);
     }
@@ -1748,7 +1751,7 @@ function updateActivity() {
 }
 
 function lockApp() {
-    sessionStorage.removeItem('appUnlocked');
+    try { sessionStorage.removeItem('appUnlocked'); } catch (e) {}
     checkAppLock();
     showSnackbar('App locked due to inactivity', 'info');
 }
@@ -2201,8 +2204,14 @@ function formatAIResponse(text) {
 
     let formatted = text.replace(/```(html|markdown)?|```/gi, '').trim();
 
-    // If response contains rich HTML tags, render directly with sanitization
+    // If response contains rich HTML tags, sanitize via DOMPurify
     if (/<(div|p|table|h[1-6]|span|ul|ol|li|br|hr|blockquote|pre|code|strong|em|b|i|a|img|section|article|header|footer|main|aside|nav|figure|figcaption|details|summary|mark|small|sub|sup)[\s>]/i.test(formatted)) {
+        if (typeof DOMPurify !== 'undefined') {
+            return DOMPurify.sanitize(formatted, {
+                ALLOWED_TAGS: ['div','p','span','br','strong','em','b','i','ul','ol','li','h1','h2','h3','h4','h5','h6','hr','pre','code','blockquote','table','thead','tbody','tr','th','td','section','article'],
+                ALLOWED_ATTR: []
+            });
+        }
         formatted = formatted
             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
             .replace(/\bon\w+\s*=/gi, '')
@@ -2603,12 +2612,13 @@ function showHubReport(htmlContent) {
     if (htmlContent) {
         let cleaned = htmlContent
             .replace(/(```[\w]*)/gi, '')
-            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-            .replace(/\bon\w+\s*=/gi, '')
-            .replace(/javascript\s*:/gi, '')
-            .replace(/<iframe/gi, '&lt;iframe')
-            .replace(/<embed/gi, '&lt;embed')
             .trim();
+        if (typeof DOMPurify !== 'undefined') {
+            cleaned = DOMPurify.sanitize(cleaned, {
+                ALLOWED_TAGS: ['div','p','span','br','strong','em','b','i','ul','ol','li','h1','h2','h3','h4','h5','h6','hr','pre','code','blockquote','table','thead','tbody','tr','th','td','section','article'],
+                ALLOWED_ATTR: []
+            });
+        }
         container.innerHTML = cleaned;
         if (pdfBtn) { pdfBtn.style.display = ''; pdfBtn.title = 'Download as PDF'; }
         window._hubReportData = cleaned;

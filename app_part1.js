@@ -1,6 +1,12 @@
 // ==========================================
 // 1. DATA INITIALIZATION & CONSTANT STORE
 // ==========================================
+// Global unhandled rejection handler
+window.addEventListener('unhandledrejection', event => {
+    console.warn('Unhandled promise rejection:', event.reason?.message || event.reason);
+    event.preventDefault();
+});
+
 // Cross-browser compatible localStorage access
 function getLocalStorage() {
     try {
@@ -712,7 +718,6 @@ function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
         const later = () => {
-            clearTimeout(timeout);
             func(...args);
         };
         clearTimeout(timeout);
@@ -884,7 +889,7 @@ let _overlayBusy = false;
 function closeOverlays(fromPopState = false) {
     if (_overlayBusy) return;
     _overlayBusy = true;
-    setTimeout(() => { _overlayBusy = false; }, 150);
+    try {
 
     if (fromPopState) {
         // History back: close only the topmost sheet
@@ -932,6 +937,7 @@ function closeOverlays(fromPopState = false) {
         activeSub = null;
         activeMain = null;
     }
+    } finally { _overlayBusy = false; }
 }
 
 // Sub-sheets open ON TOP of an existing sheet (e.g. calculators from Settings)
@@ -950,21 +956,18 @@ let _sheetOpening = false;
 function openSheet(sheetId, fromRestore = false) {
     if (_sheetOpening) return;
     _sheetOpening = true;
-    setTimeout(() => { _sheetOpening = false; }, 200);
-
     haptic(20);
+    try {
     const isSubSheet = SUB_SHEET_IDS.includes(sheetId);
     const targetSheet = document.getElementById(sheetId);
 
     if (!targetSheet) {
         console.warn(`Sheet with ID "${sheetId}" not found`);
-        _sheetOpening = false;
         return;
     }
 
     // Guard: if already open, do nothing
     if (targetSheet.classList.contains('active')) {
-        _sheetOpening = false;
         return;
     }
 
@@ -1002,11 +1005,12 @@ function openSheet(sheetId, fromRestore = false) {
 
     document.body.classList.add('lock-scroll');
 
-    sessionStorage.setItem('currentSheet', sheetId);
+    try { sessionStorage.setItem('currentSheet', sheetId); } catch (e) {}
 
     if (sheetId === 'history-sync-sheet') populateSyncDropdown();
 
     if (!fromRestore) pushSheetState(sheetId);
+    } finally { _sheetOpening = false; }
 }
 
 function closeSubSheet(fromPopState = false) {
@@ -1034,7 +1038,7 @@ function closeSubSheet(fromPopState = false) {
 // ── COPY NET WORTH ──────────────────────────────
 function copyNetWorth() {
     const text = `Net Worth: ₹${fmtNum(currentTotalNW)} (as of ${new Date().toLocaleDateString('en-IN')})`;
-    navigator.clipboard.writeText(text).then(() => showSnackbar('Copied to clipboard', 'content_copy')).catch(() => {});
+    navigator.clipboard.writeText(text).then(() => showSnackbar('Copied to clipboard', 'content_copy')).catch(() => showSnackbar('Copy failed', 'error'));
 }
 
 // ── CSV EXPORT ──────────────────────────────────
@@ -1418,28 +1422,18 @@ function _decryptKey(enc, pin) {
 function saveData() {
     db.lastUpdated = Date.now();
 
-    // Encrypt API keys at rest if PIN is set
-    if (db.appPin) {
-        db._ek = _encryptKey(db.geminiKey || '', db.appPin) + '|' + _encryptKey(db.groqKey || '', db.appPin) + '|' + _encryptKey(db.openrouterKey || '', db.appPin) + '|' + _encryptKey(db.cerebrasKey || '', db.appPin) + '|' + _encryptKey(db.githubKey || '', db.appPin);
-        delete db.geminiKey; delete db.groqKey; delete db.openrouterKey; delete db.cerebrasKey; delete db.githubKey;
-    }
-
     const sanitizedDb = sanitizeDatabaseObject(db);
+
+    // Encrypt API keys at rest if PIN is set (on clone only, don't mutate db)
+    if (db.appPin) {
+        sanitizedDb._ek = _encryptKey(db.geminiKey || '', db.appPin) + '|' + _encryptKey(db.groqKey || '', db.appPin) + '|' + _encryptKey(db.openrouterKey || '', db.appPin) + '|' + _encryptKey(db.cerebrasKey || '', db.appPin) + '|' + _encryptKey(db.githubKey || '', db.appPin);
+        delete sanitizedDb.geminiKey; delete sanitizedDb.groqKey; delete sanitizedDb.openrouterKey; delete sanitizedDb.cerebrasKey; delete sanitizedDb.githubKey;
+    }
 
     // Save data first using cross-browser compatible function
     if (!safeLocalStorageSet('appHubInvestDb', sanitizedDb)) {
         handleStorageError(new Error('localStorage access denied'));
         return;
-    }
-
-    // Restore keys in memory after saving
-    if (db.appPin && db._ek) {
-        const parts = db._ek.split('|');
-        db.geminiKey = _decryptKey(parts[0] || '', db.appPin);
-        db.groqKey = _decryptKey(parts[1] || '', db.appPin);
-        db.openrouterKey = _decryptKey(parts[2] || '', db.appPin);
-        db.cerebrasKey = _decryptKey(parts[3] || '', db.appPin);
-        db.githubKey = _decryptKey(parts[4] || '', db.appPin);
     }
 
     // Defer non-critical work (quota check, cross-tab sync) to next frame to avoid jank
@@ -1448,7 +1442,7 @@ function saveData() {
         try {
             window.__syncChannel = window.__syncChannel || new BroadcastChannel('trackinvest-sync');
             window.__syncChannel.postMessage({ type: 'sync-data', data: { timestamp: Date.now() } });
-        } catch (e) {}
+        } catch (e) { console.warn('BroadcastChannel error:', e); }
     });
 }
 
@@ -2847,7 +2841,8 @@ function showDayDetails(dateStr) {
 // ==========================================
 
 // Smart defaults memory - remembers last choices per category
-let smartDefaults = JSON.parse(sessionStorage.getItem('smartDefaults') || '{}');
+let smartDefaults;
+try { smartDefaults = JSON.parse(sessionStorage.getItem('smartDefaults') || '{}'); } catch (e) { smartDefaults = {}; }
 
 function saveSmartDefault(key, value) {
     if (!value) return;
@@ -3024,12 +3019,11 @@ function updateSmartPreview() {
             </div>`;
         }
     }
-    content.innerHTML = html;
-
     if (html) {
         content.innerHTML = html;
         preview.style.display = 'block';
     } else {
+        content.innerHTML = '';
         preview.style.display = 'none';
     }
 }
@@ -3509,10 +3503,11 @@ function openInvestSheet(id = null, presetAmt = null) {
             'inv-qty', 'inv-price', 'inv-is-monthly'];
         fields.forEach(id => {
             const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('change', saveFormDraft);
-                el.addEventListener('input', debounce(saveFormDraft, 1000));
-            }
+    if (el && !el.dataset._formDraftAttached) {
+        el.dataset._formDraftAttached = '1';
+        el.addEventListener('change', saveFormDraft);
+        el.addEventListener('input', debounce(saveFormDraft, 1000));
+    }
         });
     }, 200);
 

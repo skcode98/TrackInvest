@@ -17,22 +17,19 @@ function isValidGitHubKey(key) {
     return key.length > 10 && (key.startsWith('github_pat_') || key.startsWith('ghp_') || key.length > 20);
 }
 
+const _sanitize = typeof DOMPurify !== 'undefined'
+    ? (s) => DOMPurify.sanitize(s, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] })
+    : (s) => s.replace(/<[^>]*>/g, '');
+
 function sanitizeInput(input) {
     if (typeof input !== 'string') return '';
-    return input
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .replace(/<iframe\b[^>]*>/gi, '')
-        .replace(/<object\b[^>]*>/gi, '')
-        .replace(/<embed\b[^>]*>/gi, '')
-        .trim();
+    return _sanitize(input).trim();
 }
 
 async function getErrorMessage(response) {
     try {
         const text = await response.text();
-        return text || response.statusText || 'Unknown error';
+        return (text || response.statusText || 'Unknown error').slice(0, 200);
     } catch (e) {
         return response.statusText || 'Unknown error';
     }
@@ -49,13 +46,14 @@ async function callAIProvider(keys, promptText, systemPrompt) {
     }
     if (!Object.values(active).some(Boolean)) throw new Error('No API key configured');
 
-    if (active.geminiKey && !isValidGeminiKey(keys.geminiKey)) { active.geminiKey = false; console.warn('Invalid Gemini key'); }
-    if (active.groqKey && !isValidGroqKey(keys.groqKey)) { active.groqKey = false; console.warn('Invalid Groq key'); }
-    if (active.openrouterKey && !isValidOpenRouterKey(keys.openrouterKey)) { active.openrouterKey = false; console.warn('Invalid OpenRouter key'); }
-    if (active.cerebrasKey && !isValidCerebrasKey(keys.cerebrasKey)) { active.cerebrasKey = false; console.warn('Invalid Cerebras key'); }
-    if (active.githubKey && !isValidGitHubKey(keys.githubKey)) { active.githubKey = false; console.warn('Invalid GitHub key'); }
+    if (active.geminiKey && !isValidGeminiKey(keys.geminiKey)) active.geminiKey = false;
+    if (active.groqKey && !isValidGroqKey(keys.groqKey)) active.groqKey = false;
+    if (active.openrouterKey && !isValidOpenRouterKey(keys.openrouterKey)) active.openrouterKey = false;
+    if (active.cerebrasKey && !isValidCerebrasKey(keys.cerebrasKey)) active.cerebrasKey = false;
+    if (active.githubKey && !isValidGitHubKey(keys.githubKey)) active.githubKey = false;
 
     const sanitizedPrompt = sanitizeInput(promptText);
+    const sanitizedSystem = systemPrompt ? sanitizeInput(systemPrompt) : '';
     const maxRetries = 2;
     const timeoutMs = 30000;
 
@@ -83,12 +81,9 @@ async function callAIProvider(keys, promptText, systemPrompt) {
                 }
                 const errorText = await getErrorMessage(res);
                 lastError = new Error(`${name} HTTP ${res.status}: ${errorText}`);
-                if (attempt === maxRetries) console.warn(`${name} failed after retries:`, lastError);
             } catch (e) {
                 clearTimeout(timeoutId);
                 lastError = e;
-                if (e.name === 'AbortError') console.warn(`${name} request timed out`);
-                else console.warn(`${name} attempt ${attempt + 1} failed:`, e);
                 if (attempt < maxRetries) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
             }
         }
@@ -99,7 +94,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('Gemini',
             'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
             { 'Content-Type': 'application/json', 'x-goog-api-key': keys.geminiKey, 'User-Agent': 'TrackInvest/1.0' },
-            { contents: [{ parts: [{ text: (systemPrompt || '') + '\n\n' + sanitizedPrompt }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 1000, topK: 40, topP: 0.95 } }
+            { contents: [{ parts: [{ text: (sanitizedSystem || '') + '\n\n' + sanitizedPrompt }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 1000, topK: 40, topP: 0.95 } }
         );
     }
 
@@ -108,7 +103,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('Groq',
             'https://api.groq.com/openai/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.groqKey, 'Content-Type': 'application/json', 'User-Agent': 'TrackInvest/1.0' },
-            { model: 'llama-3.3-70b-versatile', messages: [{ role: 'system', content: systemPrompt || '' }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
+            { model: 'llama-3.3-70b-versatile', messages: [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
         );
     }
 
@@ -117,7 +112,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('OpenRouter',
             'https://openrouter.ai/api/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.openrouterKey, 'Content-Type': 'application/json', 'HTTP-Referer': (typeof window !== 'undefined' ? window.location.origin : ''), 'X-Title': 'TrackInvest' },
-            { model: 'openrouter/free', messages: [{ role: 'system', content: systemPrompt || '' }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
+            { model: 'openrouter/free', messages: [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
         );
     }
 
@@ -126,7 +121,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('Cerebras',
             'https://api.cerebras.ai/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.cerebrasKey, 'Content-Type': 'application/json' },
-            { model: 'gpt-oss-120b', messages: [{ role: 'system', content: systemPrompt || '' }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
+            { model: 'gpt-oss-120b', messages: [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
         );
     }
 
@@ -135,7 +130,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('GitHub Models',
             'https://models.github.ai/inference/chat/completions',
             { 'Authorization': 'Bearer ' + keys.githubKey, 'Content-Type': 'application/json' },
-            { model: 'gpt-4o-mini', messages: [{ role: 'system', content: systemPrompt || '' }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
+            { model: 'gpt-4o-mini', messages: [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
         );
     }
 
