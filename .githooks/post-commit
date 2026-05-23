@@ -1,0 +1,5 @@
+#!/bin/sh
+# Auto-push after every commit
+echo "⟳ post-commit: auto-pushing..."
+git push 2>&1 | head -5
+echo "✓ push complete"
