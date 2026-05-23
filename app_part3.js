@@ -515,7 +515,7 @@ function updatePortfolioCalculations() {
     let pPercent = document.getElementById('progress-percent'); if (pPercent) pPercent.innerText = Math.round(pct) + '%';
     let pCircle = document.getElementById('progress-circle'); if (pCircle) pCircle.style.strokeDashoffset = 188.4 * (1 - pct / 100);
 
-    renderQuickAddChips(); updateRebalanceBadge(); autoBackupReminder();
+    updateRebalanceBadge(); autoBackupReminder();
 }
 
 // Master render entry point — debounced + rAF to prevent jank on rapid calls
@@ -931,21 +931,6 @@ function broadcastToTabs() {
 }
 
 // Export data as a shareable URL (for small datasets / manual sync)
-function exportSyncUrl() {
-    try {
-        const payload = { v: 1, d: Date.now(), inv: db.investments.slice(-50), goals: db.goals };
-        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-        const url = window.location.origin + window.location.pathname + '#sync:' + encoded;
-        if (navigator.share) {
-            navigator.share({ title: 'TrackInvest Sync', text: 'Sync your portfolio', url });
-        } else {
-            navigator.clipboard.writeText(url).then(() => showSnackbar('Sync URL copied!', 'link'));
-        }
-    } catch (e) {
-        showSnackbar('Failed to create sync URL', 'error');
-    }
-}
-
 async function generatePDFWealthReport() {
     if (window._generatingPDF) { showSnackbar('Already generating...', 'info'); return; }
     if (!db.geminiKey && !db.groqKey) {
@@ -1113,5 +1098,4 @@ function updateDashboardEntryCards() {
 window.generatePDFWealthReport = generatePDFWealthReport;
 window.checkSpendAlerts = checkSpendAlerts;
 window.updateDashboardEntryCards = updateDashboardEntryCards;
-window.exportSyncUrl = exportSyncUrl;
 window.broadcastToTabs = broadcastToTabs;
