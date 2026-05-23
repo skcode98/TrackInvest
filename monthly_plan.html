@@ -252,6 +252,7 @@
         <div class="month-nav">
             <button onclick="shiftMonth(-1)"><span class="material-symbols-rounded" style="font-size:18px;">chevron_left</span></button>
             <span id="month-label">—</span>
+            <span id="month-saved-dot" style="display:none;width:6px;height:6px;border-radius:50%;background:var(--md-success);margin-left:2px;" title="Plan saved for this month"></span>
             <button onclick="shiftMonth(1)"><span class="material-symbols-rounded" style="font-size:18px;">chevron_right</span></button>
         </div>
         <button class="icon-btn" onclick="triggerAITip()" title="AI Insight">
@@ -288,6 +289,23 @@
             <div class="metric-chip">
                 <span class="metric-chip-label">Total Outflow</span>
                 <span class="metric-chip-val" id="m-total-out">₹0</span>
+            </div>
+        </div>
+
+        <!-- MONTH ANALYSIS -->
+        <div class="planner-card" style="padding:16px;">
+            <div class="card-title" style="margin-bottom:8px;font-size:13px;">
+                <span class="material-symbols-rounded" style="font-size:18px;">trending_up</span> Recent Months
+                <span style="margin-left:auto;font-size:10px;color:var(--md-outline);font-weight:400;display:flex;align-items:center;gap:4px;">
+                    <span class="material-symbols-rounded" style="font-size:12px;">info</span> Actuals from ledger
+                </span>
+            </div>
+            <div id="month-analysis" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;">
+                <div style="flex:1;min-width:80px;text-align:center;padding:8px;background:var(--md-surface-container);border-radius:12px;">
+                    <div style="font-size:10px;color:var(--md-outline);">—</div>
+                    <div style="font-size:16px;font-weight:700;margin-top:4px;">—</div>
+                    <div style="font-size:10px;color:var(--md-outline);margin-top:2px;">—</div>
+                </div>
             </div>
         </div>
 
@@ -410,6 +428,21 @@
             </div>
         </div>
 
+        <!-- SPENDING FROM LEDGER (spend tracker integration) -->
+        <div class="planner-card" id="spend-card" style="display:none;">
+            <div class="card-title" style="font-size:13px;">
+                <span class="material-symbols-rounded" style="font-size:18px;color:var(--md-secondary);">receipt_long</span>
+                Spending from Ledger
+                <span class="card-badge"><span class="material-symbols-rounded" style="font-size:12px;">account_balance</span> Spend Tracker</span>
+            </div>
+            <div id="spend-pva" class="pva-bar" style="display:none;"></div>
+            <div id="spend-category-breakdown"></div>
+            <div class="total-row">
+                <span>Total Spent</span>
+                <strong id="actual-spend-total">₹0</strong>
+            </div>
+        </div>
+
         <!-- FIXED NEEDS CARD -->
         <div class="planner-card">
             <div class="card-title">
@@ -453,7 +486,10 @@
     </main>
 
     <div class="save-bar">
-        <button class="btn-secondary" style="flex:0.4; padding:14px 10px; font-size:13px;" onclick="resetPlanner()">
+        <button class="btn-secondary" style="padding:14px 10px; font-size:13px;" onclick="copyPrevMonthPlan()" title="Copy budget from last month">
+            <span class="material-symbols-rounded" style="font-size:18px;">content_copy</span>
+        </button>
+        <button class="btn-secondary" style="flex:0.3; padding:14px 10px; font-size:13px;" onclick="resetPlanner()">
             Reset
         </button>
         <button class="btn-primary" style="flex:1;" onclick="savePlanner()">
@@ -478,22 +514,38 @@ let extractedSIPTotal  = 0;
 let extractedGoalTotal = 0;
 let viewOffset = 0;
 let actualInvest = 0;
+let actualSpendTotal = 0;
+let actualSpendByCategory = {};
 
-let plan = {
-    income: [{ name: 'Take-home Salary', amount: 0 }],
-    needs: [
-        { name: 'Rent & Housing',        amount: 0 },
-        { name: 'Groceries & Household', amount: 0 },
-        { name: 'Utilities & Bills',     amount: 0 },
-        { name: 'Transport & Fuel',      amount: 0 }
-    ],
-    wants: [
-        { name: 'Dining & Restaurants',  amount: 0 },
-        { name: 'Shopping & Lifestyle',  amount: 0 },
-        { name: 'Entertainment',         amount: 0 }
-    ],
-    customInvestments: []
-};
+let plan = getDefaultPlan();
+
+function getDefaultPlan() {
+    return {
+        income: [{ name: 'Take-home Salary', amount: 0 }],
+        needs: [
+            { name: 'Rent & Housing',        amount: 0 },
+            { name: 'Groceries & Household', amount: 0 },
+            { name: 'Utilities & Bills',     amount: 0 },
+            { name: 'Transport & Fuel',      amount: 0 }
+        ],
+        wants: [
+            { name: 'Dining & Restaurants',  amount: 0 },
+            { name: 'Shopping & Lifestyle',  amount: 0 },
+            { name: 'Entertainment',         amount: 0 }
+        ],
+        customInvestments: []
+    };
+}
+
+function getMonthKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function getPrevMonthKey() {
+    const d = getViewDate();
+    d.setMonth(d.getMonth() - 1);
+    return getMonthKey(d);
+}
 
 // ──────────────────────────────────────────────────────────────
 // MONTH NAVIGATION
@@ -506,16 +558,93 @@ function getViewDate() {
 }
 
 function shiftMonth(delta) {
+    saveCurrentPlanSilent();
     viewOffset += delta;
     updateMonthLabel();
+    const key = getMonthKey(getViewDate());
+    loadPlanForMonth(key);
+    renderAll();
+    renderCustomInvestments();
     loadActuals();
     recalc();
+    updateMonthUI(key);
+    renderMonthAnalysis();
 }
 
 function updateMonthLabel() {
     const d = getViewDate();
     document.getElementById('month-label').textContent =
         d.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+function updateMonthUI(key) {
+    const dot = document.getElementById('month-saved-dot');
+    if (!dot) return;
+    const hasPlan = db.monthlyPlans && db.monthlyPlans[key] && !isEmptyPlan(db.monthlyPlans[key]);
+    dot.style.display = hasPlan ? '' : 'none';
+    dot.title = hasPlan ? 'Plan saved for this month' : '';
+}
+
+function isEmptyPlan(p) {
+    if (!p) return true;
+    const i = (p.income||[]).reduce((s,x) => s + (x.amount||0), 0);
+    const n = (p.needs||[]).reduce((s,x) => s + (x.amount||0), 0);
+    const w = (p.wants||[]).reduce((s,x) => s + (x.amount||0), 0);
+    const c = (p.customInvestments||[]).reduce((s,x) => s + (x.amount||0), 0);
+    return i + n + w + c === 0;
+}
+
+// ──────────────────────────────────────────────────────────────
+// PER-MONTH PLAN STORAGE
+// ──────────────────────────────────────────────────────────────
+function loadPlanForMonth(key) {
+    if (!db.monthlyPlans) db.monthlyPlans = {};
+    const saved = db.monthlyPlans[key];
+    if (saved) {
+        plan.income = Array.isArray(saved.income) ? saved.income.map(x => ({...x})) : getDefaultPlan().income;
+        plan.needs = Array.isArray(saved.needs) ? saved.needs.map(x => ({...x})) : getDefaultPlan().needs;
+        plan.wants = Array.isArray(saved.wants) ? saved.wants.map(x => ({...x})) : getDefaultPlan().wants;
+        plan.customInvestments = Array.isArray(saved.customInvestments) ? saved.customInvestments.map(x => ({...x})) : [];
+        if (saved.goalHorizon) document.getElementById('goal-horizon').value = saved.goalHorizon;
+    } else {
+        plan = getDefaultPlan();
+        // Seed from user profile for the first time
+        if (!db._profileSeeded) {
+            db._profileSeeded = true;
+            const ms = db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0;
+            if (ms) plan.income[0].amount = ms;
+            if (db.userProfile?.monthlyExpense) plan.needs[0].amount = db.userProfile.monthlyExpense;
+        }
+    }
+}
+
+function saveCurrentPlanSilent() {
+    const key = getMonthKey(getViewDate());
+    if (!db.monthlyPlans) db.monthlyPlans = {};
+    db.monthlyPlans[key] = {
+        income: plan.income.map(x => ({...x})),
+        needs: plan.needs.map(x => ({...x})),
+        wants: plan.wants.map(x => ({...x})),
+        customInvestments: plan.customInvestments.map(x => ({...x})),
+        goalHorizon: parseInt(document.getElementById('goal-horizon').value) || 24
+    };
+}
+
+function copyPrevMonthPlan() {
+    const prevKey = getPrevMonthKey();
+    if (!db.monthlyPlans || !db.monthlyPlans[prevKey]) {
+        snack('No plan found for previous month.', 'info'); return;
+    }
+    const prev = db.monthlyPlans[prevKey];
+    plan.income = (prev.income||[]).map(x => ({...x}));
+    plan.needs = (prev.needs||[]).map(x => ({...x}));
+    plan.wants = (prev.wants||[]).map(x => ({...x}));
+    plan.customInvestments = (prev.customInvestments||[]).map(x => ({...x}));
+    renderAll();
+    renderCustomInvestments();
+    recalc();
+    updatePVABars();
+    snack('Copied from previous month!', 'content_copy');
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -528,26 +657,25 @@ window.onload = function () {
         if (raw) db = JSON.parse(raw);
     } catch (e) { console.warn('DB read failed', e); }
 
-    if (db.monthlyPlanConfig) {
-        const saved = db.monthlyPlanConfig;
-        // Normalise old format (income was a number)
-        plan.income = Array.isArray(saved.income)
-            ? saved.income
-            : [{ name: 'Take-home Salary', amount: parseFloat(saved.income) || 0 }];
-        plan.needs = Array.isArray(saved.needs) ? saved.needs : plan.needs;
-        plan.wants = Array.isArray(saved.wants) ? saved.wants : plan.wants;
-        plan.customInvestments = Array.isArray(saved.customInvestments) ? saved.customInvestments : [];
-        if (saved.goalHorizon) document.getElementById('goal-horizon').value = saved.goalHorizon;
-    } else {
-        const monthlySalary = db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0;
-        if (monthlySalary) plan.income[0].amount = monthlySalary;
-        if (db.userProfile?.monthlyExpense) plan.needs[0].amount = db.userProfile.monthlyExpense;
+    if (!Array.isArray(db.investments)) db.investments = [];
+
+    // Migrate old single-plan format to per-month
+    if (db.monthlyPlanConfig && !db.monthlyPlans) {
+        db.monthlyPlans = {};
+        const today = new Date();
+        const curKey = getMonthKey(today);
+        db.monthlyPlans[curKey] = db.monthlyPlanConfig;
+        delete db.monthlyPlanConfig;
     }
 
+    const key = getMonthKey(getViewDate());
+    loadPlanForMonth(key);
     extractSIPsAndGoals();
     loadActuals();
     renderCustomInvestments();
     renderAll();
+    updateMonthUI(key);
+    renderMonthAnalysis();
 };
 
 // ──────────────────────────────────────────────────────────────
@@ -609,7 +737,7 @@ function updateTotalInvestDisplay() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// LOAD ACTUALS FROM LEDGER
+// LOAD ACTUALS FROM LEDGER + SPEND TRACKER
 // ──────────────────────────────────────────────────────────────
 function loadActuals() {
     const d = getViewDate();
@@ -625,7 +753,21 @@ function loadActuals() {
     document.getElementById('m-actual-invest').textContent =
         '₹' + Math.round(actualInvest).toLocaleString('en-IN');
 
+    // Load actual spending from spend tracker
+    const entries = (db.spendTracker && db.spendTracker.entries) || [];
+    const monthEntries = entries.filter(e => {
+        const ed = new Date(e.date);
+        return ed.getMonth() === m && ed.getFullYear() === y;
+    });
+    actualSpendTotal = monthEntries.reduce((s, e) => s + (e.amount || 0), 0);
+    actualSpendByCategory = {};
+    monthEntries.forEach(e => {
+        const cat = e.category || 'Uncategorized';
+        actualSpendByCategory[cat] = (actualSpendByCategory[cat] || 0) + (e.amount || 0);
+    });
+
     updatePVABars();
+    renderSpendSummary();
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -639,16 +781,49 @@ function updatePVABars() {
     // Investments: always show (actual from ledger)
     renderPVA('invest-pva', plannedInvest, actualInvest, true);
 
-    // Needs & Wants: only show if monthlyExpense is set (best-effort proxy)
-    const expProxy = db.userProfile?.monthlyExpense || 0;
-    if (expProxy > 0 && viewOffset === 0) {
-        // Approximate from total monthly expense (70/30 heuristic)
-        renderPVA('needs-pva', plannedNeeds, Math.round(expProxy * 0.70), false);
-        renderPVA('wants-pva', plannedWants, Math.round(expProxy * 0.30), false);
+    // Needs & Wants actual from spend tracker (show for all months with data)
+    const actualNeeds = actualSpendTotal > 0 ? Math.round(actualSpendTotal * 0.6) : 0;
+    const actualWants = actualSpendTotal > 0 ? Math.round(actualSpendTotal * 0.4) : 0;
+    if (actualSpendTotal > 0) {
+        renderPVA('needs-pva', plannedNeeds, actualNeeds, false);
+        renderPVA('wants-pva', plannedWants, actualWants, false);
     } else {
         document.getElementById('needs-pva').style.display = 'none';
         document.getElementById('wants-pva').style.display = 'none';
     }
+}
+
+function renderSpendSummary() {
+    const card = document.getElementById('spend-card');
+    const breakdown = document.getElementById('spend-category-breakdown');
+    const totalEl = document.getElementById('actual-spend-total');
+    if (!card || !breakdown || !totalEl) return;
+
+    const hasData = actualSpendTotal > 0;
+    card.style.display = hasData ? '' : 'none';
+    if (!hasData) return;
+
+    totalEl.textContent = '₹' + Math.round(actualSpendTotal).toLocaleString('en-IN');
+
+    // Spending PVA: planned available (income - plannedInvest) vs actual spent
+    const income = plan.income.reduce((s, i) => s + i.amount, 0);
+    const plannedInvest = extractedSIPTotal + extractedGoalTotal;
+    const plannedAvailable = Math.max(0, income - plannedInvest);
+    renderPVA('spend-pva', plannedAvailable, actualSpendTotal, true);
+
+    // Category breakdown
+    const sorted = Object.entries(actualSpendByCategory).sort((a, b) => b[1] - a[1]);
+    breakdown.innerHTML = sorted.map(([cat, amt], i) => {
+        const pct = Math.round((amt / actualSpendTotal) * 100);
+        const colors = ['var(--cat-needs)', 'var(--cat-wants)', 'var(--md-secondary)', 'var(--md-tertiary)', 'var(--md-primary)'];
+        const color = colors[i % colors.length];
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--md-surface-container-higher);">
+            <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+            <span style="flex:1;font-size:13px;font-weight:500;">${escapeHtml(cat)}</span>
+            <span style="font-size:11px;color:var(--md-outline);min-width:30px;text-align:right;">${pct}%</span>
+            <span style="font-size:14px;font-weight:700;">₹${Math.round(amt).toLocaleString('en-IN')}</span>
+        </div>`;
+    }).join('');
 }
 
 function renderPVA(elId, planned, actual, alwaysShow) {
@@ -900,6 +1075,7 @@ function syncCustomInvestments() {
     
     let syncedCount = 0;
     
+    if (!Array.isArray(db.investments)) db.investments = [];
     plan.customInvestments.forEach(inv => {
         if (inv.amount > 0) {
             const newEntry = {
@@ -938,7 +1114,8 @@ function syncCustomInvestments() {
 function autoFillWants() {
     const income      = plan.income.reduce((s, i) => s + i.amount, 0);
     const totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
-    const totalInvest = extractedSIPTotal + extractedGoalTotal;
+    const useActual = viewOffset <= 0 && actualInvest > 0;
+    const totalInvest = useActual ? actualInvest : extractedSIPTotal + extractedGoalTotal;
     const surplus     = income - totalNeeds - totalInvest;
     if (surplus <= 0 || plan.wants.length === 0) {
         snack('No surplus to split among wants.', 'info'); return;
@@ -1056,11 +1233,13 @@ function setBench(elId, val, threshold, lowerIsBetter) {
 // ──────────────────────────────────────────────────────────────
 function savePlanner() {
     try {
-        db.monthlyPlanConfig = {
-            income:      plan.income,
-            needs:       plan.needs,
-            wants:       plan.wants,
-            customInvestments: plan.customInvestments,
+        const key = getMonthKey(getViewDate());
+        if (!db.monthlyPlans) db.monthlyPlans = {};
+        db.monthlyPlans[key] = {
+            income:      plan.income.map(x => ({...x})),
+            needs:       plan.needs.map(x => ({...x})),
+            wants:       plan.wants.map(x => ({...x})),
+            customInvestments: plan.customInvestments.map(x => ({...x})),
             goalHorizon: parseInt(document.getElementById('goal-horizon').value) || 24
         };
         if (!db.userProfile) db.userProfile = {};
@@ -1069,6 +1248,7 @@ function savePlanner() {
         try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Save failed: storage corrupted','error'); return; }
         Object.assign(existing, db);
         localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
+        updateMonthUI(key);
         snack('Plan saved!', 'check_circle');
     } catch (e) {
         snack('Save failed — storage may be full.', 'error');
@@ -1076,20 +1256,56 @@ function savePlanner() {
 }
 
 function resetPlanner() {
-    Swal.fire({title:'Reset plan?',text:'This will clear your monthly budget plan.',showCancelButton:true,confirmButtonColor:'var(--md-error)',confirmButtonText:'Reset',cancelButtonText:'Cancel'}).then(r=>{if(!r.isConfirmed) return;
-    db.monthlyPlanConfig = null;
-    plan = {
-        income: [{ name: 'Take-home Salary', amount: db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0 }],
-        needs:  [{ name:'Rent & Housing',amount:0},{name:'Groceries & Household',amount:0},{name:'Utilities & Bills',amount:0},{name:'Transport & Fuel',amount:0}],
-        wants:  [{ name:'Dining & Restaurants',amount:0},{name:'Shopping & Lifestyle',amount:0},{name:'Entertainment',amount:0}],
-        customInvestments: []
-    };
+    Swal.fire({title:'Reset this month?',text:'This clears the budget for the current month only.',showCancelButton:true,confirmButtonColor:'var(--md-error)',confirmButtonText:'Reset',cancelButtonText:'Cancel'}).then(r=>{if(!r.isConfirmed) return;
+    try { const raw = localStorage.getItem('appHubInvestDb'); if (raw) db = JSON.parse(raw); } catch(e) {}
+    const key = getMonthKey(getViewDate());
+    if (db.monthlyPlans) delete db.monthlyPlans[key];
+    plan = getDefaultPlan();
+    const ms = db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0;
+    if (ms) plan.income[0].amount = ms;
     document.getElementById('goal-horizon').value = 24;
     renderAll();
     renderCustomInvestments();
     updatePVABars();
-    snack('Plan reset.', 'refresh');
+    updateMonthUI(key);
+    snack('Plan reset for this month.', 'refresh');
     });}
+
+// ──────────────────────────────────────────────────────────────
+// MONTH ANALYSIS
+// ──────────────────────────────────────────────────────────────
+function renderMonthAnalysis() {
+    const container = document.getElementById('month-analysis');
+    if (!container) return;
+    const today = new Date();
+    let html = '';
+    for (let i = 2; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const key = getMonthKey(d);
+        const m = d.getMonth(), y = d.getFullYear();
+        const actual = (db.investments || [])
+            .filter(inv => { const id = new Date(inv.date); return id.getMonth() === m && id.getFullYear() === y && !inv.isDividend; })
+            .reduce((s, inv) => s + inv.amount, 0);
+        const label = d.toLocaleString('default', { month: 'short' });
+        const isCurrent = i === 0;
+        const savedPlan = db.monthlyPlans && db.monthlyPlans[key];
+        const planned = savedPlan
+            ? (savedPlan.customInvestments||[]).reduce((s, x) => s + (x.amount||0), 0)
+            : 0;
+        const totalPlanned = planned + extractedSIPTotal + extractedGoalTotal;
+        const barPct = totalPlanned > 0 ? Math.min(100, Math.round((actual / totalPlanned) * 100)) : 0;
+        html += `<div style="flex:1;min-width:80px;text-align:center;padding:10px 8px;background:var(--md-surface-container);border-radius:12px;${isCurrent?'border:1.5px solid var(--md-primary);':''}">
+            <div style="font-size:11px;font-weight:600;color:${isCurrent?'var(--md-primary)':'var(--md-on-surface)'};">${label}</div>
+            <div style="font-size:18px;font-weight:700;margin-top:4px;color:var(--md-on-surface);">₹${Math.round(actual).toLocaleString('en-IN')}</div>
+            <div style="font-size:10px;color:var(--md-outline);margin-top:2px;display:flex;align-items:center;justify-content:center;gap:2px;">
+                <span class="material-symbols-rounded" style="font-size:10px;">${actual > totalPlanned ? 'arrow_upward' : actual === 0 ? 'remove' : 'arrow_downward'}</span>
+                Planned ₹${Math.round(totalPlanned).toLocaleString('en-IN')}
+            </div>
+            ${totalPlanned > 0 ? `<div style="margin-top:6px;height:4px;border-radius:2px;background:var(--md-surface-container-highest);overflow:hidden;"><div style="height:100%;width:${barPct}%;border-radius:2px;background:${barPct > 100 ? 'var(--cat-needs)' : barPct > 80 ? 'var(--md-success)' : 'var(--md-outline)'};"></div></div>` : ''}
+        </div>`;
+    }
+    container.innerHTML = html;
+}
 
 // ──────────────────────────────────────────────────────────────
 // AI TIP
@@ -1108,10 +1324,18 @@ async function triggerAITip() {
     const income      = plan.income.reduce((s, i) => s + i.amount, 0);
     const totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
     const totalWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
-    const totalInvest = extractedSIPTotal + extractedGoalTotal;
+    const useActual = viewOffset <= 0 && actualInvest > 0;
+    const totalInvest = useActual ? actualInvest : extractedSIPTotal + extractedGoalTotal;
     const savingsRate = income > 0 ? Math.round((totalInvest / income) * 100) : 0;
 
-    const prompt = `Monthly budget for an Indian user: Income ₹${income}, Fixed needs ₹${totalNeeds}, Investments ₹${totalInvest}, Wants ₹${totalWants}, Savings rate ${savingsRate}%. Actual invested this month from ledger: ₹${Math.round(actualInvest)}.
+    // Build spending summary for AI
+    let spendContext = '';
+    if (actualSpendTotal > 0) {
+        const sorted = Object.entries(actualSpendByCategory).sort((a, b) => b[1] - a[1]);
+        spendContext = ` Actual spending: ₹${Math.round(actualSpendTotal)} total. Top categories: ${sorted.slice(0, 3).map(([c, a]) => `${c} ₹${Math.round(a)}`).join(', ')}.`;
+    }
+
+    const prompt = `Monthly budget for an Indian user: Income ₹${income}, Fixed needs ₹${totalNeeds}, Investments ₹${totalInvest}, Wants ₹${totalWants}, Savings rate ${savingsRate}%.${spendContext}
 Give ONE short, specific, actionable tip in 2 sentences max. Focus on the biggest improvement. Start with a relevant emoji.`;
 
     try {
@@ -1133,7 +1357,7 @@ function callAI(prompt) {
 function snack(msg, icon = 'info') {
     const sb = document.getElementById('snackbar');
     if (!sb) return;
-    sb.innerHTML = `<span class="material-symbols-rounded" style="font-size:18px;">${escapeHtml(icon)}</span> ${escapeHtml(msg)}`;
+    sb.innerHTML = `<span class="material-symbols-rounded" style="font-size:18px;">${icon}</span> ${escapeHtml(msg)}`;
     sb.classList.add('show');
     setTimeout(() => sb.classList.remove('show'), 3000);
 }
@@ -1149,8 +1373,14 @@ try {
     const _syncChan = new BroadcastChannel('trackinvest-sync');
     _syncChan.onmessage = (e) => {
         if (e.data && e.data.type === 'sync-data') {
-            const incoming = e.data.data?.investments || 0;
-            snack(`Ledger updated (${incoming} entries). Reload to sync.`, 'sync');
+            try { const raw = localStorage.getItem('appHubInvestDb'); if (raw) db = JSON.parse(raw); } catch (ex) {}
+            const key = getMonthKey(getViewDate());
+            if (db.monthlyPlans && db.monthlyPlans[key]) Object.assign(plan, db.monthlyPlans[key]);
+            loadActuals();
+            extractSIPsAndGoals();
+            recalc();
+            renderMonthAnalysis();
+            renderSpendSummary();
         }
     };
 } catch (e) {}
