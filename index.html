@@ -125,42 +125,42 @@
             </div>
 
             <!-- Frequent Actions Quick Navigation -->
-          <div id="frequent-actions" style="margin-bottom:16px;"></div>
+            <div id="frequent-actions" style="margin-bottom:16px;"></div>
 
-<div class="md-card" id="monthly-planner-entry" style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);" onclick="window.location.href='monthly_plan.html'">
-    <div style="display:flex; align-items:center; gap:16px;">
-        <div style="width:48px; height:48px; border-radius:16px; background:var(--md-primary-container); color:var(--md-on-primary-container); display:flex; align-items:center; justify-content:center;">
-            <span class="material-symbols-rounded">account_balance_wallet</span>
-        </div>
-        <div>
-            <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Monthly Planner</div>
-            <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your salary & cash flow</div>
-        </div>
-    </div>
-    <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
-</div>
+            <div class="md-card" id="monthly-planner-entry"
+                style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);"
+                onclick="window.location.href='monthly_plan.html'">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <div
+                        style="width:48px; height:48px; border-radius:16px; background:var(--md-primary-container); color:var(--md-on-primary-container); display:flex; align-items:center; justify-content:center;">
+                        <span class="material-symbols-rounded">account_balance_wallet</span>
+                    </div>
+                    <div>
+                        <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Monthly Planner</div>
+                        <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your
+                            salary & cash flow</div>
+                    </div>
+                </div>
+                <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
+            </div>
 
-<div class="md-card" id="spend-tracker-entry" style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);" onclick="window.location.href='spend_tracker.html'">
-    <div style="display:flex; align-items:center; gap:16px;">
-        <div style="width:48px; height:48px; border-radius:16px; background:var(--md-secondary-container); color:var(--md-on-secondary-container); display:flex; align-items:center; justify-content:center;">
-            <span class="material-symbols-rounded">receipt_long</span>
-        </div>
-        <div>
-            <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Spend Tracker</div>
-            <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses, AI categorization & insights</div>
-        </div>
-    </div>
-    <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
-</div>
+            <div class="md-card" id="spend-tracker-entry"
+                style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);"
+                onclick="window.location.href='spend_tracker.html'">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <div
+                        style="width:48px; height:48px; border-radius:16px; background:var(--md-secondary-container); color:var(--md-on-secondary-container); display:flex; align-items:center; justify-content:center;">
+                        <span class="material-symbols-rounded">receipt_long</span>
+                    </div>
+                    <div>
+                        <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Spend Tracker</div>
+                        <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses,
+                            AI categorization & insights</div>
+                    </div>
+                </div>
+                <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
+            </div>
 
-
-        <div>
-            <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Market Watch</div>
-            <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Indices, commodities & stock search</div>
-        </div>
-    </div>
-    <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
-</div>
 
             <div id="maturity-section" style="display:none; margin-bottom:16px;">
                 <div class="section-title" style="margin-top:0;">⏰ Maturing Soon <span
@@ -283,30 +283,43 @@
                 </div>
 
                 <div class="carousel-card" id="portfolio-summary-card">
-                    <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                    <div
+                        style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
                         <span class="material-symbols-rounded" style="font-size:16px;">account_balance</span> Portfolio
                     </div>
                     <div style="display:flex;flex-direction:column;gap:6px;">
-                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--md-on-surface-variant);">Invested</span><span id="ps-invested" style="font-weight:600;">₹0</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--md-on-surface-variant);">Returns</span><span id="ps-returns" style="font-weight:600;">₹0</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--md-on-surface-variant);">Assets</span><span id="ps-count" style="font-weight:600;">0</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span
+                                style="color:var(--md-on-surface-variant);">Invested</span><span id="ps-invested"
+                                style="font-weight:600;">₹0</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span
+                                style="color:var(--md-on-surface-variant);">Returns</span><span id="ps-returns"
+                                style="font-weight:600;">₹0</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span
+                                style="color:var(--md-on-surface-variant);">Assets</span><span id="ps-count"
+                                style="font-weight:600;">0</span></div>
                     </div>
                 </div>
             </div>
 
-            <div class="section-title" style="justify-content:flex-start;gap:8px;"><span class="material-symbols-rounded" style="font-size:16px;">calendar_month</span> Activity Calendar</div>
+            <div class="section-title" style="justify-content:flex-start;gap:8px;"><span
+                    class="material-symbols-rounded" style="font-size:16px;">calendar_month</span> Activity Calendar
+            </div>
             <div class="md-card" style="padding:20px;">
                 <div id="heatmap-section">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-                        <button class="icon-btn" onclick="shiftHeatmapMonth(-1)" id="heatmap-prev" title="Previous month"><span class="material-symbols-rounded">chevron_left</span></button>
-                        <div style="font-size:15px;font-weight:500;color:var(--md-on-surface);flex:1;text-align:center;" id="heatmap-month-title">Activity Calendar</div>
-                        <button class="icon-btn" onclick="shiftHeatmapMonth(1)" id="heatmap-next" title="Next month"><span class="material-symbols-rounded">chevron_right</span></button>
+                        <button class="icon-btn" onclick="shiftHeatmapMonth(-1)" id="heatmap-prev"
+                            title="Previous month"><span class="material-symbols-rounded">chevron_left</span></button>
+                        <div style="font-size:15px;font-weight:500;color:var(--md-on-surface);flex:1;text-align:center;"
+                            id="heatmap-month-title">Activity Calendar</div>
+                        <button class="icon-btn" onclick="shiftHeatmapMonth(1)" id="heatmap-next"
+                            title="Next month"><span class="material-symbols-rounded">chevron_right</span></button>
                     </div>
                     <div class="heatmap-grid" id="heatmap-grid"></div>
                 </div>
             </div>
 
-            <div class="section-title" style="justify-content:flex-start;gap:8px;"><span class="material-symbols-rounded" style="font-size:16px;">trending_up</span> 12‑Month Trend</div>
+            <div class="section-title" style="justify-content:flex-start;gap:8px;"><span
+                    class="material-symbols-rounded" style="font-size:16px;">trending_up</span> 12‑Month Trend</div>
             <div class="md-card" style="padding:20px;">
                 <div class="chart-container-js"><canvas id="rollingChart"></canvas></div>
             </div>
@@ -341,7 +354,7 @@
             <div id="rebalance-section" style="display:none; margin-bottom: 24px;"></div>
 
             <div class="section-title">
-                    Portfolio Breakdown
+                Portfolio Breakdown
                 <button class="ai-widget-mini" onclick="generatePDFWealthReport()">
                     <span class="material-symbols-rounded">picture_as_pdf</span> PDF Report
                 </button>
@@ -445,7 +458,7 @@
     </nav>
     <div style="position:fixed;right:4px;bottom:4px;cursor:default;opacity:0.25;user-select:none;z-index:101;pointer-events:none;"
         title="Build version" class="version-badge"></div>
-    <script>document.querySelector('.version-badge').textContent=APP_VERSION;</script>
+    <script>document.querySelector('.version-badge').textContent = APP_VERSION;</script>
 
     <button class="fab" onclick="openInvestSheet()" title="Add Entry (N)"><span
             class="material-symbols-rounded">add</span> Add Entry</button>
@@ -625,16 +638,19 @@
     </div>
 
     <!-- AI Hub Sheet - unified chat + reports -->
-    <div class="sheet sheet-display" id="ai-hub-sheet" style="height:90vh; max-height:90vh; display:flex; flex-direction:column;">
+    <div class="sheet sheet-display" id="ai-hub-sheet"
+        style="height:90vh; max-height:90vh; display:flex; flex-direction:column;">
         <div class="drag-handle"></div>
         <div style="flex-shrink:0; padding:0 20px 12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="material-symbols-rounded" style="color:var(--md-primary); font-size:22px;">auto_awesome</span>
+                    <span class="material-symbols-rounded"
+                        style="color:var(--md-primary); font-size:22px;">auto_awesome</span>
                     <span style="font-weight:600; font-size:17px;">AI Hub</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:4px;">
-                    <button id="ai-hub-download-pdf" class="icon-btn" style="display:none;" onclick="downloadAIHubReport()" title="Download as PDF">
+                    <button id="ai-hub-download-pdf" class="icon-btn" style="display:none;"
+                        onclick="downloadAIHubReport()" title="Download as PDF">
                         <span class="material-symbols-rounded" style="font-size:20px;">picture_as_pdf</span>
                     </button>
                     <button class="icon-btn" onclick="closeOverlays()">
@@ -643,33 +659,53 @@
                 </div>
             </div>
             <div style="display:flex; gap:8px;">
-                <button id="ai-hub-tab-chat" class="ai-hub-tab active" onclick="switchAIHubTab('chat')"><span class="material-symbols-rounded" style="font-size:18px;">chat</span> Chat</button>
-                <button id="ai-hub-tab-reports" class="ai-hub-tab" onclick="switchAIHubTab('reports')"><span class="material-symbols-rounded" style="font-size:18px;">description</span> Reports</button>
+                <button id="ai-hub-tab-chat" class="ai-hub-tab active" onclick="switchAIHubTab('chat')"><span
+                        class="material-symbols-rounded" style="font-size:18px;">chat</span> Chat</button>
+                <button id="ai-hub-tab-reports" class="ai-hub-tab" onclick="switchAIHubTab('reports')"><span
+                        class="material-symbols-rounded" style="font-size:18px;">description</span> Reports</button>
             </div>
         </div>
         <div class="scroll-y" id="ai-hub-body" style="flex:1; padding:0 20px 20px;">
             <div id="ai-hub-chat-tab">
                 <div style="display:flex; gap:8px; margin-bottom:12px;">
-                    <button class="btn-secondary" style="flex:1; padding:8px;" onclick="startNewChatInHub()"><span class="material-symbols-rounded" style="font-size:16px;">add</span> New Chat</button>
-                    <button class="btn-secondary" style="flex:1; padding:8px;" onclick="toggleChatHistory()"><span class="material-symbols-rounded" style="font-size:16px;">history</span> History</button>
+                    <button class="btn-secondary" style="flex:1; padding:8px;" onclick="startNewChatInHub()"><span
+                            class="material-symbols-rounded" style="font-size:16px;">add</span> New Chat</button>
+                    <button class="btn-secondary" style="flex:1; padding:8px;" onclick="toggleChatHistory()"><span
+                            class="material-symbols-rounded" style="font-size:16px;">history</span> History</button>
                 </div>
                 <div id="ai-hub-history-panel" style="display:none; margin-bottom:12px;"></div>
                 <div id="ai-hub-chat-messages" style="display:flex; flex-direction:column; min-height:180px;"></div>
             </div>
             <div id="ai-hub-reports-tab" style="display:none;">
                 <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-                    <button class="ai-hub-report-btn" onclick="generateAIHubReport('full_report')"><span class="material-symbols-rounded" style="font-size:16px;">analytics</span> Full AI Report</button>
-                    <button class="ai-hub-report-btn" onclick="generateAIHubReport('ledger')"><span class="material-symbols-rounded" style="font-size:16px;">receipt_long</span> Ledger Report</button>
-                    <button class="ai-hub-report-btn" onclick="generateAIHubReport('blueprint')"><span class="material-symbols-rounded" style="font-size:16px;">account_balance</span> Wealth Blueprint</button>
-                    <button class="ai-hub-report-btn" onclick="generateAIHubReport('forecast')"><span class="material-symbols-rounded" style="font-size:16px;">trending_up</span> Forecast</button>
+                    <button class="ai-hub-report-btn" onclick="generateAIHubReport('full_report')"><span
+                            class="material-symbols-rounded" style="font-size:16px;">analytics</span> Full AI
+                        Report</button>
+                    <button class="ai-hub-report-btn" onclick="generateAIHubReport('ledger')"><span
+                            class="material-symbols-rounded" style="font-size:16px;">receipt_long</span> Ledger
+                        Report</button>
+                    <button class="ai-hub-report-btn" onclick="generateAIHubReport('blueprint')"><span
+                            class="material-symbols-rounded" style="font-size:16px;">account_balance</span> Wealth
+                        Blueprint</button>
+                    <button class="ai-hub-report-btn" onclick="generateAIHubReport('forecast')"><span
+                            class="material-symbols-rounded" style="font-size:16px;">trending_up</span>
+                        Forecast</button>
                 </div>
                 <div id="ai-hub-report-content"></div>
             </div>
         </div>
-        <div id="ai-hub-footer" style="flex-shrink:0; padding:12px 20px 20px; border-top:1px solid var(--md-outline-variant); background:var(--md-surface-container-low);">
-            <div style="display:flex; gap:8px; background:var(--md-surface); border:1.5px solid var(--md-outline-variant); border-radius:16px; padding:6px 6px 6px 14px; align-items:center;">
-                <input type="text" id="ai-hub-input" style="flex:1; background:transparent; border:none; outline:none; color:var(--md-on-surface); font-size:14px;" placeholder="Ask about your wealth..." onkeydown="if(event.key==='Enter'){event.preventDefault(); sendAIChatInHub();}">
-                <button id="ai-hub-send-btn" style="width:36px; height:36px; border-radius:12px; background:var(--md-primary); color:var(--md-on-primary); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="sendAIChatInHub()"><span class="material-symbols-rounded" style="font-size:18px;">send</span></button>
+        <div id="ai-hub-footer"
+            style="flex-shrink:0; padding:12px 20px 20px; border-top:1px solid var(--md-outline-variant); background:var(--md-surface-container-low);">
+            <div
+                style="display:flex; gap:8px; background:var(--md-surface); border:1.5px solid var(--md-outline-variant); border-radius:16px; padding:6px 6px 6px 14px; align-items:center;">
+                <input type="text" id="ai-hub-input"
+                    style="flex:1; background:transparent; border:none; outline:none; color:var(--md-on-surface); font-size:14px;"
+                    placeholder="Ask about your wealth..."
+                    onkeydown="if(event.key==='Enter'){event.preventDefault(); sendAIChatInHub();}">
+                <button id="ai-hub-send-btn"
+                    style="width:36px; height:36px; border-radius:12px; background:var(--md-primary); color:var(--md-on-primary); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;"
+                    onclick="sendAIChatInHub()"><span class="material-symbols-rounded"
+                        style="font-size:18px;">send</span></button>
             </div>
         </div>
     </div>
@@ -781,8 +817,7 @@
             Target</button>
     </div>
 
-    <div class="sheet" id="settings-sheet"
-        style="display:flex; flex-direction:column; overflow:hidden;">
+    <div class="sheet" id="settings-sheet" style="display:flex; flex-direction:column; overflow:hidden;">
         <div class="drag-handle"></div>
         <div class="sheet-title" style="margin-bottom:12px; flex-shrink:0;">
             <div style="display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">settings</span>
@@ -845,32 +880,43 @@
                     </div>
                 </div>
                 <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; background:var(--md-surface-container-low); padding:12px 16px; border-radius:16px; border:1px solid var(--md-surface-container-highest);">
+                    <div
+                        style="display:flex; align-items:center; justify-content:space-between; background:var(--md-surface-container-low); padding:12px 16px; border-radius:16px; border:1px solid var(--md-surface-container-highest);">
                         <div>
-                            <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Date of Birth</div>
-                            <div style="font-size:12px; color:var(--md-on-surface-variant);" id="calculated-age-label">Age: Not set</div>
+                            <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Date of Birth
+                            </div>
+                            <div style="font-size:12px; color:var(--md-on-surface-variant);" id="calculated-age-label">
+                                Age: Not set</div>
                         </div>
-                        <input type="date" id="profile-dob" style="border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); font-family:inherit; font-weight:600; padding:8px 12px; border-radius:12px; outline:none;" onchange="updateCalculatedAgeDisplay()">
+                        <input type="date" id="profile-dob"
+                            style="border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); font-family:inherit; font-weight:600; padding:8px 12px; border-radius:12px; outline:none;"
+                            onchange="updateCalculatedAgeDisplay()">
                     </div>
                 </div>
                 <div
                     style="font-size:12px;font-weight:600;color:var(--md-primary);margin:20px 0 12px;letter-spacing:0.5px;text-transform:uppercase;">
                     Dashboard Features</div>
 
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
+                <div
+                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
                     <div>
                         <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Monthly Planner</div>
-                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your salary & cash flow</div>
+                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your
+                            salary & cash flow</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-enable-planner"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="settings-enable-planner"><span
+                            class="slider"></span></label>
                 </div>
 
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
+                <div
+                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
                     <div>
                         <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Spend Tracker</div>
-                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses, AI categorization & insights</div>
+                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses,
+                            AI categorization & insights</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker"><span
+                            class="slider"></span></label>
                 </div>
 
                 <button class="btn-primary" onclick="saveProfileSettings()" style="margin-top:12px;"><span
@@ -900,12 +946,15 @@
                 <div
                     style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
                     AI Features</div>
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:12px;">
+                <div
+                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:12px;">
                     <div>
                         <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Enable AI</div>
-                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">AI chat, reports, auto-categorize, forecasts</div>
+                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">AI chat, reports,
+                            auto-categorize, forecasts</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-ai-toggle"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="settings-ai-toggle"><span
+                            class="slider"></span></label>
                 </div>
 
                 <div
@@ -928,54 +977,90 @@
                     style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
                     Sync</div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn-primary" style="flex:1;" onclick="exportSyncUrl()"><span class="material-symbols-rounded">share</span> Share Sync Link</button>
+                    <button class="btn-primary" style="flex:1;" onclick="exportSyncUrl()"><span
+                            class="material-symbols-rounded">share</span> Share Sync Link</button>
                 </div>
-                <div style="font-size:11px;color:var(--md-outline);margin-top:6px;">Data auto-syncs across open tabs. Use Share Link for cross-device. No server needed.</div>
+                <div style="font-size:11px;color:var(--md-outline);margin-top:6px;">Data auto-syncs across open tabs.
+                    Use Share Link for cross-device. No server needed.</div>
 
                 <div
                     style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">
                     Web Connectivity</div>
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:12px;">
+                <div
+                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:12px;">
                     <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Enable Web Access</div>
-                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Live prices, NAV lookup, exchange rates, gold rates</div>
+                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Enable Web Access
+                        </div>
+                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Live prices, NAV lookup,
+                            exchange rates, gold rates</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-web-toggle"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="settings-web-toggle"><span
+                            class="slider"></span></label>
                 </div>
 
                 <div
                     style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">
                     Notifications</div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--md-surface-container);border-radius:14px;margin-bottom:4px;">
+                <div
+                    style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--md-surface-container);border-radius:14px;margin-bottom:4px;">
                     <div>
                         <div style="font-weight:500;font-size:14px;color:var(--md-on-surface);">Master Toggle</div>
-                        <div style="font-size:11px;color:var(--md-outline);margin-top:2px;" id="notif-status-text">Requires browser permission</div>
+                        <div style="font-size:11px;color:var(--md-outline);margin-top:2px;" id="notif-status-text">
+                            Requires browser permission</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="notif-master-toggle" onchange="toggleNotificationMaster(this.checked)"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="notif-master-toggle"
+                            onchange="toggleNotificationMaster(this.checked)"><span class="slider"></span></label>
                 </div>
                 <div id="notif-preferences" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
-                    <div class="notif-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
-                        <div><div style="font-weight:500;font-size:13px;">SIP Reminders</div><div style="font-size:11px;color:var(--md-outline);">Notify when SIPs are due</div></div>
-                        <label class="switch"><input type="checkbox" class="notif-toggle" data-key="sipReminders"><span class="slider"></span></label>
+                    <div class="notif-row"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                        <div>
+                            <div style="font-weight:500;font-size:13px;">SIP Reminders</div>
+                            <div style="font-size:11px;color:var(--md-outline);">Notify when SIPs are due</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" class="notif-toggle" data-key="sipReminders"><span
+                                class="slider"></span></label>
                     </div>
-                    <div class="notif-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
-                        <div><div style="font-weight:500;font-size:13px;">Maturity Alerts</div><div style="font-size:11px;color:var(--md-outline);">Upcoming FD/PPF maturity reminders</div></div>
-                        <label class="switch"><input type="checkbox" class="notif-toggle" data-key="maturityAlerts"><span class="slider"></span></label>
+                    <div class="notif-row"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                        <div>
+                            <div style="font-weight:500;font-size:13px;">Maturity Alerts</div>
+                            <div style="font-size:11px;color:var(--md-outline);">Upcoming FD/PPF maturity reminders
+                            </div>
+                        </div>
+                        <label class="switch"><input type="checkbox" class="notif-toggle"
+                                data-key="maturityAlerts"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
-                        <div><div style="font-weight:500;font-size:13px;">Goal Progress</div><div style="font-size:11px;color:var(--md-outline);">Monthly goal achievement updates</div></div>
-                        <label class="switch"><input type="checkbox" class="notif-toggle" data-key="goalProgressUpdates"><span class="slider"></span></label>
+                    <div class="notif-row"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                        <div>
+                            <div style="font-weight:500;font-size:13px;">Goal Progress</div>
+                            <div style="font-size:11px;color:var(--md-outline);">Monthly goal achievement updates</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" class="notif-toggle"
+                                data-key="goalProgressUpdates"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
-                        <div><div style="font-weight:500;font-size:13px;">Weekly Digest</div><div style="font-size:11px;color:var(--md-outline);">Weekly portfolio summary</div></div>
-                        <label class="switch"><input type="checkbox" class="notif-toggle" data-key="weeklyDigest"><span class="slider"></span></label>
+                    <div class="notif-row"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                        <div>
+                            <div style="font-weight:500;font-size:13px;">Weekly Digest</div>
+                            <div style="font-size:11px;color:var(--md-outline);">Weekly portfolio summary</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" class="notif-toggle" data-key="weeklyDigest"><span
+                                class="slider"></span></label>
                     </div>
-                    <div class="notif-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
-                        <div><div style="font-weight:500;font-size:13px;">Price Alerts</div><div style="font-size:11px;color:var(--md-outline);">Stock/MF price movement alerts</div></div>
-                        <label class="switch"><input type="checkbox" class="notif-toggle" data-key="priceAlerts"><span class="slider"></span></label>
+                    <div class="notif-row"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                        <div>
+                            <div style="font-weight:500;font-size:13px;">Price Alerts</div>
+                            <div style="font-size:11px;color:var(--md-outline);">Stock/MF price movement alerts</div>
+                        </div>
+                        <label class="switch"><input type="checkbox" class="notif-toggle" data-key="priceAlerts"><span
+                                class="slider"></span></label>
                     </div>
                 </div>
-                <div style="font-size:11px;color:var(--md-outline);margin-top:8px;">Notifications work offline via service worker. No server needed.</div>
+                <div style="font-size:11px;color:var(--md-outline);margin-top:8px;">Notifications work offline via
+                    service worker. No server needed.</div>
 
                 <div
                     style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">

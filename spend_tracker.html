@@ -215,6 +215,18 @@
         <!-- Biggest Single Expense -->
         <div id="biggest-item-section" style="display:none;"></div>
 
+        <!-- Spend Summary Card -->
+        <div id="spend-summary-card" style="display:none;background:var(--md-surface-container);border-radius:18px;padding:20px;margin-bottom:16px;border:1px solid var(--md-outline-variant);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span style="font-weight:500;font-size:16px;"><span class="material-symbols-rounded" style="font-size:18px;vertical-align:middle;">receipt_long</span> Spend Summary</span>
+                <span id="spend-summary-total" style="font-weight:700;font-size:18px;color:var(--md-primary);">₹0</span>
+            </div>
+            <div id="spend-summary-budget-bar" style="display:none;margin-bottom:12px;background:var(--md-surface-container-highest);border-radius:999px;height:8px;overflow:hidden;">
+                <div id="spend-summary-budget-fill" style="height:100%;width:0%;background:var(--md-primary);border-radius:999px;transition:width 0.4s;"></div>
+            </div>
+            <div id="spend-summary-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;"></div>
+        </div>
+
         <!-- AI Actions -->
         <div class="st-section ai-dependent"><span class="material-symbols-rounded">auto_awesome</span> AI Tools</div>
         <div class="st-action-row ai-dependent">
@@ -612,8 +624,44 @@
                 const resp = await callAI(prompt, 'spend_categorize_2');
                 const cats = JSON.parse(resp.replace(/```json|```/gi,'').trim());
                 if(!Array.isArray(cats)) throw new Error('Not array');
-                let m=0; uncat.forEach(e=>{const x=cats.find(c=>c.comment===e.comment); if(x&&CAT_COLORS[x.category]){e.category=x.category;m++;}});
-                saveDB(); Swal.fire({icon:'success',title:'Done',text:`${m}/${uncat.length} categorized`,timer:2000,showConfirmButton:false}); renderAll();
+                let suggestions = [];
+                uncat.forEach(e=>{const x=cats.find(c=>c.comment===e.comment); if(x&&CAT_COLORS[x.category]) suggestions.push({entry:e,suggested:x.category});});
+                if (suggestions.length === 0) { Swal.fire('Info','AI could not categorize any items','info'); btn.disabled=false; btn.innerHTML='<span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize'; return; }
+                const catsList = Object.keys(CAT_COLORS);
+                const opts = catsList.map(c => '<option value="'+c+'">'+c+'</option>').join('');
+                const reviewCats = ['all', ...catsList];
+                let html = '<div style="max-height:55vh;overflow-y:auto;">';
+                let currentFilter = 'all';
+                html += '<div style="margin-bottom:8px;display:flex;gap:4px;flex-wrap:wrap;" class="review-filter-bar">';
+                reviewCats.forEach(c => {
+                    const count = c === 'all' ? suggestions.length : suggestions.filter(s => s.suggested === c).length;
+                    html += '<button type="button" class="review-filter-btn' + (c === 'all' ? ' active' : '') + '" data-cat="' + c + '" onclick="(function(){ document.querySelectorAll(\'.review-filter-btn\').forEach(b=>b.classList.remove(\'active\')); this.classList.add(\'active\'); document.querySelectorAll(\'.review-row\').forEach(r=>{r.style.display=(this.dataset.cat===\'all\'||r.dataset.cat===this.dataset.cat)?\'\':\'none\';}); }).call(this)" style="padding:4px 10px;border-radius:999px;border:1px solid var(--md-outline-variant);background:none;font-size:11px;cursor:pointer;color:var(--md-on-surface);">' + c + ' (' + count + ')</button>';
+                });
+                html += '</div>';
+                suggestions.forEach((s, i) => {
+                    html += '<div class="review-row" data-cat="' + s.suggested + '" style="display:flex;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px solid var(--md-surface-container-highest);font-size:13px;">'
+                        + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + DOMPurify.sanitize(s.entry.comment) + ' — ₹' + s.entry.amount + '</span>'
+                        + '<select id="review-cat-' + i + '" style="padding:4px 6px;border-radius:8px;border:1px solid var(--md-outline);font-size:12px;">' + opts + '</select></div>';
+                });
+                html += '</div>';
+                const result = await Swal.fire({
+                    title: 'Review AI Categorization',
+                    html: html,
+                    showCancelButton: true,
+                    confirmButtonText: '<span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle;">check</span> Apply',
+                    cancelButtonText: 'Cancel',
+                    preConfirm: () => {
+                        suggestions.forEach((s, i) => {
+                            const sel = document.getElementById('review-cat-' + i);
+                            if (sel) s.entry.category = sel.value;
+                        });
+                    }
+                });
+                if (result.isConfirmed) {
+                    saveDB();
+                    renderAll();
+                    Swal.fire({icon:'success',title:'Done',text:suggestions.length+' items categorized',timer:1500,showConfirmButton:false});
+                }
             } catch(e) { showManualCategoryPicker(uncat); }
             btn.disabled=false; btn.innerHTML='<span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize';
         }
@@ -761,8 +809,64 @@
                 <div class="stat-chip"><div class="stat-chip-label">Biggest</div><div class="stat-chip-val">₹${e.length>0?Math.max(...e.map(x=>x.amount)).toLocaleString('en-IN'):0}</div></div>`;
         }
 
+        // ── SPEND SUMMARY CARD ──
+        function getBudgetForMonth() {
+            try {
+                const key = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
+                const mainDB = JSON.parse(localStorage.getItem('appHubInvestDb')) || {};
+                if (mainDB.monthlyPlans && mainDB.monthlyPlans[key]) {
+                    const plan = mainDB.monthlyPlans[key];
+                    let budget = 0;
+                    if (plan.needs) budget += plan.needs.reduce((s, i) => s + i.amount, 0);
+                    if (plan.wants) budget += plan.wants.reduce((s, i) => s + i.amount, 0);
+                    return budget;
+                }
+            } catch (e) {}
+            return 0;
+        }
+
+        function renderSpendSummary() {
+            const entries = getMonthEntries();
+            const card = document.getElementById('spend-summary-card');
+            const totalEl = document.getElementById('spend-summary-total');
+            const grid = document.getElementById('spend-summary-grid');
+            const budgetBar = document.getElementById('spend-summary-budget-bar');
+            const fill = document.getElementById('spend-summary-budget-fill');
+            if (entries.length === 0) { card.style.display = 'none'; return; }
+            card.style.display = 'block';
+            const total = entries.reduce((s, e) => s + e.amount, 0);
+            totalEl.innerText = '₹' + total.toLocaleString('en-IN');
+            const cats = {};
+            entries.forEach(e => { const c = e.category || 'Uncategorized'; cats[c] = (cats[c] || 0) + e.amount; });
+            const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+            let html = '';
+            sorted.forEach(([cat, amt]) => {
+                const pct = total > 0 ? (amt / total * 100) : 0;
+                const color = CAT_COLORS[cat] || '#8E9099';
+                html += '<div style="display:flex;flex-direction:column;gap:2px;padding:6px 8px;border-radius:10px;background:var(--md-surface-container-highest);">'
+                    + '<div style="display:flex;justify-content:space-between;font-size:12px;">'
+                    + '<span style="color:var(--md-on-surface-variant);">' + cat + '</span>'
+                    + '<span style="font-weight:500;">₹' + amt.toLocaleString('en-IN') + '</span>'
+                    + '</div>'
+                    + '<div style="background:var(--md-surface-container);border-radius:999px;height:4px;overflow:hidden;">'
+                    + '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:999px;"></div></div>'
+                    + '<span style="font-size:10px;color:var(--md-outline);text-align:right;">' + pct.toFixed(1) + '%</span>'
+                    + '</div>';
+            });
+            grid.innerHTML = html;
+            const budget = getBudgetForMonth();
+            if (budget > 0) {
+                budgetBar.style.display = 'block';
+                const pct = Math.min(total / budget * 100, 100);
+                fill.style.width = pct + '%';
+                fill.style.background = pct > 90 ? (pct > 100 ? 'var(--md-error)' : '#F4A100') : 'var(--md-primary)';
+            } else {
+                budgetBar.style.display = 'none';
+            }
+        }
+
         // ── MAIN ──
-        function renderAll() { renderQuickStats(); renderBudgetVsActual(); renderCharts(); renderSankey(); renderBiggestItem(); renderSpendList(); updateCommentSuggestions(); }
+        function renderAll() { renderQuickStats(); renderBudgetVsActual(); renderSpendSummary(); renderCharts(); renderSankey(); renderBiggestItem(); renderSpendList(); updateCommentSuggestions(); }
     </script>
 </body>
 </html>

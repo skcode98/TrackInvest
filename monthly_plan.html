@@ -592,7 +592,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <script src="./shared_ai.js"></script>
 <script>
     window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
@@ -1722,7 +1722,7 @@ function applyPlanToRestOfYear() {
     }
 }
 
-function exportPlanPDF() {
+async function exportPlanPDF() {
     if (typeof html2pdf === 'undefined') { snack('PDF library not loaded', 'error'); return; }
 
     const el = document.createElement('div');
@@ -1751,17 +1751,19 @@ function exportPlanPDF() {
     `;
     document.body.appendChild(el);
 
-    html2pdf().set({
-        margin: [10, 10, 10, 10],
-        filename: `TrackInvest_Plan_${getViewDate().toLocaleString('default', { month: 'short', year: 'numeric' })}.pdf`,
-        html2canvas: { scale: 2, letterRendering: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(el).save().then(() => {
-        document.body.removeChild(el);
-    }).catch(() => {
-        document.body.removeChild(el);
-        snack('PDF export failed', 'error');
-    });
+    try {
+        await html2pdf().set({
+            margin: [10, 10, 10, 10],
+            filename: `TrackInvest_Plan_${getViewDate().toLocaleString('default', { month: 'short', year: 'numeric' })}.pdf`,
+            html2canvas: { scale: 2, letterRendering: true, useCORS: true, allowTaint: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(el).save();
+    } catch (e) {
+        console.error('PDF export error:', e);
+        snack('PDF export failed: ' + (e.message || 'unknown'), 'error');
+    } finally {
+        if (el.parentNode) document.body.removeChild(el);
+    }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -1904,7 +1906,6 @@ try {
             extractSIPsAndGoals();
             recalc();
             renderMonthAnalysis();
-            renderSpendSummary();
             updatePVABars();
             
             // Remove unsaved indicator

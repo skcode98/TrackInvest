@@ -1,5 +1,5 @@
 importScripts('./version.js');
-const SW_BUILD = 2; // bump to force cache refresh
+const SW_BUILD = 3; // bump to force cache refresh
 const CACHE_NAME = 'invest-pro-' + APP_VERSION + '-' + SW_BUILD;
 
 const CORE_ASSETS = [
@@ -15,8 +15,7 @@ const CORE_ASSETS = [
     './app_part3.js',
     './shared_ai.js',
     './monthly_plan.html',
-    './spend_tracker.html',
-    './market_watch.html'
+    './spend_tracker.html'
 ];
 
 const CDN_ASSETS = [

@@ -2105,6 +2105,70 @@ function loadHubChatSession(idx) {
 }
 window.loadHubChatSession = loadHubChatSession;
 
+function buildFinancialContext() {
+    const parts = [];
+    parts.push('Current date: ' + new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }));
+
+    // Portfolio
+    if (Array.isArray(db.investments) && db.investments.length > 0) {
+        const totalVal = db.investments.reduce((s, i) => s + (i.amount * (i.units || 1)), 0);
+        const totalInv = db.investments.reduce((s, i) => s + (i.amount || 0), 0);
+        const pnl = totalVal - totalInv;
+        const topHoldings = db.investments.sort((a, b) => (b.amount * (b.units || 1)) - (a.amount * (a.units || 1))).slice(0, 8);
+        parts.push('Portfolio: ' + db.investments.length + ' investments, total value ₹' + totalVal.toLocaleString('en-IN') + ', invested ₹' + totalInv.toLocaleString('en-IN') + ', P&L ₹' + Math.round(pnl).toLocaleString('en-IN'));
+        parts.push('Top holdings: ' + topHoldings.map(i => i.name + ' (₹' + Math.round(i.amount * (i.units || 1)).toLocaleString('en-IN') + ')').join(', '));
+    }
+
+    // SIPs
+    if (Array.isArray(db.sips) && db.sips.length > 0) {
+        const sipTotal = db.sips.reduce((s, i) => s + (i.amount || 0), 0);
+        parts.push('SIPs: ' + db.sips.length + ' active, total monthly ₹' + sipTotal.toLocaleString('en-IN'));
+    }
+
+    // Goals
+    if (Array.isArray(db.goals) && db.goals.length > 0) {
+        const goalTotal = db.goals.reduce((s, i) => s + (i.target || 0), 0);
+        const goalSaved = db.goals.reduce((s, i) => s + (i.saved || 0), 0);
+        parts.push('Goals: ' + db.goals.length + ' goals, target ₹' + goalTotal.toLocaleString('en-IN') + ', saved ₹' + goalSaved.toLocaleString('en-IN'));
+    }
+
+    // Monthly Plan
+    if (db.monthlyPlans) {
+        const now = new Date();
+        const key = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        const plan = db.monthlyPlans[key];
+        if (plan) {
+            const income = Array.isArray(plan.income) ? plan.income.reduce((s, i) => s + i.amount, 0) : 0;
+            const needs = Array.isArray(plan.needs) ? plan.needs.reduce((s, i) => s + i.amount, 0) : 0;
+            const wants = Array.isArray(plan.wants) ? plan.wants.reduce((s, i) => s + i.amount, 0) : 0;
+            parts.push('Monthly budget: income ₹' + Math.round(income).toLocaleString('en-IN') + ', needs ₹' + Math.round(needs).toLocaleString('en-IN') + ', wants ₹' + Math.round(wants).toLocaleString('en-IN'));
+        }
+    }
+
+    // Spend Tracker
+    if (db.spendTracker && Array.isArray(db.spendTracker.entries) && db.spendTracker.entries.length > 0) {
+        const now = new Date();
+        const monthEntries = db.spendTracker.entries.filter(e => {
+            const d = new Date(e.date);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        });
+        if (monthEntries.length > 0) {
+            const total = monthEntries.reduce((s, e) => s + e.amount, 0);
+            parts.push('Spend this month: ₹' + Math.round(total).toLocaleString('en-IN') + ' across ' + monthEntries.length + ' transactions');
+            const cats = {};
+            monthEntries.forEach(e => { const c = e.category || 'Uncategorized'; cats[c] = (cats[c] || 0) + e.amount; });
+            const topCat = Object.entries(cats).sort((a, b) => b[1] - a[1])[0];
+            if (topCat) parts.push('Top spend category: ' + topCat[0] + ' (₹' + Math.round(topCat[1]).toLocaleString('en-IN') + ')');
+        }
+    }
+
+    // User profile
+    if (db.userName) parts.push('User name: ' + db.userName);
+    if (db.userEmail) parts.push('User email: ' + db.userEmail);
+
+    return parts.join('\n');
+}
+
 async function sendAIChatInHub() {
     const input = document.getElementById('ai-hub-input');
     if (!input || !input.value.trim()) return;
@@ -2127,8 +2191,23 @@ async function sendAIChatInHub() {
     const body = document.getElementById('ai-hub-body');
     if (body) body.scrollTop = body.scrollHeight;
 
+    const context = buildFinancialContext();
+    const systemPrompt = 'You are TrackInvest, a strict financial planning assistant. You ONLY answer questions about personal finance, investing, budgeting, saving, and portfolio management. If asked about anything else (coding, general knowledge, entertainment, etc.), politely decline and redirect to finance topics. Keep responses concise and helpful. Format responses using simple HTML (<p>, <strong>, <br>, <ul>, <li>). Here is the user\'s financial profile and context:\n\n' + context + '\n\nUse this data to give personalized advice. If they ask about their portfolio, refer to the data above.';
+
+    // Build message history for the AI
+    const history = [
+        { role: 'system', content: systemPrompt }
+    ];
+    // Include up to last 20 messages for context
+    const recentMessages = activeChatSession.messages.slice(-20);
+    recentMessages.forEach(m => {
+        if (m.role === 'user' || m.role === 'assistant') {
+            history.push({ role: m.role, content: m.content });
+        }
+    });
+
     try {
-        const response = await callAIApi(text, "You are a personalized wealth assistant. Keep responses helpful and concise. Use simple HTML for formatting.");
+        const response = await callAIApiWithHistory(history);
 
         msgContainer.removeChild(typing);
         activeChatSession.messages.push({ role: 'assistant', content: response });
@@ -2144,7 +2223,17 @@ async function sendAIChatInHub() {
         showSnackbar("AI thinking failed. Check API keys.", "error");
     }
 }
+
+async function callAIApiWithHistory(messages) {
+    if (!window.__aiEnabled && window.__aiEnabled !== undefined) throw new Error('AI features disabled in Settings');
+    return callAIProvider(
+        { geminiKey: db.geminiKey, groqKey: db.groqKey, openrouterKey: db.openrouterKey, cerebrasKey: db.cerebrasKey, githubKey: db.githubKey },
+        '', '', messages
+    );
+}
 window.sendAIChatInHub = sendAIChatInHub;
+window.buildFinancialContext = buildFinancialContext;
+window.callAIApiWithHistory = callAIApiWithHistory;
 
 // ── Reports functions ──
 

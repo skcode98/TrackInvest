@@ -86,7 +86,6 @@ if (typeof db.enableMonthlyPlanner === 'undefined') db.enableMonthlyPlanner = tr
 
 // NEW: Spend Tracker
 if (typeof db.enableSpendTracker === 'undefined') db.enableSpendTracker = false;
-if (typeof db.enableMarketWatch === 'undefined') db.enableMarketWatch = true;
 if (typeof db.aiEnabled === 'undefined') db.aiEnabled = true;
 if (typeof db.webEnabled === 'undefined') db.webEnabled = true;
 

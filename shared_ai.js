@@ -36,8 +36,9 @@ async function getErrorMessage(response) {
 }
 
 // keys: { geminiKey, groqKey, openrouterKey, cerebrasKey, githubKey }
-// Returns response text or throws
-async function callAIProvider(keys, promptText, systemPrompt) {
+// If messages array is provided (for conversation history), use it; otherwise fall back to promptText
+// messages format: [{ role: 'system'|'user'|'assistant', content: '...' }]
+async function callAIProvider(keys, promptText, systemPrompt, messages) {
     if (window.__aiEnabled === false) throw new Error('AI features disabled in Settings');
     if (!keys || typeof keys !== 'object') throw new Error('Invalid keys object');
     const active = {};
@@ -54,8 +55,34 @@ async function callAIProvider(keys, promptText, systemPrompt) {
 
     const sanitizedPrompt = sanitizeInput(promptText);
     const sanitizedSystem = systemPrompt ? sanitizeInput(systemPrompt) : '';
+    const hasMessages = Array.isArray(messages) && messages.length > 0;
     const maxRetries = 2;
     const timeoutMs = 30000;
+
+    // Build conversation messages
+    let chatMessages = [];
+    if (hasMessages) {
+        // Use provided messages directly (system prompt already included by caller)
+        chatMessages = messages.map(m => ({
+            role: m.role === 'system' ? 'system' : m.role === 'assistant' ? 'assistant' : 'user',
+            content: sanitizeInput(m.content)
+        }));
+        // Ensure system message is first
+        if (chatMessages.length > 0 && chatMessages[0].role !== 'system' && sanitizedSystem) {
+            chatMessages.unshift({ role: 'system', content: sanitizedSystem });
+        }
+    } else {
+        chatMessages = [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }];
+    }
+
+    // For Gemini, flatten conversation into a single prompt (it doesn't support multi-turn as well)
+    let geminiText = sanitizedSystem ? sanitizedSystem + '\n\n' : '';
+    if (hasMessages) {
+        geminiText += messages.map(m => (m.role === 'user' ? 'User: ' : m.role === 'assistant' ? 'Assistant: ' : '') + sanitizeInput(m.content)).join('\n');
+        geminiText += '\n\nAssistant:';
+    } else {
+        geminiText += sanitizedPrompt;
+    }
 
     let responseText = null;
     let lastError = null;
@@ -94,7 +121,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('Gemini',
             'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
             { 'Content-Type': 'application/json', 'x-goog-api-key': keys.geminiKey, 'User-Agent': 'TrackInvest/1.0' },
-            { contents: [{ parts: [{ text: (sanitizedSystem || '') + '\n\n' + sanitizedPrompt }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 1000, topK: 40, topP: 0.95 } }
+            { contents: [{ parts: [{ text: geminiText }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 1000, topK: 40, topP: 0.95 } }
         );
     }
 
@@ -103,7 +130,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('Groq',
             'https://api.groq.com/openai/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.groqKey, 'Content-Type': 'application/json', 'User-Agent': 'TrackInvest/1.0' },
-            { model: 'llama-3.3-70b-versatile', messages: [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
+            { model: 'llama-3.3-70b-versatile', messages: chatMessages, max_tokens: 1000, temperature: 0.7 }
         );
     }
 
@@ -112,7 +139,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('OpenRouter',
             'https://openrouter.ai/api/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.openrouterKey, 'Content-Type': 'application/json', 'HTTP-Referer': (typeof window !== 'undefined' ? window.location.origin : ''), 'X-Title': 'TrackInvest' },
-            { model: 'openrouter/free', messages: [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
+            { model: 'openrouter/free', messages: chatMessages, max_tokens: 1000, temperature: 0.7 }
         );
     }
 
@@ -121,7 +148,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('Cerebras',
             'https://api.cerebras.ai/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.cerebrasKey, 'Content-Type': 'application/json' },
-            { model: 'gpt-oss-120b', messages: [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
+            { model: 'gpt-oss-120b', messages: chatMessages, max_tokens: 1000, temperature: 0.7 }
         );
     }
 
@@ -130,7 +157,7 @@ async function callAIProvider(keys, promptText, systemPrompt) {
         await tryFetch('GitHub Models',
             'https://models.github.ai/inference/chat/completions',
             { 'Authorization': 'Bearer ' + keys.githubKey, 'Content-Type': 'application/json' },
-            { model: 'gpt-4o-mini', messages: [{ role: 'system', content: sanitizedSystem }, { role: 'user', content: sanitizedPrompt }], max_tokens: 1000, temperature: 0.7 }
+            { model: 'gpt-4o-mini', messages: chatMessages, max_tokens: 1000, temperature: 0.7 }
         );
     }
 
