@@ -490,7 +490,7 @@
             </div>
 
             <div class="total-row" style="margin-top:14px;">
-                <span>Total Planned Investments</span>
+                <span>Total Planned Investments<span id="invest-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
                 <strong id="total-invest-val">₹0</strong>
             </div>
         </div>
@@ -507,7 +507,7 @@
                 <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Expense
             </button>
             <div class="total-row">
-                <span>Subtotal</span>
+                <span>Subtotal<span id="needs-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
                 <strong id="total-needs-val">₹0</strong>
             </div>
         </div>
@@ -529,7 +529,7 @@
                 </button>
             </div>
             <div class="total-row">
-                <span>Subtotal</span>
+                <span>Subtotal<span id="wants-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
                 <strong id="total-wants-val">₹0</strong>
             </div>
         </div>
@@ -846,8 +846,8 @@ function extractSIPsAndGoals() {
     updateTotalInvestDisplay();
 }
 
-function updateTotalInvestDisplay() {
-    const total = extractedSIPTotal + extractedGoalTotal;
+function updateTotalInvestDisplay(actualTotal) {
+    const total = actualTotal != null ? actualTotal : (extractedSIPTotal + extractedGoalTotal);
     document.getElementById('total-invest-val').textContent =
         '₹' + Math.round(total).toLocaleString('en-IN');
 }
@@ -1407,16 +1407,11 @@ function updateIncomeAmount(index, el) {
 function autoFillWants() {
     const income      = plan.income.reduce((s, i) => s + i.amount, 0);
     let totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
-    
-    // FIX #11: Use consistent data source
     const useActual = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
     const totalInvest = useActual ? actualInvest : extractedSIPTotal + extractedGoalTotal;
-    
-    // Prefer actual needs from spend data for current month if available
     if (viewOffset <= 0 && actualSpendTotal > 0) {
         totalNeeds = Math.round(actualNeedsFromSpend);
     }
-    
     const surplus     = income - totalNeeds - totalInvest;
     if (surplus <= 0 || plan.wants.length === 0) {
         snack('No surplus to split among wants.', 'info'); return;
@@ -1437,23 +1432,34 @@ function recalc() {
     let totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
     let totalWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
     const useActual = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
-    const totalInvest = useActual
-        ? actualInvest
-        : extractedSIPTotal + extractedGoalTotal;
+    const plannedInvest = extractedSIPTotal + extractedGoalTotal;
+    const totalInvest = useActual ? actualInvest : plannedInvest;
 
-    // FIX #11: Use consistent data source - if we have spend, use that for needs/wants
     if (viewOffset <= 0 && actualSpendTotal > 0) {
         totalNeeds = Math.round(actualNeedsFromSpend);
         totalWants = Math.round(actualWantsFromSpend);
     }
+
+    // Determine label suffix: show "(planned)" or "(actual)" on subtotals
+    const labelSuffix = useActual ? ' (actual)' : ' (planned)';
+
     const totalOut    = totalNeeds + totalWants + totalInvest;
     const balance     = income - totalOut;
 
     document.getElementById('total-income-val').textContent = '₹' + Math.round(income).toLocaleString('en-IN');
+
+    // Show data source label next to each subtotal
+    const needsLabel = document.getElementById('needs-subtotal-label');
+    const wantsLabel = document.getElementById('wants-subtotal-label');
+    const investLabel = document.getElementById('invest-subtotal-label');
+    if (needsLabel) needsLabel.textContent = useActual ? ' (actual)' : '';
+    if (wantsLabel) wantsLabel.textContent = useActual ? ' (actual)' : '';
+    if (investLabel) investLabel.textContent = useActual ? ' (actual)' : '';
+
     document.getElementById('total-needs-val').textContent  = '₹' + Math.round(totalNeeds).toLocaleString('en-IN');
     document.getElementById('total-wants-val').textContent  = '₹' + Math.round(totalWants).toLocaleString('en-IN');
     document.getElementById('m-total-out').textContent      = '₹' + Math.round(totalOut).toLocaleString('en-IN');
-    updateTotalInvestDisplay();
+    updateTotalInvestDisplay(useActual ? totalInvest : null);
 
     // Hero
     const hero   = document.getElementById('hero-card');
@@ -1487,7 +1493,8 @@ function recalc() {
     const viewMonth = getViewDate().toLocaleString('default', { month: 'long', year: 'numeric' });
     const dataSource = viewOffset === 0 ? 'Current month' : (viewOffset < 0 ? 'Past month' : 'Future month');
     const hasActualSpend = viewOffset <= 0 && actualSpendTotal > 0;
-    const dataLabel = hasActualSpend ? ` | Actual spend: ₹${Math.round(actualSpendTotal).toLocaleString('en-IN')}` : '';
+    const hasActualData = hasActualSpend || (viewOffset <= 0 && actualInvest > 0);
+    const dataLabel = hasActualData ? ` | Spend: ₹${Math.round(actualSpendTotal).toLocaleString('en-IN')} · Invest: ₹${Math.round(actualInvest).toLocaleString('en-IN')}` : '';
     
     let dataSourceEl = document.querySelector('.hero-data-source');
     if (!dataSourceEl) {
