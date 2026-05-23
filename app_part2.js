@@ -389,22 +389,22 @@ function deleteQuickLog(event, idx) { event.stopPropagation(); haptic(40); Swal.
 function buildUnifiedItemHTML(inv) {
     let meta = db.categories[inv.type] || { icon: 'savings', color: '#8D6E63' };
     let dObj = parseDate(inv.date);
-    let dateStr = `${dObj.getDate()} ${dObj.toLocaleString('default', { month: 'short' })} ${dObj.getFullYear()}`;
+    let dateStr = `${dObj.getDate()} ${dObj.toLocaleString('default', { month: 'short' })}`;
     let safeNote = escapeHtml(inv.note || inv.type);
     let safeType = escapeHtml(inv.type);
-    let tagsHtml = ""; if (inv.tags) { inv.tags.split(',').forEach(t => { if (t.trim()) tagsHtml += `<span class="roi-tag" style="background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);">#${escapeHtml(t.trim())}</span> `; }); }
-    let intHtml = inv.interestRate ? `<span class="unified-detail-tag" style="font-size:10px; background:var(--md-surface-container-highest); padding:2px 4px; border-radius:4px; font-weight:700;">${inv.interestRate}% APY</span>` : '';
+    let tagsHtml = ""; if (inv.tags) { inv.tags.split(',').forEach(t => { if (t.trim()) tagsHtml += `<span class="roi-tag" style="background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);font-size:10px;margin:0 2px;">#${escapeHtml(t.trim())}</span> `; }); }
+    let intHtml = inv.interestRate ? `<span style="font-size:10px;color:var(--md-primary);font-weight:500;">${inv.interestRate}%</span>` : '';
     return `
             <div class="swipe-wrapper" data-id="${inv.id}">
                 <div class="unified-item" onclick="openInvestSheet('${inv.id}')">
                     <div class="unified-icon" style="background:${meta.color};"><span class="material-symbols-rounded">${meta.icon}</span></div>
                     <div class="unified-content">
                         <div class="unified-title">
-                            <span class="title-text">${safeNote}</span> 
-                            <span class="price">+${formatMoney(inv.amount)}</span>
+                            <span class="title-text">${safeNote}</span>
+                            <span class="price" style="color:${parseFloat(inv.amount) >= 0 ? 'var(--md-success, #186D33)' : 'var(--md-error, #BA1A1A)'};">${parseFloat(inv.amount) >= 0 ? '+' : ''}${formatMoney(inv.amount)}</span>
                         </div>
-                        <span class="unified-subtitle">${dateStr} • ${safeType} ${intHtml}</span>
-                        ${tagsHtml ? `<div style="margin-top:2px;">${tagsHtml}</div>` : ''}
+                        <span class="unified-subtitle">${dateStr} • ${safeType}</span>
+                        ${intHtml || tagsHtml ? `<div style="margin-top:2px;display:flex;gap:4px;align-items:center;flex-wrap:wrap;">${intHtml}${tagsHtml}</div>` : ''}
                     </div>
                 </div>
             </div>`;
@@ -550,28 +550,60 @@ function renderHistory() {
     // Render recent searches
     renderSearchHistory();
 
-    // Single-pass filter + summary computation (avoids 8 chained filters)
+    // Single-pass filter + summary computation
     let liCount = 0, liTotal = 0;
     let filtered = [];
     for (const inv of db.investments) {
         if (activeAccountFilter !== 'All' && inv.account !== activeAccountFilter) continue;
         if (filterType !== 'All' && inv.type !== filterType) continue;
-        if (term && !inv.type.toLowerCase().includes(term) && !(inv.note && inv.note.toLowerCase().includes(term)) && !(inv.tags && inv.tags.toLowerCase().includes(term)) && !inv.date.includes(term)) continue;
+        if (term) {
+            const amountStr = String(inv.amount);
+            if (!inv.type.toLowerCase().includes(term) && !(inv.note && inv.note.toLowerCase().includes(term)) && !(inv.tags && inv.tags.toLowerCase().includes(term)) && !inv.date.includes(term) && !amountStr.includes(term)) continue;
+        }
         if (dateFrom && inv.date < dateFrom) continue;
         if (dateTo && inv.date > dateTo) continue;
         filtered.push(inv);
         liCount++; liTotal += inv.amount;
     }
 
-    // Group by month only if sorting by date
+    // Apply sorting
+    const sortField = window.ledgerSort || 'date';
+    const asc = window.ledgerAsc === true;
+    filtered.sort((a, b) => {
+        let cmp = 0;
+        if (sortField === 'date') cmp = a.date.localeCompare(b.date);
+        else if (sortField === 'amount') cmp = a.amount - b.amount;
+        else if (sortField === 'type') cmp = (a.type || '').localeCompare(b.type || '');
+        return asc ? cmp : -cmp;
+    });
+
+    // Group by month only if sorting by date, then reverse so newest first
     let html = '';
-    if (window.ledgerSort === 'date') {
-        let groups = {}; filtered.forEach(inv => { let dStr = new Date(inv.date).toLocaleString('default', { month: 'long', year: 'numeric' }); if (!groups[dStr]) groups[dStr] = []; groups[dStr].push(inv); });
-        html = Object.keys(groups).length === 0 ? getEmptyStateHTML('history') : Object.keys(groups).map(m => `<div class="ledger-month-header">${m}</div>` + groups[m].map(buildUnifiedItemHTML).join('')).join('');
+    if (filtered.length === 0) {
+        html = getEmptyStateHTML('history');
+    } else if (sortField === 'date') {
+        let groups = {};
+        filtered.forEach(inv => {
+            let dStr = new Date(inv.date).toLocaleString('default', { month: 'long', year: 'numeric' });
+            if (!groups[dStr]) groups[dStr] = [];
+            groups[dStr].push(inv);
+        });
+        // Show newest months first (reverse key order)
+        const months = Object.keys(groups).sort().reverse();
+        html = months.map(m => `<div class="ledger-month-header">${m} <span style="font-weight:400;font-size:11px;color:var(--md-outline);">(${groups[m].length})</span></div>` + groups[m].map(buildUnifiedItemHTML).join('')).join('');
     } else {
-        html = filtered.length === 0 ? getEmptyStateHTML('history') : filtered.map(buildUnifiedItemHTML).join('');
+        html = filtered.map(buildUnifiedItemHTML).join('');
     }
+
     let container = document.getElementById('ledger-history-list'); if (container) { container.innerHTML = html; attachSwipeListeners(container); }
+
+    // Update insights bar
+    const countEl = document.getElementById('li-count');
+    const totalEl = document.getElementById('li-total');
+    const avgEl = document.getElementById('li-avg');
+    if (countEl) countEl.textContent = liCount;
+    if (totalEl) totalEl.textContent = '₹' + liTotal.toLocaleString('en-IN');
+    if (avgEl) avgEl.textContent = liCount > 0 ? '₹' + Math.round(liTotal / liCount).toLocaleString('en-IN') : '₹0';
 }
 window.renderHistory = renderHistory;
 window.buildUnifiedItemHTML = buildUnifiedItemHTML;

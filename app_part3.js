@@ -606,6 +606,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const isUnlocked = await checkAppLock();
     initUI();
     processRecurring();
+    if (window.ledgerSort === undefined) window.ledgerSort = 'date';
+    if (window.ledgerAsc === undefined) window.ledgerAsc = false;
     renderAll();
 
     // Listen for back button

@@ -381,45 +381,31 @@
         <div id="tab-ledger" class="tab-content">
             <div class="section-title">Investment Ledger</div>
 
-            <!-- Ledger insights bar -->
-            <div class="insights-bar" id="ledger-insights-bar">
-                <div class="insight-box">
-                    <div class="insight-box-label">Total Entries</div>
-                    <div class="insight-box-val" id="li-count">0</div>
-                </div>
-                <div class="insight-box">
-                    <div class="insight-box-label">Total Invested</div>
-                    <div class="insight-box-val" id="li-total">₹0</div>
-                </div>
-                <div class="insight-box">
-                    <div class="insight-box-label">Avg / Entry</div>
-                    <div class="insight-box-val" id="li-avg">₹0</div>
-                </div>
+            <!-- Action buttons -->
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <button class="action-btn primary" style="flex:1;" onclick="openSheet('recurring-sheet')"><span
+                        class="material-symbols-rounded" style="font-size:18px;">autorenew</span> SIPs</button>
+                <button class="action-btn" style="flex:1;" onclick="openInvestSheet()"><span class="material-symbols-rounded"
+                        style="font-size:18px;">add</span> Add Entry</button>
+                <button class="action-btn" onclick="exportToCSV()" title="Export CSV"><span class="material-symbols-rounded"
+                        style="font-size:18px;">download</span></button>
             </div>
 
             <!-- Search + Type Filter -->
             <div style="display:flex;gap:8px;margin-bottom:10px;">
-                <input type="text" id="search-history" class="search-box" style="margin-bottom:0;flex:1;"
-                    placeholder="🔍 Search entries..." onkeyup="renderHistory()">
+                <div style="flex:1;position:relative;">
+                    <input type="text" id="search-history" class="search-box" style="margin-bottom:0;width:100%;padding-left:36px;"
+                        placeholder="Search entries..." onkeyup="renderHistory()">
+                    <span class="material-symbols-rounded" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--md-outline);">search</span>
+                </div>
                 <select id="ledger-filter-type" class="search-box"
-                    style="width:auto;margin-bottom:0;padding:0 16px;border-radius:28px;" onchange="renderHistory()">
+                    style="width:auto;margin-bottom:0;padding:0 14px;border-radius:28px;" onchange="renderHistory()">
                     <option value="All">All Assets</option>
                 </select>
             </div>
 
-            <!-- Date Range Filter -->
-            <div class="filter-toolbar">
-                <input type="date" id="ledger-date-from" class="date-filter-input" onchange="renderHistory()"
-                    title="From date">
-                <span style="color:var(--md-on-surface-variant);font-size:13px;">to</span>
-                <input type="date" id="ledger-date-to" class="date-filter-input" onchange="renderHistory()"
-                    title="To date">
-                <button class="sort-chip" onclick="clearLedgerDates()" title="Clear date filter"><span
-                        class="material-symbols-rounded" style="font-size:14px;">clear</span></button>
-            </div>
-
-            <!-- Sort chips -->
-            <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;">
+            <!-- Filter chips row -->
+            <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;">
                 <button class="sort-chip active" id="sort-date" onclick="setLedgerSort('date',this)"><span
                         class="material-symbols-rounded" style="font-size:14px;">calendar_today</span> Date</button>
                 <button class="sort-chip" id="sort-amount" onclick="setLedgerSort('amount',this)"><span
@@ -429,14 +415,28 @@
                 <button class="sort-chip" id="sort-asc" onclick="toggleLedgerOrder(this)" title="Toggle order"><span
                         class="material-symbols-rounded" style="font-size:14px;"
                         id="sort-order-icon">arrow_downward</span></button>
+                <span style="width:1px;height:24px;background:var(--md-outline-variant);margin:auto 4px;"></span>
+                <input type="date" id="ledger-date-from" class="date-filter-input" onchange="renderHistory()" title="From">
+                <span style="color:var(--md-outline);font-size:12px;">—</span>
+                <input type="date" id="ledger-date-to" class="date-filter-input" onchange="renderHistory()" title="To">
+                <button class="sort-chip" onclick="clearLedgerDates()" title="Clear dates"><span
+                        class="material-symbols-rounded" style="font-size:14px;">clear</span></button>
             </div>
 
-            <!-- Action buttons -->
-            <div class="action-row" style="margin-bottom:16px;">
-                <button class="action-btn primary" onclick="openSheet('recurring-sheet')"><span
-                        class="material-symbols-rounded" style="font-size:18px;">autorenew</span> Manage SIPs</button>
-                <button class="action-btn" onclick="exportToCSV()"><span class="material-symbols-rounded"
-                        style="font-size:18px;">download</span> Export CSV</button>
+            <!-- Ledger insights bar -->
+            <div class="insights-bar" id="ledger-insights-bar" style="margin-bottom:12px;">
+                <div class="insight-box">
+                    <div class="insight-box-label">Entries</div>
+                    <div class="insight-box-val" id="li-count">0</div>
+                </div>
+                <div class="insight-box">
+                    <div class="insight-box-label">Total</div>
+                    <div class="insight-box-val" id="li-total">₹0</div>
+                </div>
+                <div class="insight-box">
+                    <div class="insight-box-label">Avg/Entry</div>
+                    <div class="insight-box-val" id="li-avg">₹0</div>
+                </div>
             </div>
 
             <div class="list" id="ledger-history-list"></div>
