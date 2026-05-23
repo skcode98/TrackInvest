@@ -529,7 +529,9 @@ function renderAll() {
 
         if (typeof updatePortfolioCalculations === 'function') updatePortfolioCalculations();
         updateDashboardEntryCards();
+        renderNotificationBadge();
         checkSpendAlerts();
+        generateScheduledNotifications();
     });
 }
 window.renderAll = renderAll;
@@ -662,18 +664,154 @@ function triggerPWAInstall() {
     });
 }
 
-// ── Serverless Notifications (uses SW directly, no server needed) ──
+// ── In-App Notification System (fallback when browser notifications fail) ──
+function addInAppNotification(title, body, type, icon) {
+    if (!db.notifications) db.notifications = [];
+    // Deduplicate: skip if identical title+body exists within last hour
+    const recent = db.notifications.filter(n => n.title === title && n.body === body);
+    if (recent.length > 0) return;
+    db.notifications.unshift({ id: generateUniqueId(), title, body, type: type || 'system', icon: icon || 'notifications', date: new Date().toISOString(), read: false });
+    if (db.notifications.length > 100) db.notifications = db.notifications.slice(0, 100);
+    saveData();
+    renderNotificationBadge();
+    // Also try browser notification as a bonus
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'show-notification', title, body });
+            } else {
+                new Notification(title, { body, icon: './icons/icon-192.png' });
+            }
+        } catch (e) {}
+    }
+}
+window.addInAppNotification = addInAppNotification;
+
+function getUnreadNotificationCount() {
+    if (!db.notifications) return 0;
+    return db.notifications.filter(n => !n.read).length;
+}
+window.getUnreadNotificationCount = getUnreadNotificationCount;
+
+function renderNotificationBadge() {
+    const badge = document.getElementById('notif-badge');
+    const btn = document.getElementById('notif-bell-btn');
+    if (!badge) return;
+    const count = getUnreadNotificationCount();
+    if (count > 0) {
+        badge.style.display = 'block';
+        btn.style.position = 'relative';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+window.renderNotificationBadge = renderNotificationBadge;
+
+function renderNotificationList() {
+    const list = document.getElementById('notif-list');
+    const empty = document.getElementById('notif-empty');
+    if (!list) return;
+    const notifs = db.notifications || [];
+    if (notifs.length === 0) {
+        list.innerHTML = '';
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    list.innerHTML = notifs.map(n => {
+        const time = new Date(n.date).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return '<div class="notif-item" data-id="' + n.id + '" style="display:flex;gap:10px;padding:10px 12px;border-radius:12px;background:' + (n.read ? 'var(--md-surface-container)' : 'var(--md-surface-container-highest)') + ';cursor:pointer;transition:0.15s;" onclick="markNotificationRead(\'' + n.id + '\')">'
+            + '<span class="material-symbols-rounded" style="font-size:20px;color:var(--md-primary);margin-top:2px;">' + escapeHtml(n.icon || 'notifications') + '</span>'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-weight:' + (n.read ? '400' : '600') + ';font-size:13px;color:var(--md-on-surface);">' + escapeHtml(n.title) + '</div>'
+            + '<div style="font-size:12px;color:var(--md-outline);margin-top:2px;">' + escapeHtml(n.body) + '</div>'
+            + '<div style="font-size:10px;color:var(--md-outline);margin-top:4px;opacity:0.6;">' + time + '</div>'
+            + '</div>'
+            + '<button class="icon-btn" style="width:28px;height:28px;flex-shrink:0;" onclick="event.stopPropagation();dismissNotification(\'' + n.id + '\')" title="Dismiss"><span class="material-symbols-rounded" style="font-size:16px;">close</span></button>'
+            + '</div>';
+    }).join('');
+}
+window.renderNotificationList = renderNotificationList;
+
+function openInAppNotifications() {
+    renderNotificationList();
+    openSheet('notif-sheet');
+    haptic(20);
+}
+window.openInAppNotifications = openInAppNotifications;
+
+function markNotificationRead(id) {
+    const n = (db.notifications || []).find(x => x.id === id);
+    if (n) { n.read = true; saveData(); renderNotificationList(); renderNotificationBadge(); }
+}
+window.markNotificationRead = markNotificationRead;
+
+function markAllNotificationsRead() {
+    (db.notifications || []).forEach(n => n.read = true);
+    saveData(); renderNotificationList(); renderNotificationBadge();
+    showSnackbar('All marked read', 'done_all');
+}
+window.markAllNotificationsRead = markAllNotificationsRead;
+
+function dismissNotification(id) {
+    db.notifications = (db.notifications || []).filter(n => n.id !== id);
+    saveData(); renderNotificationList(); renderNotificationBadge();
+}
+window.dismissNotification = dismissNotification;
+
+function clearAllNotifications() {
+    if ((db.notifications || []).length === 0) return;
+    Swal.fire({ title: 'Clear all notifications?', icon: 'question', showCancelButton: true, confirmButtonText: 'Clear' }).then(r => {
+        if (r.isConfirmed) { db.notifications = []; saveData(); renderNotificationList(); renderNotificationBadge(); showSnackbar('Cleared', 'delete_sweep'); }
+    });
+}
+window.clearAllNotifications = clearAllNotifications;
+
+// Keep existing showLocalNotification as-is (it adds to browser notifications)
 function showLocalNotification(title, body) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    // Try via SW first (works in PWA standalone mode)
     if (navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'show-notification', title, body });
         return;
     }
-    // Fallback: direct notification
     try { new Notification(title, { body, icon: './icons/icon-192.png' }); } catch (e) { }
 }
 window.showLocalNotification = showLocalNotification;
+
+// Generate notifications from app events (runs once per day)
+function generateScheduledNotifications() {
+    if (!db.userPreferences) db.userPreferences = {};
+    const prefs = db.userPreferences;
+    const today = new Date().toDateString();
+    if (db._notifLastRun === today) return;
+    db._notifLastRun = today;
+
+    // SIP reminders
+    if (prefs.sipReminders !== false && Array.isArray(db.sips)) {
+        const now = new Date();
+        db.sips.forEach(sip => {
+            if (!sip.date && !sip.day) return;
+            let sipDay = sip.day || new Date(sip.date).getDate();
+            if (sipDay === now.getDate()) {
+                addInAppNotification('SIP Due Today', sip.name + ' — ₹' + (sip.amount || 0).toLocaleString('en-IN'), 'sip', 'repeat');
+            }
+        });
+    }
+
+    // Goal progress (1st and 15th of month)
+    if (prefs.goalProgressUpdates !== false && Array.isArray(db.goals)) {
+        const now = new Date();
+        if (now.getDate() === 1 || now.getDate() === 15) {
+            db.goals.forEach(g => {
+                if (g.target > 0) {
+                    const pct = ((g.saved || 0) / g.target * 100).toFixed(0);
+                    addInAppNotification('Goal Progress', g.name + ': ' + pct + '% complete (₹' + (g.saved || 0).toLocaleString('en-IN') + '/₹' + g.target.toLocaleString('en-IN') + ')', 'goal', 'flag');
+                }
+            });
+        }
+    }
+}
+window.generateScheduledNotifications = generateScheduledNotifications;
 
 function calculatePortfolioHealth() {
     let score = 100;
@@ -1049,15 +1187,14 @@ function checkSpendAlerts() {
     let weeklyBudget = dailyBudget * 7;
 
     if (dailyBudget > 0 && todayTotal > dailyBudget * 1.2) {
-        showLocalNotification('Spend Alert 🚨', `Today's spend ₹${fmtNum(todayTotal)} exceeds daily budget ₹${fmtNum(dailyBudget)}`);
+        addInAppNotification('Spend Alert', `Today: ₹${fmtNum(todayTotal)} exceeds daily budget ₹${fmtNum(dailyBudget)}`, 'spend', 'warning');
     }
     if (weeklyBudget > 0 && weekTotal > weeklyBudget) {
         let weekPerc = ((weekTotal / monthlyTotalBudget) * 100).toFixed(0);
-        showLocalNotification('Weekly Spend Alert 📊', `This week: ₹${fmtNum(weekTotal)} (${weekPerc}% of monthly budget)`);
+        addInAppNotification('Weekly Spend', `This week: ₹${fmtNum(weekTotal)} (${weekPerc}% of budget)`, 'spend', 'monitoring');
     }
     if (dailyBudget > 0 && todayTotal > dailyBudget * 0.8 && todayTotal <= dailyBudget * 1.2) {
-        let remaining = dailyBudget - todayTotal;
-        showLocalNotification('Budget Warning ⚠️', `You have ₹${fmtNum(Math.max(0, remaining))} left for today`);
+        addInAppNotification('Budget Warning', `₹${fmtNum(Math.max(0, dailyBudget - todayTotal))} left for today`, 'spend', 'trending_down');
     }
 }
 

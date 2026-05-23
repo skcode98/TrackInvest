@@ -1942,6 +1942,20 @@ input:checked+.slider:before {
     bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
+/* ── In-App Notification Styles ── */
+#notif-bell-btn {
+    position: relative;
+}
+.notif-item {
+    transition: background 0.15s, transform 0.1s;
+}
+.notif-item:hover {
+    background: var(--md-surface-container-high) !important;
+}
+.notif-item:active {
+    transform: scale(0.98);
+}
+
 .swal2-popup {
     background: var(--md-surface-container-low) !important;
     color: var(--md-on-surface) !important;

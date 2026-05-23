@@ -61,6 +61,8 @@
                 style="color:var(--md-primary);">account_balance</span> TrackInvest</div>
         <div style="display:flex; gap:8px; align-items:center;">
             <select class="account-selector" id="account-filter" onchange="renderAll()"></select>
+            <button class="icon-btn" onclick="openInAppNotifications()" aria-label="Notifications" id="notif-bell-btn"><span
+                    class="material-symbols-rounded">notifications</span><span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--md-error);border:2px solid var(--md-surface);"></span></button>
             <button class="icon-btn" onclick="togglePrivacy()" aria-label="Toggle Privacy"><span
                     class="material-symbols-rounded" id="privacy-icon">visibility</span></button>
             <button class="icon-btn" onclick="openSettings()" aria-label="Open Settings"><span
@@ -1258,6 +1260,24 @@
 
 
     <div id="snackbar" class="snackbar"></div>
+
+    <!-- In-App Notification Sheet -->
+    <div class="sheet sub-sheet" id="notif-sheet">
+        <div class="drag-handle"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h3 class="sheet-title" style="margin:0;"><span class="material-symbols-rounded" style="font-size:20px;vertical-align:middle;">notifications</span> Notifications</h3>
+            <div style="display:flex;gap:4px;">
+                <button class="icon-btn" onclick="markAllNotificationsRead()" title="Mark all read"><span class="material-symbols-rounded" style="font-size:18px;">done_all</span></button>
+                <button class="icon-btn" onclick="clearAllNotifications()" title="Clear all"><span class="material-symbols-rounded" style="font-size:18px;color:var(--md-error);">delete_sweep</span></button>
+                <button class="icon-btn" onclick="closeSubSheet()"><span class="material-symbols-rounded" style="font-size:18px;">close</span></button>
+            </div>
+        </div>
+        <div id="notif-list" style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px;"></div>
+        <div id="notif-empty" style="display:none;text-align:center;padding:32px 16px;color:var(--md-outline);font-size:13px;">
+            <span class="material-symbols-rounded" style="font-size:32px;display:block;margin-bottom:8px;">notifications_off</span>
+            No notifications
+        </div>
+    </div>
 
     <script src="./shared_ai.js"></script>
     <script src="./app_part1.js"></script>
