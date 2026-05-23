@@ -150,7 +150,7 @@
     <header class="top-app-bar">
         <button class="icon-btn" onclick="window.location.href='index.html'"><span class="material-symbols-rounded">arrow_back</span></button>
         <div class="app-title">Spend Tracker</div>
-        <div style="flex:1;"></div>
+        <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner"><span class="material-symbols-rounded">account_balance</span></button>
         <button class="icon-btn" onclick="openImportSheet()" title="Import"><span class="material-symbols-rounded">file_upload</span></button>
         <button class="icon-btn" onclick="showExportMenu()" title="Export"><span class="material-symbols-rounded">download</span></button>
         <button class="icon-btn" onclick="document.getElementById('ai-insights-output').style.display='none';renderAll()" title="Refresh"><span class="material-symbols-rounded">refresh</span></button>
@@ -244,7 +244,7 @@
         try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; } catch(e){}
         const STORAGE_KEY = 'appHubInvestDb';
         function loadDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; } }
-        function saveDB() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); } catch(e) { showSnackbar('Storage failed','error'); } }
+        function saveDB() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {} } catch(e) { showSnackbar('Storage failed','error'); } }
         function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
         let db = loadDB();
         if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
@@ -266,10 +266,12 @@
             'Investment':'#F57C00','Income':'#2E7D32','Other':'#8E9099'
         };
 
+        function getPlanMonthKey(y, m) { return y + '-' + String(m + 1).padStart(2, '0'); }
+
         // ── MAPPING: Monthly Planner categories → Spend Tracker categories ──
         const BUDGET_CAT_MAP = {
             'needs': ['Food & Dining','Groceries','Bills & Utilities','Rent','Health & Medical','Transport'],
-            'wants': ['Entertainment','Shopping','Travel','Food & Dining'],
+            'wants': ['Entertainment','Shopping','Travel'],
             'investments': ['Investment'],
             'customInvestments': ['Investment'],
             'income': ['Income']
@@ -410,7 +412,9 @@
         // ── BUDGET VS ACTUAL ──
         function renderBudgetVsActual() {
             const section = document.getElementById('budget-section');
-            const plan = db.monthlyPlanConfig;
+            const monthKey = getPlanMonthKey(currentYear, currentMonth);
+            const monthlyPlans = (db.monthlyPlans || {});
+            const plan = monthlyPlans[monthKey];
             if (!plan || !plan.income || plan.income.length === 0) { section.style.display = 'none'; return; }
             section.style.display = 'block';
             const list = document.getElementById('budget-list');

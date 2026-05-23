@@ -255,6 +255,9 @@
             <span id="month-saved-dot" style="display:none;width:6px;height:6px;border-radius:50%;background:var(--md-success);margin-left:2px;" title="Plan saved for this month"></span>
             <button onclick="shiftMonth(1)"><span class="material-symbols-rounded" style="font-size:18px;">chevron_right</span></button>
         </div>
+        <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker">
+            <span class="material-symbols-rounded">receipt_long</span>
+        </button>
         <button class="icon-btn" onclick="triggerAITip()" title="AI Insight">
             <span class="material-symbols-rounded">auto_awesome</span>
         </button>
@@ -1248,6 +1251,7 @@ function savePlanner() {
         try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Save failed: storage corrupted','error'); return; }
         Object.assign(existing, db);
         localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
+        try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {}
         updateMonthUI(key);
         snack('Plan saved!', 'check_circle');
     } catch (e) {
