@@ -818,7 +818,7 @@ function openSheet(sheetId, fromRestore = false) {
     _sheetOpening = true;
     haptic(20);
     try {
-    const isSubSheet = SUB_SHEET_IDS.includes(sheetId);
+    const isSubSheet = SUB_SHEET_IDS.has(sheetId);
     const targetSheet = document.getElementById(sheetId);
 
     if (!targetSheet) {
