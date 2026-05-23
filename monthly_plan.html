@@ -234,6 +234,15 @@
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .spin { animation:spin 1s linear infinite; display:inline-block; }
 
+        /* FIX #8: Unsaved changes indicator */
+        .unsaved-indicator {
+            position:fixed; top:60px; right:10px;
+            background:var(--md-warning-container); color:var(--md-on-warning-container);
+            padding:6px 12px; border-radius:20px; font-size:11px;
+            z-index:100; animation:fade-in 0.3s ease-out;
+        }
+        @keyframes fade-in { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+
         .horizon-input {
             width: 52px; text-align:center; font-size:16px; font-weight:600;
             color: var(--md-primary); background: var(--md-surface-container);
@@ -495,6 +504,9 @@
         <button class="btn-secondary" style="flex:0.3; padding:14px 10px; font-size:13px;" onclick="resetPlanner()">
             Reset
         </button>
+        <button class="btn-secondary" style="flex:0.9; padding:14px 10px; font-size:13px;" onclick="autoMatchSpend()" title="Auto-match spend categories to plan">
+            <span class="material-symbols-rounded" style="font-size:18px;">link</span> Auto-match Spend
+        </button>
         <button class="btn-primary" style="flex:1;" onclick="savePlanner()">
             <span class="material-symbols-rounded">save</span> Save Plan
         </button>
@@ -519,6 +531,8 @@ let viewOffset = 0;
 let actualInvest = 0;
 let actualSpendTotal = 0;
 let actualSpendByCategory = {};
+let actualNeedsFromSpend = 0;
+let actualWantsFromSpend = 0;
 
 let plan = getDefaultPlan();
 
@@ -586,6 +600,33 @@ function updateMonthUI(key) {
     const hasPlan = db.monthlyPlans && db.monthlyPlans[key] && !isEmptyPlan(db.monthlyPlans[key]);
     dot.style.display = hasPlan ? '' : 'none';
     dot.title = hasPlan ? 'Plan saved for this month' : '';
+}
+
+let autoSaveTimer = null;
+
+function markDirty() {
+    let ind = document.getElementById('unsaved-indicator');
+    if (!ind) {
+        ind = document.createElement('div');
+        ind.id = 'unsaved-indicator';
+        ind.className = 'unsaved-indicator';
+        ind.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle;margin-right:4px;">warning</span>Unsaved changes';
+        document.body.appendChild(ind);
+    } else {
+        ind.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle;margin-right:4px;">warning</span>Unsaved changes';
+    }
+
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        if (ind) ind.innerHTML = '<span class="material-symbols-rounded spin" style="font-size:14px;vertical-align:middle;margin-right:4px;">autorenew</span>Saving...';
+        savePlanner(true);
+    }, 3000);
+}
+
+function clearDirty() {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    const ind = document.getElementById('unsaved-indicator');
+    if (ind) ind.remove();
 }
 
 function isEmptyPlan(p) {
@@ -769,8 +810,226 @@ function loadActuals() {
         actualSpendByCategory[cat] = (actualSpendByCategory[cat] || 0) + (e.amount || 0);
     });
 
+    // Classify actual spend into needs vs wants using simple heuristics
+    actualNeedsFromSpend = 0;
+    actualWantsFromSpend = 0;
+    Object.entries(actualSpendByCategory).forEach(([cat, amt]) => {
+        const cls = classifySpendCategory(cat);
+        if (cls === 'needs') actualNeedsFromSpend += amt; else actualWantsFromSpend += amt;
+    });
+
     updatePVABars();
     renderSpendSummary();
+}
+
+// Heuristic classification of spend categories into 'needs' or 'wants'
+function classifySpendCategory(category) {
+    if (!category) return 'wants';
+    const c = String(category).toLowerCase();
+    const needsKeywords = ['rent','emi','mortgage','grocery','groceries','house','housing','utility','utilities','electricity','internet','gas','water','mobile','phone','bills','fuel','transport','bus','train','commute','school','tuition','health','doctor','medicine','medical'];
+    for (let k of needsKeywords) if (c.includes(k)) return 'needs';
+    // If category exactly matches one of the plan needs entries, treat as needs
+    const lowerNeeds = (plan.needs||[]).map(n => String(n.name||'').toLowerCase());
+    for (let n of lowerNeeds) if (n && c.includes(n)) return 'needs';
+    return 'wants';
+}
+
+function _tokens(s) {
+    return String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length > 2);
+}
+
+function hasCommonToken(a, b) {
+    const ta = _tokens(a); const tb = _tokens(b);
+    return ta.some(x => tb.includes(x));
+}
+
+// Auto-match spend categories into plan needs/wants
+async function autoMatchSpend() {
+    if (actualSpendTotal <= 0) { snack('No spend data for this month to match.', 'info'); return; }
+    if (viewOffset !== 0) { snack('Can only auto-match current month', 'info'); return; }
+
+    // Show confirmation dialog with preview
+    const { value: proceed } = await Swal.fire({
+        title: 'Auto-Match Spending',
+        html: `<div style="text-align:left;font-size:13px;">
+            <strong>Spend Categories Found:</strong><br/>
+            ${Object.entries(actualSpendByCategory).slice(0,5).map(([cat, amt]) => {
+                const cls = classifySpendCategory(cat);
+                const emoji = cls === 'needs' ? '🛒' : '🎉';
+                return `<div>${emoji} ${DOMPurify.sanitize(cat)}: <strong>₹${Math.round(amt).toLocaleString('en-IN')}</strong></div>`;
+            }).join('')}
+            <br/><em style="color:var(--md-outline);">These will be matched to your needs/wants categories.</em>
+        </div>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Apply Matches',
+        cancelButtonText: 'Cancel',
+        customClass: { confirmButton: 'swal-btn-confirm' }
+    });
+    
+    if (!proceed) return;
+
+    // Try AI first if available
+    if (db.geminiKey || db.groqKey || db.openrouterKey || db.cerebrasKey || db.githubKey) {
+        try {
+            await autoMatchSpendAI();
+            return;
+        } catch (e) {
+            console.warn('AI auto-match failed, falling back to heuristic', e);
+        }
+    }
+
+    // Fallback: heuristic matcher (preserves existing amounts)
+    applyHeuristicMatching();
+}
+
+function applyHeuristicMatching() {
+    plan.needs = Array.isArray(plan.needs) ? plan.needs : [];
+    plan.wants = Array.isArray(plan.wants) ? plan.wants : [];
+
+    Object.entries(actualSpendByCategory).forEach(([cat, amt]) => {
+        const lc = (cat || '').toLowerCase();
+        let matched = false;
+
+        // Try exact or token match against needs
+        for (let i = 0; i < plan.needs.length; i++) {
+            const name = (plan.needs[i].name || '').toLowerCase();
+            if (!name) continue;
+            if (lc.includes(name) || name.includes(lc) || hasCommonToken(name, lc)) {
+                plan.needs[i].amount = (plan.needs[i].amount || 0) + amt;
+                matched = true; break;
+            }
+        }
+        if (matched) return;
+
+        // Try match against wants
+        for (let i = 0; i < plan.wants.length; i++) {
+            const name = (plan.wants[i].name || '').toLowerCase();
+            if (!name) continue;
+            if (lc.includes(name) || name.includes(lc) || hasCommonToken(name, lc)) {
+                plan.wants[i].amount = (plan.wants[i].amount || 0) + amt;
+                matched = true; break;
+            }
+        }
+        if (matched) return;
+
+        // No match found — classify and create a new row
+        const cls = classifySpendCategory(cat);
+        if (cls === 'needs') plan.needs.push({ name: cat, amount: amt, autoMatched: true });
+        else plan.wants.push({ name: cat, amount: amt, autoMatched: true });
+    });
+
+    savePlanner();
+    renderSection('needs'); renderSection('wants'); recalc(); updatePVABars();
+    snack('✓ Auto-matched spend categories', 'link');
+}
+
+async function autoMatchSpendAI() {
+    const btn = document.querySelector('[onclick*="autoMatchSpend"]');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
+
+    try {
+        const categories = Object.entries(actualSpendByCategory).map(([cat, amt]) => ({ category: cat, amount: Math.round(amt) }));
+        const needNames = (plan.needs||[]).map(n => n.name || '').filter(n => n);
+        const wantNames = (plan.wants||[]).map(w => w.name || '').filter(w => w);
+
+        const prompt = `You are a finance assistant. Map each spend category to "needs" or "wants" and suggest matching plan items. Return JSON: {"mappings":[{"category":"...","classification":"needs|wants","matchTo":"plan item or null","confidence":0.9}]}
+
+Spending (₹${Math.round(actualSpendTotal)} total):
+${JSON.stringify(categories)}
+
+Existing: Needs=[${needNames.join(',')}] Wants=[${wantNames.join(',')}]
+
+Return ONLY JSON, no other text.`;
+
+        const raw = await callAI(prompt);
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (e) {
+            const m = raw.match(/\{[\s\S]*\}/);
+            if (m) parsed = JSON.parse(m[0]);
+            else throw new Error('Invalid JSON response from AI');
+        }
+
+        // FIX #15: Validate parsed data structure
+        if (!parsed || !Array.isArray(parsed.mappings) || parsed.mappings.length === 0) {
+            throw new Error('No mappings in AI response');
+        }
+
+        const validMappings = parsed.mappings.filter(m => {
+            if (!m.category || typeof m.category !== 'string') return false;
+            if (!m.classification || !['needs', 'wants'].includes(m.classification)) return false;
+            if (!Object.keys(actualSpendByCategory).includes(m.category)) {
+                console.warn('Invalid spend category:', m.category);
+                return false;
+            }
+            return true;
+        });
+
+        if (validMappings.length === 0) {
+            throw new Error('No valid mappings after validation');
+        }
+
+        // FIX #2: Don't zero arrays - preserve existing items and accumulate
+        plan.needs = Array.isArray(plan.needs) ? plan.needs : [];
+        plan.wants = Array.isArray(plan.wants) ? plan.wants : [];
+
+        let matchedCount = 0;
+        validMappings.forEach(m => {
+            const cat = m.category;
+            const amt = Math.round(actualSpendByCategory[cat] || 0);
+            const cls = m.classification.toLowerCase();
+            const target = m.matchTo;
+
+            if (target) {
+                const arr = cls === 'needs' ? plan.needs : plan.wants;
+                const slot = arr.find(x => (x.name||'').toLowerCase() === target.toLowerCase());
+                if (slot) {
+                    slot.amount = (slot.amount || 0) + amt;
+                    matchedCount++;
+                    return;
+                }
+            }
+
+            // Try fuzzy match
+            const arr = cls === 'needs' ? plan.needs : plan.wants;
+            let placed = false;
+            for (let entry of arr) {
+                if (hasCommonToken(entry.name, cat)) {
+                    entry.amount = (entry.amount || 0) + amt;
+                    placed = true;
+                    matchedCount++;
+                    break;
+                }
+            }
+
+            if (!placed) {
+                if (cls === 'needs') {
+                    plan.needs.push({ name: cat, amount: amt, aiMatched: true });
+                } else {
+                    plan.wants.push({ name: cat, amount: amt, aiMatched: true });
+                }
+                matchedCount++;
+            }
+        });
+
+        savePlanner();
+        renderSection('needs'); renderSection('wants'); recalc(); updatePVABars();
+        snack(`✓ AI matched ${matchedCount} categories`, 'smart_toy');
+
+    } catch (e) {
+        console.error('AI match failed:', e);
+        snack('⚠ AI match failed: ' + (e.message || 'Unknown error'), 'error');
+        // Fall back to heuristic
+        applyHeuristicMatching();
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -785,8 +1044,8 @@ function updatePVABars() {
     renderPVA('invest-pva', plannedInvest, actualInvest, true);
 
     // Needs & Wants actual from spend tracker (show for all months with data)
-    const actualNeeds = actualSpendTotal > 0 ? Math.round(actualSpendTotal * 0.6) : 0;
-    const actualWants = actualSpendTotal > 0 ? Math.round(actualSpendTotal * 0.4) : 0;
+    const actualNeeds = actualSpendTotal > 0 ? Math.round(actualNeedsFromSpend) : 0;
+    const actualWants = actualSpendTotal > 0 ? Math.round(actualWantsFromSpend) : 0;
     if (actualSpendTotal > 0) {
         renderPVA('needs-pva', plannedNeeds, actualNeeds, false);
         renderPVA('wants-pva', plannedWants, actualWants, false);
@@ -802,6 +1061,9 @@ function renderSpendSummary() {
     const totalEl = document.getElementById('actual-spend-total');
     if (!card || !breakdown || !totalEl) return;
 
+    // FIX #10: Ensure spend tracker structure exists
+    if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
+    
     const hasData = actualSpendTotal > 0;
     card.style.display = hasData ? '' : 'none';
     if (!hasData) return;
@@ -926,10 +1188,16 @@ function makeRow(item, index, type) {
         }
     };
     const hint = hints[type]?.[item.name] || '';
+    const badge = item.aiMatched ? `<span style="font-size:10px;background:var(--md-primary-container);color:var(--md-on-primary-container);padding:2px 6px;border-radius:6px;margin-left:6px;" title="This amount was matched from your actual spending using AI categorization.">✨ AI</span>` :
+                  item.autoMatched ? `<span style="font-size:10px;background:var(--md-surface-container-highest);color:var(--md-on-surface);padding:2px 6px;border-radius:6px;margin-left:6px;" title="This amount was matched from your actual spending using exact or partial name matching.">⚙️ Auto</span>` : '';
+                  
     wrap.innerHTML = `
         <div class="plan-row-label" style="flex:1; min-width:0;">
-            <input type="text" class="name" value="${escapeHtml(item.name)}"
-                onchange="updateName('${type}',${index},this.value)" title="Click to rename">
+            <div style="display:flex;align-items:center;">
+                <input type="text" class="name" value="${escapeHtml(item.name)}"
+                    onchange="updateName('${type}',${index},this.value)" title="Click to rename" style="flex:1;">
+                ${badge}
+            </div>
             ${hint ? `<div class="hint">${hint}</div>` : ''}
         </div>
         <div class="plan-input-box">
@@ -950,10 +1218,12 @@ function updateAmount(type, index, el) {
     plan[type][index].amount = validatePlanInputBox(el);
     recalc();
     updatePVABars();
+    markDirty();
 }
 
 function updateName(type, index, val) {
     if (val.trim()) plan[type][index].name = val.trim();
+    markDirty();
 }
 
 function addRow(type) {
@@ -963,6 +1233,7 @@ function addRow(type) {
     const rows = document.querySelectorAll(`#${type}-container .plan-row`);
     const last = rows[rows.length - 1];
     if (last) { const ni = last.querySelector('.name'); if (ni) { ni.select(); ni.focus(); } }
+    markDirty();
 }
 
 function removeRow(type, index) {
@@ -970,6 +1241,7 @@ function removeRow(type, index) {
     renderSection(type);
     recalc();
     updatePVABars();
+    markDirty();
 }
 
 function addIncomeRow() {
@@ -979,6 +1251,7 @@ function addIncomeRow() {
     const rows = document.querySelectorAll('#income-rows .income-source-row');
     const last = rows[rows.length - 1];
     if (last) { const ni = last.querySelector('input[type="text"]'); if (ni) { ni.select(); ni.focus(); } }
+    markDirty();
 }
 
 function removeIncomeRow(index) {
@@ -986,6 +1259,7 @@ function removeIncomeRow(index) {
     plan.income.splice(index, 1);
     renderIncomeSection();
     recalc();
+    markDirty();
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -1049,16 +1323,19 @@ function validatePlanInputBox(inputEl) {
 function updateIncomeAmount(index, el) {
     plan.income[index].amount = validatePlanInputBox(el);
     recalc();
+    markDirty();
 }
 
 function updateCustomInvestAmount(index, el) {
     plan.customInvestments[index].amount = validatePlanInputBox(el);
     recalc();
     updateCustomInvestTotal();
+    markDirty();
 }
 
 function updateCustomInvestName(index, val) {
     if (val.trim()) plan.customInvestments[index].name = val.trim();
+    markDirty();
 }
 
 function updateCustomInvestTotal() {
@@ -1116,9 +1393,17 @@ function syncCustomInvestments() {
 
 function autoFillWants() {
     const income      = plan.income.reduce((s, i) => s + i.amount, 0);
-    const totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
-    const useActual = viewOffset <= 0 && actualInvest > 0;
+    let totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
+    
+    // FIX #11: Use consistent data source
+    const useActual = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
     const totalInvest = useActual ? actualInvest : extractedSIPTotal + extractedGoalTotal;
+    
+    // Prefer actual needs from spend data for current month if available
+    if (viewOffset <= 0 && actualSpendTotal > 0) {
+        totalNeeds = Math.round(actualNeedsFromSpend);
+    }
+    
     const surplus     = income - totalNeeds - totalInvest;
     if (surplus <= 0 || plan.wants.length === 0) {
         snack('No surplus to split among wants.', 'info'); return;
@@ -1136,14 +1421,21 @@ function autoFillWants() {
 // ──────────────────────────────────────────────────────────────
 function recalc() {
     const income      = plan.income.reduce((s, i) => s + i.amount, 0);
-    const totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
-    const totalWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
+    let totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
+    let totalWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
     const customInvestTotal = plan.customInvestments.reduce((s, i) => s + (i.amount || 0), 0);
-    // Use actual ledger data for past/current months, planned for future months
-    const useActual = viewOffset <= 0 && actualInvest > 0;
+    
+    // FIX #4: Check for actual spend data too, not just investments
+    const useActual = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
     const totalInvest = useActual
         ? actualInvest + customInvestTotal
         : extractedSIPTotal + extractedGoalTotal + customInvestTotal;
+
+    // FIX #11: Use consistent data source - if we have spend, use that for needs/wants
+    if (viewOffset <= 0 && actualSpendTotal > 0) {
+        totalNeeds = Math.round(actualNeedsFromSpend);
+        totalWants = Math.round(actualWantsFromSpend);
+    }
     const totalOut    = totalNeeds + totalWants + totalInvest;
     const balance     = income - totalOut;
 
@@ -1180,6 +1472,21 @@ function recalc() {
         iconEl.textContent = 'info';
         msgEl.textContent  = `₹${Math.round(balance).toLocaleString('en-IN')} unallocated — assign it or save more.`;
     }
+
+    // FIX #5: Add data source labels to hero card
+    const viewMonth = getViewDate().toLocaleString('default', { month: 'long', year: 'numeric' });
+    const dataSource = viewOffset === 0 ? 'Current month' : (viewOffset < 0 ? 'Past month' : 'Future month');
+    const hasActualSpend = viewOffset <= 0 && actualSpendTotal > 0;
+    const dataLabel = hasActualSpend ? ` | Actual spend: ₹${Math.round(actualSpendTotal).toLocaleString('en-IN')}` : '';
+    
+    let dataSourceEl = document.querySelector('.hero-data-source');
+    if (!dataSourceEl) {
+        dataSourceEl = document.createElement('div');
+        dataSourceEl.className = 'hero-data-source';
+        dataSourceEl.style.cssText = 'font-size:11px;color:var(--md-outline);margin-top:8px;opacity:0.75;';
+        hero.appendChild(dataSourceEl);
+    }
+    dataSourceEl.textContent = `📅 ${viewMonth} • ${dataSource}${dataLabel}`;
 
     // Metrics
     const savingsRate = income > 0 ? Math.round((totalInvest / income) * 100) : 0;
@@ -1234,7 +1541,7 @@ function setBench(elId, val, threshold, lowerIsBetter) {
 // ──────────────────────────────────────────────────────────────
 // SAVE & RESET
 // ──────────────────────────────────────────────────────────────
-function savePlanner() {
+function savePlanner(silent = false) {
     try {
         const key = getMonthKey(getViewDate());
         if (!db.monthlyPlans) db.monthlyPlans = {};
@@ -1253,7 +1560,8 @@ function savePlanner() {
         localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
         try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {}
         updateMonthUI(key);
-        snack('Plan saved!', 'check_circle');
+        clearDirty();
+        if (!silent) snack('Plan saved!', 'check_circle');
     } catch (e) {
         snack('Save failed — storage may be full.', 'error');
     }
@@ -1372,22 +1680,36 @@ function escapeHtml(str) {
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// Cross-tab sync listener
+// FIX #9: Enhanced cross-tab sync listener with error handling
 try {
     const _syncChan = new BroadcastChannel('trackinvest-sync');
     _syncChan.onmessage = (e) => {
         if (e.data && e.data.type === 'sync-data') {
-            try { const raw = localStorage.getItem('appHubInvestDb'); if (raw) db = JSON.parse(raw); } catch (ex) {}
+            try {
+                const raw = localStorage.getItem('appHubInvestDb');
+                if (raw) db = JSON.parse(raw);
+            } catch (ex) { console.error('Failed to parse DB from sync:', ex); }
+            
+            // FIX #10: Ensure spend tracker structure exists
+            if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
+            
             const key = getMonthKey(getViewDate());
             if (db.monthlyPlans && db.monthlyPlans[key]) Object.assign(plan, db.monthlyPlans[key]);
+            
             loadActuals();
             extractSIPsAndGoals();
             recalc();
             renderMonthAnalysis();
             renderSpendSummary();
+            updatePVABars();
+            
+            // Remove unsaved indicator
+            clearDirty();
+            
+            snack('✓ Spend data synced from other tab', 'sync');
         }
     };
-} catch (e) {}
+} catch (e) { console.warn('BroadcastChannel not available:', e); }
 </script>
 </body>
 </html>
