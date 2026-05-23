@@ -902,9 +902,6 @@ function saveProfileSettings() {
     const spendEl = document.getElementById('settings-enable-spend-tracker');
     if(spendEl) db.enableSpendTracker = spendEl.checked;
 
-    const mwEl = document.getElementById('settings-enable-market-watch');
-    if(mwEl) db.enableMarketWatch = mwEl.checked;
-
     // Master toggles
     const aiToggle = document.getElementById('settings-ai-toggle');
     if (aiToggle) { db.aiEnabled = aiToggle.checked; window.__aiEnabled = db.aiEnabled; }
@@ -989,9 +986,6 @@ function openSettings() {
     if (plannerEl) plannerEl.checked = db.enableMonthlyPlanner; // NEW
     const spendEl = document.getElementById('settings-enable-spend-tracker');
     if (spendEl) spendEl.checked = db.enableSpendTracker;
-    const mwEl = document.getElementById('settings-enable-market-watch');
-    if (mwEl) mwEl.checked = db.enableMarketWatch;
-
     // Master toggles
     const aiToggle = document.getElementById('settings-ai-toggle');
     if (aiToggle) aiToggle.checked = db.aiEnabled !== false;
@@ -1174,22 +1168,6 @@ function renderSettingsSections() {
     if (badgeGrid) badgeGrid.innerHTML = badgeHtml;
 }
 
-function viewCategoryLedger(type) {
-    haptic(30);
-    closeOverlays();
-    setTimeout(() => {
-        const typeFilter = document.getElementById('ledger-type-filter');
-        if (typeFilter) {
-            typeFilter.value = type;
-            // Since filter changed, we need to update the ledger
-            if (typeof renderHistory === 'function') renderHistory();
-            openSheet('history-sheet');
-        } else {
-            showSnackbar("Ledger filter not found", "warning");
-        }
-    }, 100);
-}
-window.viewCategoryLedger = viewCategoryLedger;
 window.toggleNotificationMaster = toggleNotificationMaster;
 window.loadNotificationPrefs = loadNotificationPrefs;
 
@@ -1765,207 +1743,6 @@ function importCSV(e) {
     };
     reader.readAsText(file);
 }
-function exportTaxPDF() {
-    if (!window.jspdf)
-        return showSnackbar("PDF Library loading...", "hourglass_empty");
-    haptic(40);
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("80C Tax Savings Report (FY)", 14, 22);
-    let fyInv = db.investments.filter(i => db.categories[i.type] && db.categories[i.type].is80c && isCurrentFY(i.date)).sort((a, b) => parseDate(b.date) - parseDate(a.date));
-    let tableData = fyInv.map(i => [i.date, i.type, i.note || '-', fmtNum(i.amount)]);
-    let total = fyInv.reduce((sum, i) => sum + i.amount, 0);
-    tableData.push(['', '', 'TOTAL:', fmtNum(total)]);
-    doc.autoTable({ startY: 30, head: [['Date', 'Asset', 'Note', 'Amount (Rs)']], body: tableData, theme: 'striped', headStyles: { fillColor: [69, 89, 164] } });
-    doc.save('InvestPro_Tax_Report.pdf');
-    showSnackbar("PDF Downloaded", "picture_as_pdf");
-}
-
-function calculateXIRR() {
-    let category = document.getElementById('xirr-category').value;
-    let filteredInvs = db.investments.filter(i => i.type === category && (activeAccountFilter === 'All' || i.account === activeAccountFilter));
-
-    if (filteredInvs.length === 0) {
-        document.getElementById('xirr-result').innerHTML = `<div style="color:var(--md-outline); text-align:center; padding:20px;"><span class="material-symbols-rounded" style="font-size:32px; display:block; margin-bottom:8px;">inbox</span>No investments in this category.</div>`;
-        return;
-    }
-
-    // Cash flows: Investments are OUTFLOWS (Negative), CurrentValue are INFLOWS (Positive)
-    let cashFlows = filteredInvs.map(i => ({
-        amount: -i.amount,
-        date: parseDate(i.date)
-    }));
-
-    // Include initial balance as an outflow at the date of the first investment
-    let initialBal = db.categoryDetails[category]?.initialBal || 0;
-    if (initialBal > 0) {
-        let earliestDate = cashFlows.reduce((min, cf) => cf.date < min ? cf.date : min, cashFlows[0].date);
-        cashFlows.push({ amount: -initialBal, date: earliestDate });
-    }
-
-    // Include terminal current market value as an inflow today
-    let currentValue = currentTypeTotals[category] || 0;
-    if (currentValue > 0) {
-        cashFlows.push({ amount: currentValue, date: new Date() });
-    }
-
-    // Filter out zero amounts
-    cashFlows = cashFlows.filter(cf => cf.amount !== 0);
-
-    // Check for single transaction case
-    let investmentFlows = cashFlows.filter(cf => cf.amount < 0);
-    if (investmentFlows.length === 1 && cashFlows.length < 2) {
-        let holdingDays = (new Date() - investmentFlows[0].date) / (1000 * 60 * 60 * 24);
-        let invested = Math.abs(investmentFlows[0].amount);
-        let current = currentValue || invested;
-        let simpleReturn = ((current - invested) / invested) * 100;
-
-        document.getElementById('xirr-result').innerHTML = `
-            <div style="text-align:center; padding:16px;">
-                <div style="font-size:12px; color:var(--md-outline); margin-bottom:8px;">📊 Single Investment (XIRR not applicable)</div>
-                <div style="font-size:24px; font-weight:600; color:var(--md-primary);">${simpleReturn.toFixed(2)}%</div>
-                <div style="font-size:12px; color:var(--md-outline); margin-top:8px;">${holdingDays.toFixed(0)} days • Simple Return</div>
-                <div style="font-size:11px; color:var(--md-primary); margin-top:12px; padding:8px; background:var(--md-primary-container); border-radius:8px;">Add more transactions to see XIRR</div>
-            </div>`;
-        return;
-    }
-
-    if (cashFlows.length < 2) {
-        document.getElementById('xirr-result').innerHTML = `<div style="color:var(--md-outline); text-align:center; padding:20px;">Need at least one investment and current value to calculate returns.</div>`;
-        return;
-    }
-
-    // Check holding period - warn if very short
-    let firstInvestmentDate = cashFlows.filter(cf => cf.amount < 0).reduce((min, cf) => cf.date < min ? cf.date : min, new Date());
-    let holdingDays = (new Date() - firstInvestmentDate) / (1000 * 60 * 60 * 24);
-    let shortPeriodWarning = holdingDays < 30 ? `<div style="font-size:11px; color:var(--md-warning); margin-top:8px;">⚠️ Short holding period (${holdingDays.toFixed(0)} days) - returns may be volatile</div>` : '';
-
-    // Sort flows by date
-    cashFlows.sort((a, b) => a.date - b.date);
-    let d0 = cashFlows[0].date;
-
-    const npv = (flows, rate) => {
-        return flows.reduce((sum, flow) => {
-            let t = (flow.date - d0) / (365.25 * 24 * 60 * 60 * 1000);
-            return sum + flow.amount / Math.pow(1 + rate, t);
-        }, 0);
-    };
-
-    // Newton-Raphson with binary search fallback
-    const irr = (flows) => {
-        let guess = 0.1;
-        const maxIter = 100;
-        const precision = 0.0001;
-
-        // Try Newton-Raphson first
-        for (let i = 0; i < maxIter; i++) {
-            let f = 0, df = 0;
-            for (let j = 0; j < flows.length; j++) {
-                let t = (flows[j].date - d0) / (365.25 * 24 * 60 * 60 * 1000);
-                let discountFactor = Math.pow(1 + guess, t);
-                f += flows[j].amount / discountFactor;
-                df += -t * flows[j].amount / Math.pow(1 + guess, t + 1);
-            }
-
-            if (Math.abs(f) < precision) return guess;
-            if (Math.abs(df) < 1e-10) break;
-
-            let nextGuess = guess - f / df;
-            if (isNaN(nextGuess) || !isFinite(nextGuess)) break;
-
-            guess = nextGuess;
-        }
-
-        // Binary search fallback for robust convergence
-        let low = -0.9999, high = 10;
-        let bestGuess = guess;
-        let bestError = Math.abs(npv(flows, guess));
-
-        for (let i = 0; i < 50; i++) {
-            let mid = (low + high) / 2;
-            let midVal = npv(flows, mid);
-            let lowVal = npv(flows, low);
-
-            if (Math.abs(midVal) < bestError) {
-                bestError = Math.abs(midVal);
-                bestGuess = mid;
-            }
-
-            if (Math.abs(midVal) < precision) return mid;
-
-            if (midVal * lowVal < 0) {
-                high = mid;
-            } else {
-                low = mid;
-            }
-        }
-
-        return bestGuess;
-    };
-
-    let result = irr(cashFlows);
-
-    // Handle different return scenarios with better messaging
-    let resultText, colorClass, message;
-    if (result <= -0.99) {
-        resultText = '-99.99%';
-        colorClass = 'var(--md-error)';
-        message = 'Significant loss - review investment';
-    } else if (result < -0.5) {
-        resultText = (result * 100).toFixed(2) + '%';
-        colorClass = 'var(--md-error)';
-        message = 'Major decline - assess strategy';
-    } else if (result < 0) {
-        resultText = (result * 100).toFixed(2) + '%';
-        colorClass = 'var(--md-error)';
-        message = 'Temporary dip';
-    } else if (result === 0) {
-        resultText = '0.00%';
-        colorClass = 'var(--md-on-surface-variant)';
-        message = 'Break-even';
-    } else if (result < 0.08) {
-        resultText = (result * 100).toFixed(2) + '%';
-        colorClass = 'var(--md-success)';
-        message = 'Moderate returns';
-    } else if (result < 0.15) {
-        resultText = (result * 100).toFixed(2) + '%';
-        colorClass = 'var(--md-success)';
-        message = 'Strong performance';
-    } else {
-        resultText = (result * 100).toFixed(2) + '%';
-        colorClass = 'var(--md-success)';
-        message = 'Exceptional returns!';
-    }
-
-    // Calculate annualized for multi-year
-    let years = holdingDays / 365.25;
-    let annualizedNote = years >= 1 ? `<div style="font-size:11px; color:var(--md-outline); margin-top:4px;">Annualized over ${years.toFixed(1)} years</div>` : '';
-
-    document.getElementById('xirr-result').innerHTML = `
-        <div style="text-align:center; padding:16px;">
-            <div style="font-size:14px; color:var(--md-outline); margin-bottom:8px;">XIRR</div>
-            <div style="font-size:32px; font-weight:600; color:${colorClass};">${resultText}</div>
-            <div style="font-size:12px; color:var(--md-outline); margin-top:8px;">${message}</div>
-            ${annualizedNote}
-            ${shortPeriodWarning}
-        </div>`;
-}
-function calculateMonthlySIP() {
-    let target = parseFloat(document.getElementById('sip-target').value);
-    let years = parseFloat(document.getElementById('sip-years').value);
-    let rate = parseFloat(document.getElementById('sip-return').value) / 100 / 12;
-    let months = years * 12;
-    if (rate === 0) {
-        document.getElementById('sip-result').innerHTML = `Monthly SIP needed: <strong>${formatMoney(target / months)}</strong>`;
-        return;
-    }
-    // SIP at start of period
-    let monthly = target * rate / ((Math.pow(1 + rate, months) - 1) * (1 + rate));
-    document.getElementById('sip-result').innerHTML = `Monthly SIP needed: <strong>${formatMoney(monthly)}</strong>`;
-}
-function calculateEMI() { let P = parseFloat(document.getElementById('emi-principal').value); let years = parseFloat(document.getElementById('emi-tenure').value); let rate = parseFloat(document.getElementById('emi-rate').value) / 12 / 100; let n = years * 12; if (rate === 0) { document.getElementById('emi-result').innerHTML = `Monthly EMI: <strong>${formatMoney(P / n)}</strong>`; return; } let emi = P * rate * Math.pow(1 + rate, n) / (Math.pow(1 + rate, n) - 1); document.getElementById('emi-result').innerHTML = `Monthly EMI: <strong>${formatMoney(emi)}</strong>`; }
-function calculateInflation() { let pv = parseFloat(document.getElementById('inf-present').value); let years = parseFloat(document.getElementById('inf-years').value); let rate = parseFloat(document.getElementById('inf-rate').value) / 100; let fv = pv * Math.pow(1 + rate, years); document.getElementById('inf-result').innerHTML = `Future Value: <strong>${formatMoney(fv)}</strong>`; }
 
 function checkDuplicates(newEntry) { let dups = db.investments.filter(i => i.date === newEntry.date && i.type === newEntry.type && i.amount === newEntry.amount && i.id !== newEntry.id); if (dups.length > 0) { showSnackbar("Possible duplicate entry detected!", "warning"); } }
 function autoBackupReminder() { let now = new Date().toDateString(); if (db.lastBackupPrompt !== now && (new Date() - new Date(db.lastBackupPrompt || 0)) > 7 * 24 * 60 * 60 * 1000) { showSnackbar("Remember to backup your data! (Settings > Backup)", "cloud_download"); db.lastBackupPrompt = now; saveData(); } }

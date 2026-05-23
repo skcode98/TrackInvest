@@ -153,11 +153,7 @@
     <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
 </div>
 
-<div class="md-card" id="market-watch-entry" style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);" onclick="window.location.href='market_watch.html'">
-    <div style="display:flex; align-items:center; gap:16px;">
-        <div style="width:48px; height:48px; border-radius:16px; background:var(--md-tertiary-container); color:var(--md-on-tertiary-container); display:flex; align-items:center; justify-content:center;">
-            <span class="material-symbols-rounded">monitoring</span>
-        </div>
+
         <div>
             <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Market Watch</div>
             <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Indices, commodities & stock search</div>
@@ -736,11 +732,6 @@
             <div class="chart-container-js" style="height: 120px; margin-bottom: 16px;"><canvas
                     id="categoryHistoryChart"></canvas></div>
 
-            <button class="btn-secondary" style="width:100%; margin-bottom:24px;"
-                onclick="viewCategoryLedger(window.activeCategory)">
-                <span class="material-symbols-rounded">history_edu</span> View Detailed Ledger
-            </button>
-
             <div style="margin-bottom:32px;">
                 <div class="tax-split-bar">
                     <div class="tax-split-lt" id="tax-lt-fill" style="width:50%;"></div>
@@ -882,14 +873,6 @@
                     <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker"><span class="slider"></span></label>
                 </div>
 
-                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
-                    <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Market Watch</div>
-                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Live indices, commodities & stock search</div>
-                    </div>
-                    <label class="switch"><input type="checkbox" id="settings-enable-market-watch"><span class="slider"></span></label>
-                </div>
-
                 <button class="btn-primary" onclick="saveProfileSettings()" style="margin-top:12px;"><span
                         class="material-symbols-rounded">save</span> Save Profile</button>
             </div>
@@ -947,11 +930,7 @@
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button class="btn-primary" style="flex:1;" onclick="exportSyncUrl()"><span class="material-symbols-rounded">share</span> Share Sync Link</button>
                 </div>
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button class="btn-secondary" style="flex:1;" onclick="nearbyBroadcast()"><span class="material-symbols-rounded">wifi</span> Nearby Sync</button>
-                    <button class="btn-secondary" style="flex:1;" onclick="webrtcStartAsSender()"><span class="material-symbols-rounded">qr_code_scanner</span> QR Sync</button>
-                </div>
-                <div style="font-size:11px;color:var(--md-outline);margin-top:6px;">Data auto-syncs across open tabs. Use Share or Nearby for cross-device. No server needed.</div>
+                <div style="font-size:11px;color:var(--md-outline);margin-top:6px;">Data auto-syncs across open tabs. Use Share Link for cross-device. No server needed.</div>
 
                 <div
                     style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">
@@ -1105,34 +1084,12 @@
                     onclick="openSheet('history-sync-sheet')">
                     <span class="material-symbols-rounded">history_edu</span> Universal Generator
                 </button>
-                <button class="btn-primary"
-                    style="background:var(--md-surface-container-highest);color:var(--md-on-surface); margin-bottom:8px;"
-                    onclick="exportTaxPDF()">
-                    <span class="material-symbols-rounded">picture_as_pdf</span> 80C Tax Report
-                </button>
-                <button class="btn-primary"
-                    style="background:var(--md-primary-container);color:var(--md-on-primary-container); margin-bottom:8px;"
-                    onclick="openSheet('webrtc-sync-sheet')">
-                    <span class="material-symbols-rounded">nearby_share</span> Offline Nearby Sync
-                </button>
 
                 <button id="pwa-install-btn" class="btn-primary"
                     style="display:none; background:var(--md-primary); color:var(--md-on-primary); margin-top:16px;"
                     onclick="triggerPWAInstall()">
                     <span class="material-symbols-rounded">install_mobile</span> Install App
                 </button>
-
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-top:24px;margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Quick Tools</div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                    <button class="btn-secondary" onclick="openSheet('xirr-sheet')" style="padding:10px;"><span class="material-symbols-rounded" style="font-size:18px;">calculate</span> XIRR</button>
-                    <button class="btn-secondary" onclick="openSheet('sip-calc-sheet')" style="padding:10px;"><span class="material-symbols-rounded" style="font-size:18px;">trending_up</span> SIP Calc</button>
-                    <button class="btn-secondary" onclick="openSheet('emi-calc-sheet')" style="padding:10px;"><span class="material-symbols-rounded" style="font-size:18px;">real_estate_agent</span> EMI Calc</button>
-                    <button class="btn-secondary" onclick="openSheet('inflation-sheet')" style="padding:10px;"><span class="material-symbols-rounded" style="font-size:18px;">price_change</span> Inflation</button>
-                    <button class="btn-secondary" onclick="generatePDFWealthReport()" style="padding:10px;"><span class="material-symbols-rounded" style="font-size:18px;">picture_as_pdf</span> Wealth PDF</button>
-                    <button class="btn-secondary" onclick="window.location.href='market_watch.html'" style="padding:10px;"><span class="material-symbols-rounded" style="font-size:18px;">monitoring</span> Market Watch</button>
-                </div>
             </div>
         </div>
     </div>
@@ -1224,161 +1181,10 @@
         <div id="maturity-calendar-content"></div>
     </div>
 
-    <div class="sheet sub-sheet" id="xirr-sheet">
-        <div class="drag-handle"></div>
-        <h3 class="sheet-title"><span>XIRR Calculator</span><button class="icon-btn" onclick="closeSubSheet()"><span
-                    class="material-symbols-rounded">close</span></button></h3>
-        <div class="input-container"><label>Category</label><select id="xirr-category" class="md-input"></select></div>
-        <button class="btn-primary" onclick="calculateXIRR()">Estimate XIRR</button>
-        <div id="xirr-result" style="margin-top:16px;font-size:18px;font-weight:500;text-align:center;"></div>
-    </div>
-
-    <div class="sheet sub-sheet" id="webrtc-sync-sheet" style="display:flex; flex-direction:column; overflow:hidden;">
-        <div class="drag-handle"></div>
-        <div class="sheet-title" style="margin-bottom: 16px; flex-shrink: 0;">
-            <div style="display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded"
-                    style="color:var(--md-primary);">nearby_share</span> Nearby Sync</div>
-            <button class="icon-btn" onclick="closeSubSheet()"><span
-                    class="material-symbols-rounded">close</span></button>
-        </div>
-
-        <div id="nearby-mode-selector"
-            style="display:flex; flex-direction:column; align-items:center; text-align:center; padding:20px 0;">
-            <div class="radar-container">
-                <div class="radar-pulse"></div>
-                <div class="radar-pulse"></div>
-                <div class="radar-pulse"></div>
-                <div class="radar-icon">
-                    <span class="material-symbols-rounded">sensors</span>
-                </div>
-            </div>
-
-            <h2 style="margin:24px 0 8px 0; font-size:20px; font-weight:600;">Broadcast or Tune In</h2>
-            <p
-                style="font-size:13px; color:var(--md-on-surface-variant); line-height:1.5; margin-bottom:32px; padding:0 24px;">
-                Securely sync your portfolio with another device offline using high-speed radio frequencies. No internet
-                required.
-            </p>
-
-            <div style="display:flex; flex-direction:column; gap:12px; width:100%; padding:0 20px;">
-                <button class="btn-primary nearby-action-btn" onclick="nearbyBroadcast()"
-                    style="height:auto; padding:16px; border-radius:20px; justify-content:flex-start; text-align:left;">
-                    <span class="material-symbols-rounded" style="font-size:32px; margin-right:16px;">podcasts</span>
-                    <div>
-                        <div style="font-weight:600;">Broadcast Wealth</div>
-                        <div style="font-size:11px; opacity:0.8; font-weight:400;">Share my data to another device</div>
-                    </div>
-                </button>
-
-                <button class="btn-secondary nearby-action-btn" onclick="nearbyTuneIn()"
-                    style="height:auto; padding:16px; border-radius:20px; justify-content:flex-start; text-align:left;">
-                    <span class="material-symbols-rounded" style="font-size:32px; margin-right:16px;">hearing</span>
-                    <div>
-                        <div style="font-weight:600;">Tune In</div>
-                        <div style="font-size:11px; opacity:0.8; font-weight:400;">Receive data from another device
-                        </div>
-                    </div>
-                </button>
-            </div>
-        </div>
-
-        <div id="nearby-sync-active"
-            style="display:none; flex-direction:column; gap:20px; padding:20px; flex:1; overflow-y:auto;">
-            <div id="nearby-status-badge"
-                style="padding:16px; border-radius:20px; background:var(--md-secondary-container); color:var(--md-on-secondary-container); text-align:center; font-weight:600;">
-                Syncing
-            </div>
-            <div id="nearby-status-text" style="font-size:14px; opacity:0.9; text-align:center;">Initializing secure
-                connection</div>
-
-            <div id="nearby-sync-progress-wrap" style="display:none; flex-direction:column; gap:8px;">
-                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;">
-                    <span>Synchronizing Wealth</span>
-                </div>
-                <div class="nearby-sync-bar">
-                    <div class="nearby-sync-progress" id="nearby-sync-progress"></div>
-                </div>
-            </div>
-
-            <!-- Fallback Manual QR Area (Hidden by default, shown if Share fails) -->
-            <div id="nearby-qr-fallback"
-                style="display:none; flex-direction:column; align-items:center; gap:16px; margin-top:16px;">
-                <div style="font-size:12px; font-weight:600; color:var(--md-error);">SHARE FAILED - USE SCANNER</div>
-                <div id="webrtc-qr-display"
-                    style="padding:16px; background:white; border-radius:24px; box-shadow: var(--md-shadow-1);">
-                    <div id="webrtc-qr"></div>
-                    <div id="webrtc-qr-page-indicator" style="font-size:11px; color:#666; margin-top:8px;"></div>
-                </div>
-                <button class="btn-secondary" onclick="nearbyStartScanner()">Open Scanner Instead</button>
-            </div>
-
-            <div id="webrtc-scanner-ui" style="display:none; flex-direction:column; gap:12px;">
-                <div id="webrtc-reader" style="width:100%; border-radius:24px; overflow:hidden; background:black;">
-                </div>
-                <button class="btn-secondary" onclick="webrtcStopScanner()">Cancel Scanning</button>
-            </div>
-
-            <div id="nearby-sync-actions"
-                style="margin-top:auto; display:flex; flex-direction:column; gap:12px; padding-bottom:12px;">
-                <button id="webrtc-sync-btn" class="btn-primary" style="display:none; background:var(--md-success);"
-                    onclick="webrtcSendSync()">✅ Confirm & Import Data</button>
-                <button class="btn-secondary" onclick="location.reload()">Reset & Try Again</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="sheet sub-sheet" id="sip-calc-sheet">
-        <div class="drag-handle"></div>
-        <h3 class="sheet-title"><span>SIP Goal Calculator</span><button class="icon-btn" onclick="closeSubSheet()"><span
-                    class="material-symbols-rounded">close</span></button></h3>
-        <div class="input-row">
-            <div class="input-container"><label>Target Amount (₹)</label><input type="number" id="sip-target"
-                    class="md-input"></div>
-            <div class="input-container"><label>Years</label><input type="number" id="sip-years" class="md-input"></div>
-        </div>
-        <div class="input-container"><label>Expected Return (% p.a.)</label><input type="number" id="sip-return"
-                class="md-input" value="12"></div>
-        <button class="btn-primary" onclick="calculateMonthlySIP()">Calculate Monthly SIP</button>
-        <div id="sip-result" style="margin-top:16px;font-weight:500;text-align:center;"></div>
-    </div>
-
-    <div class="sheet sub-sheet" id="emi-calc-sheet">
-        <div class="drag-handle"></div>
-        <h3 class="sheet-title"><span>Loan EMI Calculator</span><button class="icon-btn" onclick="closeSubSheet()"><span
-                    class="material-symbols-rounded">close</span></button></h3>
-        <div class="input-container"><label>Loan Amount (₹)</label><input type="number" id="emi-principal"
-                class="md-input"></div>
-        <div class="input-row">
-            <div class="input-container"><label>Tenure (Years)</label><input type="number" id="emi-tenure"
-                    class="md-input"></div>
-            <div class="input-container"><label>Interest Rate (% p.a.)</label><input type="number" id="emi-rate"
-                    class="md-input" step="0.1"></div>
-        </div>
-        <button class="btn-primary" onclick="calculateEMI()">Calculate EMI</button>
-        <div id="emi-result" style="margin-top:16px;font-weight:500;text-align:center;"></div>
-    </div>
-
-    <div class="sheet sub-sheet" id="inflation-sheet">
-        <div class="drag-handle"></div>
-        <h3 class="sheet-title"><span>Inflation-Adjusted Value</span><button class="icon-btn"
-                onclick="closeSubSheet()"><span class="material-symbols-rounded">close</span></button></h3>
-        <div class="input-container"><label>Present Value (₹)</label><input type="number" id="inf-present"
-                class="md-input"></div>
-        <div class="input-row">
-            <div class="input-container"><label>Years</label><input type="number" id="inf-years" class="md-input"></div>
-            <div class="input-container"><label>Inflation Rate (%)</label><input type="number" id="inf-rate"
-                    class="md-input" value="6" step="0.1"></div>
-        </div>
-        <button class="btn-primary" onclick="calculateInflation()">Calculate Future Value</button>
-        <div id="inf-result" style="margin-top:16px;font-weight:500;text-align:center;"></div>
-    </div>
-
 
 
     <div id="snackbar" class="snackbar"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="./shared_ai.js"></script>
     <script src="./app_part1.js"></script>
     <script src="./app_part2.js"></script>

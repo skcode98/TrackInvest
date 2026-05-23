@@ -796,8 +796,7 @@ function openSettings() {
 
 // Sub-sheets open ON TOP of an existing sheet (e.g. calculators from Settings)
 const SUB_SHEET_IDS = new Set([
-    'xirr-sheet', 'sip-calc-sheet', 'emi-calc-sheet', 'inflation-sheet',
-    'ai-predict-sheet', 'history-sync-sheet', 'webrtc-sync-sheet',
+    'ai-predict-sheet', 'history-sync-sheet',
     'chat-history-sheet', 'wealth-blueprint-sheet', 'ai-sheet',
     'maturity-calendar-sheet', 'ai-chat-sheet', 'monthly-target-sheet',
     'projection-sheet', 'month-sheet'
@@ -1790,9 +1789,6 @@ function initUI() {
     let gl = document.getElementById('goal-link');
     if (gl) { gl.innerHTML = `<option value="">None (Manual Tracking)</option>`; }
     Object.keys(db.categories).forEach(c => { if (gl) gl.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(c)}">Link to ${escapeHtml(c)}</option>`); });
-    let xirrCat = document.getElementById('xirr-category');
-    if (xirrCat) xirrCat.innerHTML = Object.keys(db.categories).map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-
     initChartInteractivity();
 
     // Restore active tab and sheet
