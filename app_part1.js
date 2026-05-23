@@ -1876,7 +1876,7 @@ function initScrollToTop() {
     scrollToTopBtn.id = 'scroll-to-top';
     scrollToTopBtn.innerHTML = '<span class="material-symbols-rounded">arrow_upward</span>';
     scrollToTopBtn.style.cssText = `
-        position: fixed; bottom: 80px; right: 16px;
+        position: fixed; bottom: 170px; right: 16px;
         width: 48px; height: 48px; border-radius: 50%;
         background: var(--md-primary); color: var(--md-on-primary);
         border: none; cursor: pointer; z-index: 1000;

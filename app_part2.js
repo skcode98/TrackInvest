@@ -577,19 +577,20 @@ function renderHistory() {
         return asc ? cmp : -cmp;
     });
 
-    // Group by month only if sorting by date, then reverse so newest first
+    // Group by month only if sorting by date, then newest first
     let html = '';
     if (filtered.length === 0) {
         html = getEmptyStateHTML('history');
     } else if (sortField === 'date') {
         let groups = {};
         filtered.forEach(inv => {
-            let dStr = new Date(inv.date).toLocaleString('default', { month: 'long', year: 'numeric' });
-            if (!groups[dStr]) groups[dStr] = [];
+            let d = parseDate(inv.date);
+            let dStr = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+            if (!groups[dStr]) { groups[dStr] = []; groups[dStr]._sortKey = d.getFullYear() * 12 + d.getMonth(); }
             groups[dStr].push(inv);
         });
-        // Show newest months first (reverse key order)
-        const months = Object.keys(groups).sort().reverse();
+        // Sort chronologically by year+month, newest first
+        const months = Object.keys(groups).sort((a, b) => groups[b]._sortKey - groups[a]._sortKey);
         html = months.map(m => `<div class="ledger-month-header">${m} <span style="font-weight:400;font-size:11px;color:var(--md-outline);">(${groups[m].length})</span></div>` + groups[m].map(buildUnifiedItemHTML).join('')).join('');
     } else {
         html = filtered.map(buildUnifiedItemHTML).join('');
