@@ -56,6 +56,7 @@ if (!db.categoryDetails) db.categoryDetails = {};
 if (!db.currentMarketValues) db.currentMarketValues = {};
 if (!db.allocTargets) db.allocTargets = {};
 if (!db.accounts) db.accounts = ['Main Portfolio'];
+if (!db.activeAccountFilter) db.activeAccountFilter = 'All';
 if (!db.fireTargetMonthly) db.fireTargetMonthly = 0;
 if (!db.templates) db.templates = [];
 if (typeof db.privacyMode === 'undefined') db.privacyMode = false;
@@ -769,10 +770,6 @@ function openSettings() {
     haptic(40);
     if (document.getElementById('settings-sheet')) { openSheet('settings-sheet'); }
 }
-function openSettings() {
-    haptic(40);
-    if (document.getElementById('settings-sheet')) { openSheet('settings-sheet'); }
-}
 
 // Sub-sheets open ON TOP of an existing sheet (e.g. calculators from Settings)
 const SUB_SHEET_IDS = new Set([
@@ -952,10 +949,10 @@ function renderRecurringSheet() {
         let meta = db.categories[r.type] || { color: '#8D6E63', icon: 'savings' };
         let next = new Date(r.nextRun).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
         return `<div class="sip-item">
-                    <div class="sip-item-icon" style="background:${meta.color};"><span class="material-symbols-rounded" style="font-size:18px;">${meta.icon}</span></div>
+                    <div class="sip-item-icon" style="background:${escapeHtml(meta.color)};"><span class="material-symbols-rounded" style="font-size:18px;">${escapeHtml(meta.icon)}</span></div>
                     <div class="sip-item-info">
-                        <div class="sip-item-name">${r.note || r.type}</div>
-                        <div class="sip-item-meta">${r.type} · Next: ${next} · ${r.account || 'Default'}</div>
+                        <div class="sip-item-name">${escapeHtml(r.note || r.type)}</div>
+                        <div class="sip-item-meta">${escapeHtml(r.type)} · Next: ${next} · ${escapeHtml(r.account || 'Default')}</div>
                     </div>
                     <div class="sip-item-amt">${formatMoney(r.amount)}</div>
                     <button class="icon-btn" onclick="deleteRecurring('${r.id}')" style="width:36px;height:36px;color:var(--md-error);"><span class="material-symbols-rounded" style="font-size:18px;">delete</span></button>
@@ -1574,6 +1571,31 @@ function sanitizeDatabaseObject(dbObj) {
         }));
     }
 
+    if (sanitized.recurring) {
+        sanitized.recurring = sanitized.recurring.map(r => ({
+            ...r,
+            note: sanitizeText(r.note || ''),
+            tags: sanitizeText(r.tags || ''),
+            account: sanitizeText(r.account || '')
+        }));
+    }
+
+    if (sanitized.templates) {
+        sanitized.templates = sanitized.templates.map(t => ({
+            ...t,
+            note: sanitizeText(t.note || ''),
+            tags: sanitizeText(t.tags || ''),
+            account: sanitizeText(t.account || '')
+        }));
+    }
+
+    if (sanitized.spendTracker && sanitized.spendTracker.entries) {
+        sanitized.spendTracker.entries = sanitized.spendTracker.entries.map(e => ({
+            ...e,
+            comment: sanitizeText(e.comment || '')
+        }));
+    }
+
     return sanitized;
 }
 
@@ -1756,9 +1778,7 @@ function initUI() {
     if (php) php.innerText = db.privacyMode ? 'visibility_off' : 'visibility';
     setTheme(db.theme || 'indigo');
 
-    let sel = document.getElementById('account-filter');
-    if (sel) { sel.innerHTML = `<option value="All">All Accounts</option>`; }
-    db.accounts.forEach(a => { if (sel) sel.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`); });
+    window.activeAccountFilter = db.activeAccountFilter || 'All';
 
     let formSel = document.getElementById('inv-account');
     if (formSel) { formSel.innerHTML = ""; }
@@ -1770,7 +1790,7 @@ function initUI() {
     if (filterType) filterType.innerHTML = `<option value="All">All Assets</option>`;
     Object.keys(db.categories).forEach(c => {
         let safeC = escapeHtml(c);
-        if (chips) chips.insertAdjacentHTML('beforeend', `<div class="quick-chip" onclick="setInvestType('${safeC}')">${safeC}</div>`);
+        if (chips) chips.insertAdjacentHTML('beforeend', `<div class="quick-chip" onclick="setInvestType(this.dataset.cat)" data-cat="${safeC}">${safeC}</div>`);
         if (filterType) filterType.insertAdjacentHTML('beforeend', `<option value="${safeC}">${safeC}</option>`);
     });
     window.currentInvType = Object.keys(db.categories)[0];
@@ -2434,7 +2454,7 @@ function showDayDetails(dateStr) {
         html += `<div style="font-size:13px;font-weight:700;color:var(--md-primary);margin-bottom:8px;">💰 Investments</div>`;
         pastInvs.forEach(i => {
             html += `<div style="display:flex;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--md-surface-container-highest);">
-                <div><div style="font-weight:500;">${i.type}</div><div style="font-size:12px;color:var(--md-outline);">${i.note || ''}</div></div>
+                <div><div style="font-weight:500;">${escapeHtml(i.type)}</div><div style="font-size:12px;color:var(--md-outline);">${escapeHtml(i.note || '')}</div></div>
                 <div style="font-weight:600;color:var(--md-on-surface);">+${formatMoney(i.amount)}</div>
             </div>`;
         });
@@ -2445,7 +2465,7 @@ function showDayDetails(dateStr) {
         html += `<div style="font-size:13px;font-weight:700;color:#D96200;margin-bottom:8px;">📅 Scheduled SIPs</div>`;
         futSips.forEach(r => {
             html += `<div style="display:flex;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed var(--md-surface-container-highest);">
-                <div><div style="font-weight:500;">${r.type}</div><div style="font-size:12px;color:var(--md-outline);">${r.note || ''}</div></div>
+                <div><div style="font-weight:500;">${escapeHtml(r.type)}</div><div style="font-size:12px;color:var(--md-outline);">${escapeHtml(r.note || '')}</div></div>
                 <div style="font-weight:600;color:var(--md-on-surface);">+${formatMoney(r.amount)}</div>
             </div>`;
         });
@@ -2458,7 +2478,7 @@ function showDayDetails(dateStr) {
         spends.forEach(e => {
             let cat = e.category || 'Uncategorized';
             html += `<div style="display:flex;justify-content:space-between;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--md-surface-container-highest);">
-                <div><div style="font-weight:500;font-size:13px;">${e.comment || '—'}</div><div style="font-size:11px;color:var(--md-outline);">${cat}</div></div>
+                <div><div style="font-weight:500;font-size:13px;">${DOMPurify.sanitize(e.comment || '—',{ALLOWED_TAGS:[],ALLOWED_ATTR:[]})}</div><div style="font-size:11px;color:var(--md-outline);">${escapeHtml(cat)}</div></div>
                 <div style="font-weight:600;color:var(--md-error);">${formatMoney(e.amount)}</div>
             </div>`;
         });
@@ -2699,6 +2719,7 @@ async function searchMFForLog() {
 
     try {
         let res = await fetch(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         let data = await res.json();
 
         if (searchBtn) setButtonLoading(searchBtn.id || 'mf-search-btn', false);
@@ -2743,8 +2764,9 @@ async function fetchLiveNAV(code) {
 
     try {
         let res = await fetch(`https://api.mfapi.in/mf/${code}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         let data = await res.json();
-        if (data.status !== "SUCCESS") throw new Error("Invalid Code");
+        if (!data || data.status !== "SUCCESS") throw new Error("Invalid Code");
 
         let latestNav = parseFloat(data.data[0].nav);
         priceInput.value = latestNav.toFixed(4);
@@ -2909,8 +2931,9 @@ async function searchMFForSync() {
     showSnackbar("Searching...", "hourglass_empty");
     try {
         let res = await fetch(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         let data = await res.json();
-        if (data.length === 0) return showSnackbar("No funds found", "error");
+        if (!data || data.length === 0) return showSnackbar("No funds found", "error");
 
         let sel = document.getElementById('sync-mf-select');
         sel.innerHTML = `<option value="">Select a fund...</option>` + data.map(f => `<option value="${escapeHtml(f.schemeCode)}">${escapeHtml(f.schemeName)}</option>`).join('');
@@ -2938,8 +2961,9 @@ async function syncHistoricalSIP() {
         showSnackbar("Fetching Historical Data...", "hourglass_empty");
         try {
             let res = await fetch(`https://api.mfapi.in/mf/${code}`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             let data = await res.json();
-            if (data.status !== "SUCCESS") throw new Error("Invalid Code");
+            if (!data || data.status !== "SUCCESS") throw new Error("Invalid Code");
 
             let navMap = {};
             data.data.forEach(d => {

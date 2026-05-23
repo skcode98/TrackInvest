@@ -387,7 +387,12 @@
         function updateCommentSuggestions() {
             const dl = document.getElementById('comment-suggestions');
             const comments = [...new Set(db.spendTracker.entries.map(e => e.comment).filter(Boolean))];
-            dl.innerHTML = comments.map(c => `<option value="${DOMPurify.sanitize(c)}">`).join('');
+            dl.innerHTML = '';
+            comments.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                dl.appendChild(opt);
+            });
         }
         function haptic(n) { try { navigator.vibrate(n); } catch(e) {} }
 

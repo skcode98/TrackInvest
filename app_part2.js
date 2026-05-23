@@ -393,11 +393,11 @@ function buildUnifiedItemHTML(inv) {
     let safeNote = escapeHtml(inv.note || inv.type);
     let safeType = escapeHtml(inv.type);
     let tagsHtml = ""; if (inv.tags) { inv.tags.split(',').forEach(t => { if (t.trim()) tagsHtml += `<span class="roi-tag" style="background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);font-size:10px;margin:0 2px;">#${escapeHtml(t.trim())}</span> `; }); }
-    let intHtml = inv.interestRate ? `<span style="font-size:10px;color:var(--md-primary);font-weight:500;">${inv.interestRate}%</span>` : '';
+    let intHtml = inv.interestRate ? `<span style="font-size:10px;color:var(--md-primary);font-weight:500;">${escapeHtml(inv.interestRate)}%</span>` : '';
     return `
             <div class="swipe-wrapper" data-id="${inv.id}">
                 <div class="unified-item" onclick="openInvestSheet('${inv.id}')">
-                    <div class="unified-icon" style="background:${meta.color};"><span class="material-symbols-rounded">${meta.icon}</span></div>
+                    <div class="unified-icon" style="background:${escapeHtml(meta.color)};"><span class="material-symbols-rounded">${escapeHtml(meta.icon)}</span></div>
                     <div class="unified-content">
                         <div class="unified-title">
                             <span class="title-text">${safeNote}</span>
@@ -1144,11 +1144,16 @@ function updateSettingsHelpText() {
 
 function renderSettingsSections() {
     // Accounts section
-    let accHtml = "";
+    let accHtml = `<div style="margin-bottom:12px;padding:12px;background:var(--md-surface-container-highest);border-radius:12px;">
+        <div style="font-size:11px;font-weight:600;color:var(--md-outline);margin-bottom:6px;">Active Filter</div>
+        <select class="account-selector" id="settings-account-filter" onchange="changeAccountFilter(this.value)" style="width:100%;max-width:100%;background:var(--md-surface);">
+            <option value="All" ${db.activeAccountFilter === 'All' ? 'selected' : ''}>All Accounts</option>
+            ${db.accounts.map(a => `<option value="${escapeHtml(a)}" ${db.activeAccountFilter === a ? 'selected' : ''}>${escapeHtml(a)}</option>`).join('')}
+        </select>
+    </div>`;
     db.accounts.forEach((a, idx) => {
-        let safeA = escapeHtml(a);
-        let delBtn = idx === 0 ? '' : `<span class="material-symbols-rounded" style="color:var(--md-error);font-size:16px;cursor:pointer;" onclick="deleteAccount('${safeA}')">delete</span>`;
-        accHtml += `<div style="display:flex;justify-content:space-between;padding:12px;background:var(--md-surface-container-highest);border-radius:12px;"><span>${safeA}</span>${delBtn}</div>`;
+        let delBtn = idx === 0 ? '' : `<span class="material-symbols-rounded" style="color:var(--md-error);font-size:16px;cursor:pointer;" onclick="deleteAccount(this.dataset.val)" data-val="${escapeHtml(a)}">delete</span>`;
+        accHtml += `<div style="display:flex;justify-content:space-between;padding:12px;background:var(--md-surface-container-highest);border-radius:12px;"><span>${escapeHtml(a)}</span>${delBtn}</div>`;
     });
     let accList = document.getElementById('account-list');
     if (accList) accList.innerHTML = accHtml;
@@ -1161,21 +1166,20 @@ function renderSettingsSections() {
             let cat = db.categories[c];
             if (!cat.targetMultiplier) cat.targetMultiplier = 0;
 
-            let safeC = escapeHtml(c);
             let safeColor = escapeHtml(cat?.color || '#ccc');
             let safeIcon = escapeHtml(cat?.icon || 'help');
-            let delBtn = isDefault ? '<span style="font-size:10px;color:var(--md-outline);">Default</span>' : `<span class="material-symbols-rounded" style="color:var(--md-error);font-size:16px;cursor:pointer;" onclick="deleteCategory('${safeC}')">delete</span>`;
+            let delBtn = isDefault ? '<span style="font-size:10px;color:var(--md-outline);">Default</span>' : `<span class="material-symbols-rounded" style="color:var(--md-error);font-size:16px;cursor:pointer;" onclick="deleteCategory(this.dataset.val)" data-val="${escapeHtml(c)}">delete</span>`;
 
             catHtml += `
         <div style="padding:12px;background:var(--md-surface-container-highest);border-radius:12px;margin-bottom:8px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <span><span class="material-symbols-rounded" style="font-size:16px;color:${safeColor};vertical-align:text-bottom;margin-right:6px;">${safeIcon}</span>${safeC}</span>
+                <span><span class="material-symbols-rounded" style="font-size:16px;color:${safeColor};vertical-align:text-bottom;margin-right:6px;">${safeIcon}</span>${escapeHtml(c)}</span>
                 ${delBtn}
             </div>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                 <div class="input-container" style="margin-bottom:0;">
                     <label style="font-size:10px;">Target (x Expense)</label>
-                    <input type="number" step="0.1" value="${cat.targetMultiplier || ''}" placeholder="e.g. 6" class="md-input" style="padding:4px 8px;font-size:12px;" onchange="updateCategorySetting('${c}', 'targetMultiplier', this.value)">
+                    <input type="number" step="0.1" value="${cat.targetMultiplier || ''}" placeholder="e.g. 6" class="md-input" style="padding:4px 8px;font-size:12px;" onchange="updateCategorySetting(this.dataset.cat, 'targetMultiplier', this.value)" data-cat="${escapeHtml(c)}">
                 </div>
             </div>
         </div>`;
@@ -1200,6 +1204,18 @@ function renderSettingsSections() {
     if (badgeGrid) badgeGrid.innerHTML = badgeHtml;
 }
 
+function changeAccountFilter(val) {
+    db.activeAccountFilter = val;
+    window.activeAccountFilter = val;
+    saveData();
+    renderAll();
+    // Scroll to the bottom of settings so the user sees the change
+    setTimeout(() => {
+        let scrollEl = document.getElementById('settings-content-scroll');
+        if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
+    }, 100);
+}
+window.changeAccountFilter = changeAccountFilter;
 window.toggleNotificationMaster = toggleNotificationMaster;
 window.loadNotificationPrefs = loadNotificationPrefs;
 
@@ -1212,12 +1228,12 @@ function updateCategorySetting(cat, key, val) {
 }
 
 function saveApiKeys() { db.geminiKey = document.getElementById('gemini-api-key').value.trim(); db.groqKey = document.getElementById('groq-api-key').value.trim(); db.openrouterKey = document.getElementById('openrouter-api-key').value.trim(); db.cerebrasKey = document.getElementById('cerebras-api-key').value.trim(); db.githubKey = document.getElementById('github-api-key').value.trim(); saveData(); showSnackbar("API Keys Saved", "key"); }
-function addAccount() { haptic(40); let name = document.getElementById('new-acc-name').value.trim(); if (name && !db.accounts.includes(name)) { db.accounts.push(name); document.getElementById('new-acc-name').value = ''; saveData(); initUI(); openSettings(); showSnackbar("Account Added"); } }
+function addAccount() { haptic(40); let name = sanitizeText(document.getElementById('new-acc-name').value.trim()); if (name && !db.accounts.includes(name)) { db.accounts.push(name); document.getElementById('new-acc-name').value = ''; saveData(); initUI(); openSettings(); showSnackbar("Account Added"); } }
 function deleteAccount(name) { haptic(40); Swal.fire({ title: `Delete Account '${name}'?`, text: "Entries will remain but lose association.", showCancelButton: true }).then(r => { if (r.isConfirmed) { db.accounts = db.accounts.filter(a => a !== name); saveData(); initUI(); openSettings(); renderAll(); } }); }
 function addCustomCategory() {
     haptic(40);
     const nameInput = document.getElementById('new-cat-name');
-    const name = nameInput.value.trim();
+    const name = sanitizeText(nameInput.value.trim());
     const template = document.getElementById('new-cat-template').value;
     if (!name) return;
 
@@ -1781,7 +1797,7 @@ function autoBackupReminder() { let now = new Date().toDateString(); if (db.last
 function dataCleanup() { Swal.fire({ title: 'Cleanup Old Entries', text: 'Enter cutoff date (YYYY-MM-DD) to remove entries older than that date.', input: 'text', showCancelButton: true }).then(res => { if (res.isConfirmed && res.value) { let cutoff = parseDate(res.value); let before = db.investments.length; db.investments = db.investments.filter(i => parseDate(i.date) >= cutoff); saveData(); renderAll(); showSnackbar(`Removed ${before - db.investments.length} entries.`); } }); }
 
 
-function updateRebalanceBadge() { let badge = document.getElementById('rebalance-badge'); let rebalanceSec = document.getElementById('rebalance-section'); badge.style.display = rebalanceSec && rebalanceSec.style.display !== 'none' ? 'block' : 'none'; }
+function updateRebalanceBadge() { let badge = document.getElementById('rebalance-badge'); let rebalanceSec = document.getElementById('rebalance-section'); if (badge) badge.style.display = rebalanceSec && rebalanceSec.style.display !== 'none' ? 'block' : 'none'; }
 
 // ==========================================
 // 8. AI INTEGRATION (delegates to shared_ai.js)
@@ -2085,7 +2101,7 @@ function renderHubChatMessages() {
         return;
     }
     let html = '';
-    window.activeChatSession.messages.forEach(msg => {
+    (window.activeChatSession.messages || []).forEach(msg => {
         html += `<div class="ai-hub-chat-msg ${msg.role === 'user' ? 'user' : 'bot'}">${formatAIResponse(msg.content)}</div>`;
     });
     container.innerHTML = html;
@@ -2429,19 +2445,23 @@ async function generateAIForecast(alreadyOpen = false) {
             let trendIcon = p.trend === 'up' ? 'trending_up' : p.trend === 'down' ? 'trending_down' : 'trending_flat';
             let trendColor = p.trend === 'up' ? 'var(--md-success)' : p.trend === 'down' ? 'var(--md-error)' : 'var(--md-outline)';
             let trendBg = p.trend === 'up' ? 'var(--md-success-container)' : p.trend === 'down' ? 'var(--md-error-container)' : 'var(--md-surface-container-highest)';
-            html += `<div class="md-card" style="margin-bottom:0;display:flex;align-items:center;gap:16px;padding:16px;border-left:4px solid ${meta.color};">
-                        <div style="width:48px;height:48px;border-radius:16px;background:${meta.color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <span class="material-symbols-rounded" style="color:${meta.color};font-size:24px;">${meta.icon}</span>
+            let safeCat = escapeHtml(p.category);
+            let safeReason = escapeHtml(p.reason);
+            let safeColor = escapeHtml(meta.color);
+            let safeIcon = escapeHtml(meta.icon);
+            html += `<div class="md-card" style="margin-bottom:0;display:flex;align-items:center;gap:16px;padding:16px;border-left:4px solid ${safeColor};">
+                        <div style="width:48px;height:48px;border-radius:16px;background:${safeColor}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <span class="material-symbols-rounded" style="color:${safeColor};font-size:24px;">${safeIcon}</span>
                         </div>
                         <div style="flex:1;min-width:0;">
-                            <div style="font-size:16px;font-weight:600;color:var(--md-on-surface);">${p.category}</div>
-                            <div style="font-size:13px;color:var(--md-on-surface-variant);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.reason}</div>
+                            <div style="font-size:16px;font-weight:600;color:var(--md-on-surface);">${safeCat}</div>
+                            <div style="font-size:13px;color:var(--md-on-surface-variant);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${safeReason}</div>
                         </div>
                         <div style="text-align:right;flex-shrink:0;">
                             <div style="font-size:18px;font-weight:600;color:var(--md-on-surface);">₹${fmtNum(p.predicted)}</div>
                             <div style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:${trendBg};padding:4px 8px;border-radius:8px;">
                                 <span class="material-symbols-rounded" style="font-size:14px;color:${trendColor};">${trendIcon}</span>
-                                <span style="font-size:12px;font-weight:600;color:${trendColor};text-transform:capitalize;">${p.trend}</span>
+                                <span style="font-size:12px;font-weight:600;color:${trendColor};text-transform:capitalize;">${escapeHtml(p.trend)}</span>
                             </div>
                         </div>
                     </div>`;

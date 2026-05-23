@@ -5,7 +5,7 @@ async function generateAITags() {
     // Cap note text to prevent oversized prompts / token limit errors
     let noteBody = note.slice(0, 200);
     let tagInput = document.getElementById('inv-tags'); tagInput.value = "Generating...";
-    let prompt = `Provide exactly 3 comma‑separated short tags (no hashtags) for a financial asset of type '${window.currentInvType}' with note '${noteBody}'. Examples: tax, equity, longterm.`;
+    let prompt = `Provide exactly 3 comma‑separated short tags (no hashtags) for a financial asset of type '${window.currentInvType || 'Unknown'}' with note '${noteBody}'. Examples: tax, equity, longterm.`;
     try { let tags = await callAIApi(prompt, "You return comma-separated lists of tags only."); tagInput.value = tags; haptic([30, 50]); } catch (e) { tagInput.value = ""; showSnackbar("AI Tag generation failed.", "error"); }
 }
 
@@ -47,8 +47,9 @@ function processRecurring() {
 
 // Removed updateDividendTotals
 function updateAccountFilter() {
-    window.activeAccountFilter = document.getElementById('account-filter').value;
-    document.getElementById('active-acc-label').innerText = window.activeAccountFilter;
+    let aal = document.getElementById('active-acc-label');
+    window.activeAccountFilter = db.activeAccountFilter || 'All';
+    if (aal) aal.innerText = window.activeAccountFilter;
 }
 
 function updatePortfolioCalculations() {
@@ -262,9 +263,9 @@ function updatePortfolioCalculations() {
             let value = typeTotals[t] || 0;
             if (value > 0 && totalMarketValue > 0) {
                 let perc = (value / totalMarketValue) * 100;
-                let color = db.categories[t]?.color || "#ccc";
-                allocHtml += `<div class="alloc-segment" style="width:${perc}%;background:${color};"></div>`;
-                legendHtml += `<span><span class="alloc-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span>${t} ${perc.toFixed(0)}%</span>`;
+                let safeColor = escapeHtml(db.categories[t]?.color || "#ccc");
+                allocHtml += `<div class="alloc-segment" style="width:${perc}%;background:${safeColor};"></div>`;
+                legendHtml += `<span><span class="alloc-dot" style="background:${safeColor}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span>${escapeHtml(t)} ${perc.toFixed(0)}%</span>`;
             }
             if (db.allocTargets[t]) {
                 hasRebalanceTargets = true;
@@ -315,9 +316,10 @@ function updatePortfolioCalculations() {
                     let taxHint = stcg > 0 ? `<span style="color:var(--md-error); font-size:9px;">(${formatMoney(stcg)} STCG taxable)</span>` :
                         ltcg > 0 ? `<span style="color:var(--md-success); font-size:9px;">(LTCG - check exemption)</span>` : '';
 
+                    let safeColorOver = escapeHtml(db.categories[t]?.color || '#ccc');
                     rebalanceHtml += `<div class="reb-item" style="display:flex; flex-direction:column; margin-bottom:10px; padding:8px; background:var(--md-error-container); border-radius:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span><span class="alloc-dot" style="background:${db.categories[t]?.color || '#ccc'}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${t}</span>
+                            <span><span class="alloc-dot" style="background:${safeColorOver}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${escapeHtml(t)}</span>
                             <span style="color:var(--md-error); font-weight:600;">-${formatMoney(Math.min(excess, db.projectionNextMonth * 0.5))}</span>
                         </div>
                         <div style="font-size:10px; color:var(--md-on-error-container); margin-left:14px;">${curPerc}% allocated (Target: ${targetPerc}%) ${taxHint}</div>
@@ -338,10 +340,11 @@ function updatePortfolioCalculations() {
                         let curValue = typeTotals[t] || 0;
                         let curPerc = totalMarketValue > 0 ? (curValue / totalMarketValue * 100).toFixed(0) : 0;
                         let targetPerc = db.allocTargets[t];
+                        let safeColorShort = escapeHtml(db.categories[t]?.color || '#ccc');
 
                         rebalanceHtml += `<div class="reb-item" style="display:flex; flex-direction:column; margin-bottom:10px;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span><span class="alloc-dot" style="background:${db.categories[t]?.color || '#ccc'}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${t}</span>
+                                <span><span class="alloc-dot" style="background:${safeColorShort}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${escapeHtml(t)}</span>
                                 <span style="color:var(--md-primary); font-weight:600;">+${formatMoney(investNext)}</span>
                             </div>
                             <div style="font-size:10px; color:var(--md-outline); margin-left:14px;">Current: ${curPerc}% → Target: ${targetPerc}%</div>
@@ -359,7 +362,7 @@ function updatePortfolioCalculations() {
                         let extra = remainingToInvest * weight;
                         if (extra > 1) {
                             rebalanceHtml += `<div class="reb-item" style="display:flex; justify-content:space-between; align-items:center; opacity:0.8; font-size:13px;">
-                                <span style="margin-left:14px;">${t}</span>
+                                <span style="margin-left:14px;">${escapeHtml(t)}</span>
                                 <span>+${formatMoney(extra)}</span>
                             </div>`;
                         }
@@ -372,8 +375,9 @@ function updatePortfolioCalculations() {
             Object.keys(overAllocated).forEach(t => {
                 let curPerc = ((typeTotals[t] / totalMarketValue) * 100).toFixed(0);
                 let targetPerc = db.allocTargets[t];
+                let safeColorOA = escapeHtml(db.categories[t]?.color || '#ccc');
                 rebalanceHtml += `<div class="reb-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:8px; background:var(--md-error-container); border-radius:8px;">
-                    <span><span class="alloc-dot" style="background:${db.categories[t]?.color || '#ccc'}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${t}</span>
+                    <span><span class="alloc-dot" style="background:${safeColorOA}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${escapeHtml(t)}</span>
                     <span style="color:var(--md-error);">${curPerc}% (Target: ${targetPerc}%)</span>
                 </div>`;
             });
@@ -401,7 +405,7 @@ function updatePortfolioCalculations() {
     }
 
     let portGrid = document.getElementById('portfolio-grid');
-    if (portGrid) { let activeCats = Object.keys(typeTotals).filter(t => typeTotals[t] > 0 || db.allocTargets[t]); portGrid.innerHTML = activeCats.length === 0 ? `<div class="empty-state-premium" style="grid-column:1 / -1;"><span class="material-symbols-rounded">pie_chart</span><div class="es-title">Empty Portfolio</div></div>` : activeCats.map(t => { let meta = db.categories[t]; let safeT = escapeHtml(t); let safeColor = escapeHtml(meta?.color || '#ccc'); let safeIcon = escapeHtml(meta?.icon || 'help'); let dObj = new Date(typeLastDate[t]); let dateStr = typeLastDate[t] ? `${dObj.getDate()} ${dObj.toLocaleString('default', { month: 'short' })}` : "No entries"; let cur = typeTotals[t]; let inv = db.investments.filter(i => i.type === t && (activeAccountFilter === 'All' || i.account === activeAccountFilter)).reduce((s, i) => s + i.amount, 0) + (db.categoryDetails[t]?.initialBal || 0); let prof = cur - inv; let roiHtml = prof !== 0 ? `<div class="roi-tag ${prof > 0 ? 'positive' : 'negative'}">${prof > 0 ? '+' : ''}${formatMoney(prof)}</div>` : ""; let intRate = db.categoryDetails[t]?.interestRate; let intRateHtml = intRate ? `<div style="font-size:10px;background:var(--md-surface-container-highest);padding:2px 6px;border-radius:4px;font-weight:700;color:var(--md-primary);">${intRate}% APY</div>` : ""; return `<div class="port-card" onclick="openCategoryDetails('${safeT}')"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div class="port-icon" style="background:${safeColor};"><span class="material-symbols-rounded" style="font-size:20px;">${safeIcon}</span></div>${intRateHtml}</div><div class="port-type">${safeT}</div><div class="port-amt">${formatMoney(cur)}</div>${roiHtml}<div class="port-date" style="font-size:11px; margin-top:4px; color:var(--md-outline);">Last: ${dateStr}</div></div>`; }).join(''); }
+    if (portGrid) { let activeCats = Object.keys(typeTotals).filter(t => typeTotals[t] > 0 || db.allocTargets[t]); portGrid.innerHTML = activeCats.length === 0 ? `<div class="empty-state-premium" style="grid-column:1 / -1;"><span class="material-symbols-rounded">pie_chart</span><div class="es-title">Empty Portfolio</div></div>` : activeCats.map(t => { let meta = db.categories[t]; let safeT = escapeHtml(t); let safeColor = escapeHtml(meta?.color || '#ccc'); let safeIcon = escapeHtml(meta?.icon || 'help'); let dObj = new Date(typeLastDate[t]); let dateStr = typeLastDate[t] ? `${dObj.getDate()} ${dObj.toLocaleString('default', { month: 'short' })}` : "No entries"; let cur = typeTotals[t]; let inv = db.investments.filter(i => i.type === t && (activeAccountFilter === 'All' || i.account === activeAccountFilter)).reduce((s, i) => s + i.amount, 0) + (db.categoryDetails[t]?.initialBal || 0); let prof = cur - inv; let roiHtml = prof !== 0 ? `<div class="roi-tag ${prof > 0 ? 'positive' : 'negative'}">${prof > 0 ? '+' : ''}${formatMoney(prof)}</div>` : ""; let intRate = db.categoryDetails[t]?.interestRate; let intRateHtml = intRate ? `<div style="font-size:10px;background:var(--md-surface-container-highest);padding:2px 6px;border-radius:4px;font-weight:700;color:var(--md-primary);">${escapeHtml(intRate)}% APY</div>` : ""; return `<div class="port-card" onclick="openCategoryDetails(this.dataset.cat)" data-cat="${safeT}"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div class="port-icon" style="background:${safeColor};"><span class="material-symbols-rounded" style="font-size:20px;">${safeIcon}</span></div>${intRateHtml}</div><div class="port-type">${safeT}</div><div class="port-amt">${formatMoney(cur)}</div>${roiHtml}<div class="port-date" style="font-size:11px; margin-top:4px; color:var(--md-outline);">Last: ${dateStr}</div></div>`; }).join(''); }
 
     let goalsList = document.getElementById('goals-list');
     if (goalsList) {
@@ -1090,7 +1094,7 @@ async function generatePDFWealthReport() {
         let monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         let dateStr = `${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-        let totalInv = db.investments.reduce((s, i) => s + i.amount, 0);
+        let totalInv = (db.investments || []).reduce((s, i) => s + i.amount, 0);
         let gainLoss = (currentTotalNW || 0) - totalInv;
         let categoriesHtml = '';
         Object.keys(currentTypeTotals || {}).forEach(t => {
@@ -1208,7 +1212,7 @@ function updateDashboardEntryCards() {
         let needs = mp.needs || 0;
         let wants = mp.wants || 0;
         let totalBudget = needs + wants;
-        let totalInv = db.investments.reduce((s, i) => s + i.amount, 0);
+        let totalInv = (db.investments || []).reduce((s, i) => s + i.amount, 0);
         let budgetStatusEl = plannerEntry.querySelector('.budget-status');
         if (!budgetStatusEl) {
             let descEl = plannerEntry.querySelector('div[style*="font-size:13px"]');
