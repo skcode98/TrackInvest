@@ -644,6 +644,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="./shared_ai.js"></script>
 <script>
@@ -1857,18 +1858,10 @@ function savePlanner(silent = false) {
         db.userProfile.monthlyExpense = plan.needs.reduce((s, i) => s + i.amount, 0);
         let existing;
         try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Save failed: storage corrupted','error'); _saveInProgress = false; return; }
-        // Merge: keep existing props not in db, but overwrite monthlyPlans for current key
-        existing.monthlyPlans = existing.monthlyPlans || {};
-        existing.monthlyPlans[key] = db.monthlyPlans[key];
-        existing.userProfile = db.userProfile;
-        // Preserve all other db props
-        Object.keys(db).forEach(k => {
-            if (k !== 'monthlyPlans' && k !== 'userProfile') existing[k] = db[k];
-        });
+        Object.assign(existing, db);
         try {
             localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
         } catch (e) {
-            // Try clearing some space if quota exceeded
             try { localStorage.removeItem('backup_invest_db'); } catch(ee) {}
             localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
         }
