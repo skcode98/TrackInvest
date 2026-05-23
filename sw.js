@@ -72,7 +72,6 @@ const CORS_PROXIES = [
   'https://api.codetabs.com/v1/proxy?quest=',
   'https://corsproxy.io/?',
   'https://api.allorigins.win/raw?url=',
-  'https://api.allorigins.win/get?url=',
 ];
 
 async function fetchWithProxyFallback(url) {
@@ -112,6 +111,14 @@ self.addEventListener('fetch', (event) => {
 
     // For same-origin: cache-first
     if (url.origin === self.location.origin) {
+        if (event.request.mode === 'navigate') {
+            event.respondWith(
+                caches.match(event.request).then(cached =>
+                    cached || fetch(event.request).catch(() => caches.match('./index.html'))
+                )
+            );
+            return;
+        }
         event.respondWith(
             caches.match(event.request).then(cached =>
                 cached || fetch(event.request).then(resp => {

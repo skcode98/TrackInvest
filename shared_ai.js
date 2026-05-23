@@ -19,7 +19,7 @@ function isValidGitHubKey(key) {
 
 const _sanitize = typeof DOMPurify !== 'undefined'
     ? (s) => DOMPurify.sanitize(s, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] })
-    : (s) => s.replace(/<[^>]*>/g, '');
+    : (s) => s.replace(/<[^>]*>/g, '').replace(/javascript:/gi, '').replace(/on\w+\s*=/gi, '');
 
 function sanitizeInput(input) {
     if (typeof input !== 'string') return '';

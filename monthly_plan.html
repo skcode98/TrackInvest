@@ -919,7 +919,8 @@ function syncCustomInvestments() {
     });
 
     if (syncedCount > 0) {
-        let existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}');
+        let existing;
+        try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Sync failed: storage corrupted','error'); return; }
         Object.assign(existing, db);
         localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
         snack(`Synced ${syncedCount} investment(s) to ledger!`, 'check_circle');
@@ -958,7 +959,11 @@ function recalc() {
     const totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
     const totalWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
     const customInvestTotal = plan.customInvestments.reduce((s, i) => s + (i.amount || 0), 0);
-    const totalInvest = extractedSIPTotal + extractedGoalTotal + customInvestTotal;
+    // Use actual ledger data for past/current months, planned for future months
+    const useActual = viewOffset <= 0 && actualInvest > 0;
+    const totalInvest = useActual
+        ? actualInvest + customInvestTotal
+        : extractedSIPTotal + extractedGoalTotal + customInvestTotal;
     const totalOut    = totalNeeds + totalWants + totalInvest;
     const balance     = income - totalOut;
 
@@ -1060,8 +1065,8 @@ function savePlanner() {
         };
         if (!db.userProfile) db.userProfile = {};
         db.userProfile.monthlyExpense = plan.needs.reduce((s, i) => s + i.amount, 0);
-        // Merge with existing data to avoid overwriting other pages' data
-        let existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}');
+        let existing;
+        try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Save failed: storage corrupted','error'); return; }
         Object.assign(existing, db);
         localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
         snack('Plan saved!', 'check_circle');
@@ -1138,6 +1143,17 @@ function escapeHtml(str) {
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+// Cross-tab sync listener
+try {
+    const _syncChan = new BroadcastChannel('trackinvest-sync');
+    _syncChan.onmessage = (e) => {
+        if (e.data && e.data.type === 'sync-data') {
+            const incoming = e.data.data?.investments || 0;
+            snack(`Ledger updated (${incoming} entries). Reload to sync.`, 'sync');
+        }
+    };
+} catch (e) {}
 </script>
 </body>
 </html>

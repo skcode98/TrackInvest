@@ -240,9 +240,11 @@
     <script src="./shared_ai.js"></script>
     <script>
         window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
+        // Cross-tab sync listener
+        try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; } catch(e){}
         const STORAGE_KEY = 'appHubInvestDb';
         function loadDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; } }
-        function saveDB() { try { let existing = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; Object.assign(existing, db); localStorage.setItem(STORAGE_KEY, JSON.stringify(existing)); Object.assign(db, existing); } catch(e) { showSnackbar('Storage failed','error'); } }
+        function saveDB() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); } catch(e) { showSnackbar('Storage failed','error'); } }
         function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
         let db = loadDB();
         if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
@@ -500,7 +502,11 @@
                 for(let i=1;i<lines.length;i++) {
                     const p = parseCSVLine(lines[i]);
                     const amt=parseFloat(p[amtIdx]), comment=commentIdx>=0?(p[commentIdx]||''):'', date=parseBuckwheatDate(p[timeIdx]);
-                    if(!isNaN(amt)&&date) { db.spendTracker.entries.push({id:Date.now()+'_'+i+'_'+Math.random().toString(36).slice(2,6),amount:amt,comment:DOMPurify.sanitize(comment,{ALLOWED_TAGS:[],ALLOWED_ATTR:[]}),date:date.toISOString(),category:'Uncategorized'}); added++; }
+                    if(!isNaN(amt)&&date) {
+                        const dup = db.spendTracker.entries.some(e => e.amount===amt && e.comment===comment && e.date===date.toISOString());
+                        if (dup) { skipped++; continue; }
+                        db.spendTracker.entries.push({id:Date.now()+'_'+i+'_'+Math.random().toString(36).slice(2,6),amount:amt,comment:DOMPurify.sanitize(comment,{ALLOWED_TAGS:[],ALLOWED_ATTR:[]}),date:date.toISOString(),category:'Uncategorized'}); added++;
+                    }
                     else skipped++;
                 }
                 saveDB(); e.target.value='';
@@ -693,7 +699,7 @@
             const rows=entries.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(e=>{const d=new Date(e.date);return `<tr><td>${d.getDate()}/${d.getMonth()+1}</td><td>${DOMPurify.sanitize(e.comment||'—')}</td><td>${e.category||'Uncategorized'}</td><td style="text-align:right;">₹${e.amount.toLocaleString('en-IN')}</td></tr>`;}).join('');
             const html=`<div style="font-family:Roboto,sans-serif;padding:24px;color:#1a1a1a;"><h1 style="font-size:24px;color:#415F91;">Spend Report</h1><p style="color:#666;">${new Date(currentYear,currentMonth).toLocaleString('default',{month:'long',year:'numeric'})}</p><div style="font-size:36px;font-weight:400;margin:16px 0;">₹${total.toLocaleString('en-IN')}</div><h3>Category Split</h3>${Object.entries(cats).map(([c,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${c}</span><span>₹${v.toLocaleString('en-IN')}</span></div>`).join('')}<hr style="margin:16px 0;"><table style="width:100%;border-collapse:collapse;font-size:12px;"><tr style="background:#f0f0f0;"><th style="padding:8px;text-align:left;">Date</th><th style="padding:8px;text-align:left;">Comment</th><th style="padding:8px;text-align:left;">Category</th><th style="padding:8px;text-align:right;">Amount</th></tr>${rows}</table></div>`;
             const el=document.createElement('div'); el.innerHTML=html; document.body.appendChild(el);
-            html2pdf().set({margin:10,filename:`spends_${currentMonth+1}_${currentYear}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).save().then(()=>document.body.removeChild(el));
+            html2pdf().set({margin:10,filename:`spends_${currentMonth+1}_${currentYear}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).save().finally(()=>{ try { document.body.removeChild(el); } catch(e){} });
             Swal.close();
         }
         function downloadFile(c,name,mime){const b=new Blob([c],{type:mime});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);}

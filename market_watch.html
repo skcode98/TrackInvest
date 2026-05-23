@@ -627,13 +627,18 @@ function toggleAutoRefresh() {
     }
 }
 
+let _autoRefreshing = false;
 function startAutoRefresh() {
     stopAutoRefresh();
-    const tick = () => {
-        if (!autoRefreshOn) return;
-        refreshAll();
-        const delay = isMarketOpen() ? 60000 : 300000;
-        autoRefreshTimer = setTimeout(tick, delay);
+    const tick = async () => {
+        if (!autoRefreshOn || _autoRefreshing) return;
+        _autoRefreshing = true;
+        try { await refreshAll(); } catch (e) { console.warn('Auto-refresh error:', e); }
+        _autoRefreshing = false;
+        if (autoRefreshOn) {
+            const delay = isMarketOpen() ? 60000 : 300000;
+            autoRefreshTimer = setTimeout(tick, delay);
+        }
     };
     autoRefreshTimer = setTimeout(tick, 60000);
 }

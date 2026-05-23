@@ -68,13 +68,8 @@ if (!db.githubKey) db.githubKey = '';
 // Decrypt encrypted API keys if present
 if (db._ek && db.appPin) {
     const parts = db._ek.split('|');
-    if (parts.length === 2) {
-        if (!db.geminiKey) db.geminiKey = _decryptKey(parts[0], db.appPin) || '';
-        if (!db.groqKey) db.groqKey = _decryptKey(parts[1], db.appPin) || '';
-        if (!db.openrouterKey) db.openrouterKey = _decryptKey(parts[2] || '', db.appPin) || '';
-        if (!db.cerebrasKey) db.cerebrasKey = _decryptKey(parts[3] || '', db.appPin) || '';
-        if (!db.githubKey) db.githubKey = _decryptKey(parts[4] || '', db.appPin) || '';
-    }
+    const keyNames = ['geminiKey', 'groqKey', 'openrouterKey', 'cerebrasKey', 'githubKey'];
+    keyNames.forEach((key, i) => { if (!db[key]) db[key] = _decryptKey(parts[i] || '', db.appPin) || ''; });
     delete db._ek;
 }
 if (!db.appPin) db.appPin = '';
@@ -586,6 +581,7 @@ function installPWA() {
 document.addEventListener('DOMContentLoaded', () => {
     optimizeForMobile();
     installPWA();
+    initScrollToTop();
 });
 
 // Enhanced skeleton screen utilities
@@ -1439,10 +1435,7 @@ function saveData() {
     // Defer non-critical work (quota check, cross-tab sync) to next frame to avoid jank
     requestAnimationFrame(() => {
         checkStorageQuota(sanitizedDb);
-        try {
-            window.__syncChannel = window.__syncChannel || new BroadcastChannel('trackinvest-sync');
-            window.__syncChannel.postMessage({ type: 'sync-data', data: { timestamp: Date.now() } });
-        } catch (e) { console.warn('BroadcastChannel error:', e); }
+        broadcastToTabs();
     });
 }
 
@@ -1928,6 +1921,8 @@ function sanitizeText(text) {
         .replace(/<iframe\b[^>]*>/gi, '')
         .replace(/<object\b[^>]*>/gi, '')
         .replace(/<embed\b[^>]*>/gi, '')
+        .replace(/<svg\b[^>]*>/gi, '')
+        .replace(/<math\b[^>]*>/gi, '')
         .trim();
 }
 
@@ -1949,7 +1944,8 @@ function isCurrentFY(dateStr) {
 
 function savePin() {
     let p = document.getElementById('settings-pin').value;
-    if (p.length === 4) { db.appPin = p; saveData(); showSnackbar("App Lock Enabled", "lock"); }
+    if (p.length === 4 && /^\d{4}$/.test(p)) { db.appPin = p; saveData(); showSnackbar("App Lock Enabled", "lock"); }
+    else if (p.length === 4) { showSnackbar("PIN must be 4 digits (0-9)", "error"); }
     else if (p.length === 0) { db.appPin = ''; saveData(); showSnackbar("App Lock Disabled", "lock_open"); }
     else { showSnackbar("PIN must be 4 digits", "error"); }
 }
@@ -2251,9 +2247,6 @@ function initScrollToTop() {
         }, 100);
     }, { passive: true });
 }
-
-// Initialize after DOM load
-document.addEventListener('DOMContentLoaded', initScrollToTop, { once: true });
 
 // ==========================================
 // 3. STRICT CALCULATORS & VALUATION ENGINE

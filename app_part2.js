@@ -345,16 +345,14 @@ function showUndoSnackbar(message, undoCallback) {
     sb.style.display = 'flex';
     sb.style.alignItems = 'center';
 
-    // Attach undo handler
-    setTimeout(() => {
-        const undoBtn = document.getElementById(undoId);
-        if (undoBtn) {
-            undoBtn.addEventListener('click', () => {
-                undoCallback();
-                sb.classList.remove("show");
-            });
-        }
-    }, 50);
+    // Attach undo handler synchronously
+    const undoBtn = document.getElementById(undoId);
+    if (undoBtn) {
+        undoBtn.addEventListener('click', () => {
+            undoCallback();
+            sb.classList.remove("show");
+        });
+    }
 
     // Auto-hide after 5 seconds (longer for undo)
     setTimeout(() => {

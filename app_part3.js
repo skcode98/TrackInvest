@@ -1963,7 +1963,7 @@ function broadcastToTabs() {
 function exportSyncUrl() {
     try {
         const payload = { v: 1, d: Date.now(), inv: db.investments.slice(-50), goals: db.goals };
-        const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
         const url = window.location.origin + window.location.pathname + '#sync:' + encoded;
         if (navigator.share) {
             navigator.share({ title: 'TrackInvest Sync', text: 'Sync your portfolio', url });
