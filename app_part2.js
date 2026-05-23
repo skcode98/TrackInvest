@@ -2024,7 +2024,9 @@ function formatAIResponse(text) {
         .replace(/^\* (.*$)/gim, '<li style="margin:4px 0;padding-left:8px;">$1</li>')
         .replace(/(<li[^>]*>.*<\/li>\n?)+/g, '<ul style="margin:12px 0;padding-left:20px;list-style-type:disc;">$&</ul>')
         .replace(/<\/ul>\s*<ul[^>]*>/g, '')
-        .replace(/\[(.*?)\]\((https?:\/\/.*?)\)/g, '<a href="$2" target="_blank" style="color:var(--md-primary);text-decoration:underline;">$1</a>');
+        .replace(/\[(.*?)\]\((https?:\/\/.*?)\)/g, (m, label, url) =>
+            `<a href="${escapeHtml(url)}" target="_blank" style="color:var(--md-primary);text-decoration:underline;">${escapeHtml(label)}</a>`
+        );
     formatted = formatted.replace(/`([^`]+)`/g, '<code style="background:var(--md-surface-container-highest);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:90%;">$1</code>');
     return formatted.split('\n').map(line => {
         if (line.trim().startsWith('<') || line.trim().endsWith('>')) return line;

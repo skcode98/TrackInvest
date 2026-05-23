@@ -220,18 +220,26 @@ let chartDataCache = {
 };
 
 // Loading state management
+let _loadingGuard = 0;
 function setLoading(elementId, isLoading, message = '') {
     const el = document.getElementById(elementId);
     if (!el) return;
 
     if (isLoading) {
-        el.dataset.originalContent = el.innerHTML;
+        _loadingGuard++;
+        el.style.setProperty('--load-g', String(_loadingGuard));
+        if (el.dataset.originalContent === undefined) {
+            el.dataset.originalContent = el.innerHTML;
+        }
         el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;color:var(--md-outline);">
             <span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">progress_activity</span>
             ${escapeHtml(message) || 'Loading...'}
         </div>`;
         el.disabled = true;
     } else {
+        if (String(_loadingGuard) !== el.style.getPropertyValue('--load-g')) return;
+        _loadingGuard = 0;
+        el.style.removeProperty('--load-g');
         if (el.dataset.originalContent) {
             el.innerHTML = el.dataset.originalContent;
             delete el.dataset.originalContent;
@@ -389,6 +397,8 @@ style.textContent = `
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             z-index: 2000;
             max-width: 100%;
+            max-height: 100dvh;
+            overflow-y: auto;
         }
         
         .mobile-context-item {
@@ -579,10 +589,10 @@ function debounce(func, wait) {
 function haptic(ms = 30) {
     try {
         if (typeof navigator === 'undefined' || !navigator.vibrate) return;
-        // Chrome on Android requires minimum ~40ms for perceptible feedback
-        const duration = Array.isArray(ms) ? ms : Math.max(ms, 40);
-        navigator.vibrate(duration);
-    } catch (e) { }
+// Chrome on Android requires minimum ~40ms for perceptible feedback
+    const duration = Array.isArray(ms) ? ms : Math.max(ms, 40);
+    navigator.vibrate(duration);
+} catch (e) { /* vibrate unavailable */ }
 }
 document.addEventListener('mousedown', () => window.userInteracted = true, { once: true });
 document.addEventListener('touchstart', () => window.userInteracted = true, { once: true });
@@ -708,7 +718,6 @@ function closeOverlays(fromPopState = false) {
     if (_overlayBusy) return;
     _overlayBusy = true;
     try {
-
     if (fromPopState) {
         // History back: close only the topmost sheet
         const subSheet = document.querySelector('.sheet.sub-sheet.active');
@@ -727,7 +736,6 @@ function closeOverlays(fromPopState = false) {
             }
             document.body.classList.remove('lock-scroll');
         }
-
         activeSub = null;
         if (!subSheet) activeMain = null;
     } else {
@@ -746,10 +754,10 @@ function closeOverlays(fromPopState = false) {
             setTimeout(() => aiPopup.classList.add('hidden'), 400);
         }
 
-        try { sessionStorage.removeItem('currentSheet'); } catch (e) {}
+        try { sessionStorage.removeItem('currentSheet'); } catch (e) { console.warn('[sessionStorage]', e.message); }
 
-        if (!fromPopState && history && history.state && history.state.sheetId) {
-            try { history.back(); } catch (e) {}
+        if (history && history.state && history.state.sheetId) {
+            try { history.back(); } catch (e) { console.warn('[history]', e.message); }
         }
 
         activeSub = null;
@@ -758,12 +766,46 @@ function closeOverlays(fromPopState = false) {
     } finally { _overlayBusy = false; }
 }
 
+function openSettings() {
+    haptic(40);
+    if (document.getElementById('settings-sheet')) { openSheet('settings-sheet'); }
+}
+function closeSubSheet(fromPopState = false) {
+    // Save main sheet scroll position before closing sub-sheet
+    const mainSheetEl = activeMain ? document.getElementById(activeMain) : null;
+    const savedScrollTop = mainSheetEl ? mainSheetEl.scrollTop : 0;
+
+    document.getElementById('scrim-sub')?.classList.remove('active');
+    document.querySelectorAll('.sheet.sub-sheet').forEach(el => el.classList.remove('active'));
+    activeSub = null;
+    // Close any remaining sheet and clear scroll lock
+    document.querySelectorAll('.sheet.active').forEach(el => el.classList.remove('active'));
+    const mainScrim = document.getElementById('scrim');
+    if (mainScrim) mainScrim.classList.remove('active');
+    const subScrim = document.getElementById('scrim-sub');
+    if (subScrim) subScrim.classList.remove('active');
+    document.body.classList.remove('lock-scroll');
+    // Restore main sheet scroll position
+    if (mainSheetEl) mainSheetEl.scrollTop = savedScrollTop;
+}
+
+function openSettings() {
+    haptic(40);
+    if (document.getElementById('settings-sheet')) { openSheet('settings-sheet'); }
+}
+
 // Sub-sheets open ON TOP of an existing sheet (e.g. calculators from Settings)
-const SUB_SHEET_IDS = ['xirr-sheet', 'sip-calc-sheet', 'emi-calc-sheet', 'inflation-sheet', 'ai-predict-sheet', 'history-sync-sheet', 'webrtc-sync-sheet', 'chat-history-sheet', 'wealth-blueprint-sheet', 'ai-sheet', 'maturity-calendar-sheet', 'ai-chat-sheet', 'monthly-target-sheet', 'projection-sheet', 'month-sheet'];
+const SUB_SHEET_IDS = new Set([
+    'xirr-sheet', 'sip-calc-sheet', 'emi-calc-sheet', 'inflation-sheet',
+    'ai-predict-sheet', 'history-sync-sheet', 'webrtc-sync-sheet',
+    'chat-history-sheet', 'wealth-blueprint-sheet', 'ai-sheet',
+    'maturity-calendar-sheet', 'ai-chat-sheet', 'monthly-target-sheet',
+    'projection-sheet', 'month-sheet'
+]);
 
 function openSubSheet(sheetId) {
-    if (!SUB_SHEET_IDS.includes(sheetId)) {
-        SUB_SHEET_IDS.push(sheetId);
+    if (!SUB_SHEET_IDS.has(sheetId)) {
+        SUB_SHEET_IDS.add(sheetId);
     }
     openSheet(sheetId);
 }
@@ -1281,7 +1323,7 @@ async function resetCorruptedSettings() {
     try {
         const corruptedKeys = Object.keys(db).filter(key => {
             const value = db[key];
-            return typeof value === 'undefined' || value === null || (Array.isArray(value) && value.length === 0);
+            return typeof value === 'undefined' || value === null;
         });
 
         if (corruptedKeys.length > 0) {
@@ -1635,7 +1677,8 @@ function performTabSwitch(tabId, fromPopState = false) {
 
 function togglePrivacy() {
     haptic(40); db.privacyMode = !db.privacyMode; saveData();
-    document.getElementById('privacy-icon').innerText = db.privacyMode ? 'visibility_off' : 'visibility';
+    const pi = document.getElementById('privacy-icon');
+    if (pi) pi.innerText = db.privacyMode ? 'visibility_off' : 'visibility';
     renderAll();
 }
 
@@ -1721,7 +1764,8 @@ function initUI() {
     if (!history.state) {
         history.replaceState({ tabId: savedTab }, "");
     }
-    document.getElementById('privacy-icon').innerText = db.privacyMode ? 'visibility_off' : 'visibility';
+    const php = document.getElementById('privacy-icon');
+    if (php) php.innerText = db.privacyMode ? 'visibility_off' : 'visibility';
     setTheme(db.theme || 'indigo');
 
     let sel = document.getElementById('account-filter');

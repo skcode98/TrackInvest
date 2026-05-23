@@ -2,8 +2,10 @@ async function generateAITags() {
     haptic(40);
     if (!db.geminiKey && !db.groqKey) return showSnackbar("Please add API Key in Settings.", "key");
     let note = document.getElementById('inv-note').value; if (!note) return showSnackbar("Enter an Asset Note first.", "edit");
+    // Cap note text to prevent oversized prompts / token limit errors
+    let noteBody = note.slice(0, 200);
     let tagInput = document.getElementById('inv-tags'); tagInput.value = "Generating...";
-    let prompt = `Provide exactly 3 comma‑separated short tags (no hashtags) for a financial asset of type '${window.currentInvType}' with note '${note}'. Examples: tax, equity, longterm.`;
+    let prompt = `Provide exactly 3 comma‑separated short tags (no hashtags) for a financial asset of type '${window.currentInvType}' with note '${noteBody}'. Examples: tax, equity, longterm.`;
     try { let tags = await callAIApi(prompt, "You return comma-separated lists of tags only."); tagInput.value = tags; haptic([30, 50]); } catch (e) { tagInput.value = ""; showSnackbar("AI Tag generation failed.", "error"); }
 }
 
@@ -247,7 +249,7 @@ function updatePortfolioCalculations() {
     if (taxValEl) { taxValEl.innerText = `${formatMoney(tax80cTotal)} / 1.5L`; document.getElementById('tax-fill').style.width = Math.min(100, (tax80cTotal / 150000) * 100) + '%'; let taxAlert = document.getElementById('tax-rollover-alert'); if (taxAlert) { taxAlert.style.display = tax80cTotal >= 150000 ? 'block' : 'none'; } }
 
     let matSection = document.getElementById('maturity-section');
-    if (matSection) { if (maturities.length > 0) { maturities.sort((a, b) => a.days - b.days); document.getElementById('maturity-list').innerHTML = maturities.map(m => `<div class="maturity-card md-card" style="margin-bottom:0; flex-shrink:0; padding:12px; min-width:120px;" onclick="openInvestSheet('${m.id}')"><div class="mat-title" style="font-size:14px; font-weight:500;">${m.note || m.type}</div><div class="mat-days" style="color:var(--md-primary); font-size:22px; margin-top:4px;">${m.days} <span style="font-size:12px;">Days</span></div></div>`).join(''); matSection.style.display = 'block'; } else { matSection.style.display = 'none'; } }
+    if (matSection) { if (maturities.length > 0) { maturities.sort((a, b) => a.days - b.days); document.getElementById('maturity-list').innerHTML = maturities.map(m => `<div class="maturity-card md-card" style="margin-bottom:0; flex-shrink:0; padding:12px; min-width:120px;" onclick="openInvestSheet('${escapeHtml(m.id)}')"><div class="mat-title" style="font-size:14px; font-weight:500;">${escapeHtml(m.note || m.type)}</div><div class="mat-days" style="color:var(--md-primary); font-size:22px; margin-top:4px;">${m.days} <span style="font-size:12px;">Days</span></div></div>`).join(''); matSection.style.display = 'block'; } else { matSection.style.display = 'none'; } }
 
     let allocBar = document.getElementById('alloc-bar');
     if (allocBar) {
@@ -1579,6 +1581,8 @@ function checkSpendAlerts() {
     let today = new Date();
     let todayStr = today.toISOString().split('T')[0];
     let todayEntries = db.spendTracker.entries.filter(e => e.date === todayStr);
+    // Note: Math.abs() on spend amounts is intentional — spend-tracker entries
+    // are always entered as positive by the sheet form; refunds are new negative entries.
     let todayTotal = todayEntries.reduce((s, e) => s + Math.abs(e.amount), 0);
 
     let weekStart = new Date(today);

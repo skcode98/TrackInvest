@@ -522,8 +522,8 @@
 
     <div id="snackbar" class="snackbar"></div>
     <div style="text-align:center;padding:8px 16px 16px;font-size:10px;color:var(--md-outline);opacity:0.4;user-select:none;"
-        onclick="navigator.clipboard.writeText(APP_VERSION);snack('Version copied','check_circle')" id="version-badge"></div>
-    <script>document.getElementById('version-badge').textContent=APP_VERSION;</script>
+        onclick="navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')" class="version-badge"></div>
+    <script>document.querySelector('.version-badge').textContent=APP_VERSION;</script>
 
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
 <script src="./shared_ai.js"></script>
@@ -678,7 +678,7 @@ function saveCurrentPlanSilent() {
         needs: plan.needs.map(x => ({...x})),
         wants: plan.wants.map(x => ({...x})),
         customInvestments: plan.customInvestments.map(x => ({...x})),
-        goalHorizon: parseInt(document.getElementById('goal-horizon').value) || 24
+        goalHorizon: parseInt(document.getElementById('goal-horizon').value, 10) || 24
     };
 }
 
@@ -1556,7 +1556,7 @@ function savePlanner(silent = false) {
             needs:       plan.needs.map(x => ({...x})),
             wants:       plan.wants.map(x => ({...x})),
             customInvestments: plan.customInvestments.map(x => ({...x})),
-            goalHorizon: parseInt(document.getElementById('goal-horizon').value) || 24
+            goalHorizon: parseInt(document.getElementById('goal-horizon').value, 10) || 24
         };
         if (!db.userProfile) db.userProfile = {};
         db.userProfile.monthlyExpense = plan.needs.reduce((s, i) => s + i.amount, 0);

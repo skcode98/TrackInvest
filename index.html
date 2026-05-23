@@ -448,8 +448,8 @@
         </div>
     </nav>
     <div style="position:fixed;right:4px;bottom:4px;cursor:default;opacity:0.25;user-select:none;z-index:101;pointer-events:none;"
-        title="Build version" id="version-badge"></div>
-    <script>document.getElementById('version-badge').textContent=APP_VERSION;</script>
+        title="Build version" class="version-badge"></div>
+    <script>document.querySelector('.version-badge').textContent=APP_VERSION;</script>
 
     <button class="fab" onclick="openInvestSheet()" title="Add Entry (N)"><span
             class="material-symbols-rounded">add</span> Add Entry</button>

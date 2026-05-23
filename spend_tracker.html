@@ -240,8 +240,8 @@
         </div>
         <div class="spend-list" id="spend-list"></div>
         <div style="text-align:center;padding:12px 0;font-size:10px;color:var(--md-outline);opacity:0.4;user-select:none;"
-            onclick="navigator.clipboard.writeText(APP_VERSION)" title="Build version" id="version-badge"></div>
-        <script>document.getElementById('version-badge').textContent=APP_VERSION;</script>
+            onclick="navigator.clipboard.writeText(APP_VERSION).catch(()=>{})" title="Build version" class="version-badge"></div>
+        <script>document.querySelector('.version-badge').textContent=APP_VERSION;</script>
         <div style="height:80px;"></div>
     </main>
 
@@ -401,7 +401,7 @@
         function parseBuckwheatDate(str) {
             str = str.trim().replace(/\u202f/g,' ').replace(/\u2009/g,' ');
             const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}),\s*(\d{1,2}):(\d{2})\s*(am|pm)/i);
-            if (m) { let y=2000+parseInt(m[3]),mo=parseInt(m[2])-1,d=parseInt(m[1]),h=parseInt(m[4]); if(m[6].toLowerCase()==='pm'&&h<12) h+=12; if(m[6].toLowerCase()==='am'&&h===12) h=0; return new Date(y,mo,d,h,parseInt(m[5])); }
+            if (m) { let y=2000+parseInt(m[3], 10),mo=parseInt(m[2], 10)-1,d=parseInt(m[1], 10),h=parseInt(m[4], 10); if(m[6].toLowerCase()==='pm'&&h<12) h+=12; if(m[6].toLowerCase()==='am'&&h===12) h=0; return new Date(y,mo,d,h,parseInt(m[5], 10)); }
             const d2 = new Date(str); if(!isNaN(d2)) return d2;
             return null;
         }
