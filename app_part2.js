@@ -2052,6 +2052,7 @@ function saveChatSession() {
 // ==========================================
 
 function openAIHub(tab = 'chat') {
+    if (window.__aiEnabled === false) { showSnackbar('Enable AI in Settings to use this feature.', 'smart_toy'); return; }
     saveChatSession();
     switchAIHubTab(tab);
     openSheet('ai-hub-sheet');

@@ -773,6 +773,8 @@ window.onload = function () {
         if (raw) db = JSON.parse(raw);
     } catch (e) { console.warn('DB read failed', e); }
 
+    window.__aiEnabled = db.aiEnabled !== false;
+
     if (!Array.isArray(db.investments)) db.investments = [];
 
     // Migrate old single-plan format to per-month
@@ -1873,6 +1875,7 @@ Give ONE short, specific, actionable tip in 2 sentences max. Focus on the bigges
 }
 
 function callAI(prompt) {
+    if (window.__aiEnabled === false) return Promise.reject(new Error('AI features disabled in Settings'));
     return callAIProvider({ geminiKey: db.geminiKey, groqKey: db.groqKey, openrouterKey: db.openrouterKey, cerebrasKey: db.cerebrasKey, githubKey: db.githubKey }, prompt, '');
 }
 

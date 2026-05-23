@@ -1063,7 +1063,7 @@ document.addEventListener('keydown', e => {
         's|S': { action: () => openSettings(), desc: 'Settings' },
         'g|G': { action: () => { if (db.goals.length > 0) openGoalSheet(db.goals[0].id); }, desc: 'Edit First Goal' },
         'r|R': { action: () => { renderAll(); showSnackbar('Refreshed', 'refresh'); }, desc: 'Refresh Data' },
-        'a|A': { action: () => openAIHub(), desc: 'AI Hub' }
+        'a|A': { action: () => { if (window.__aiEnabled !== false) openAIHub(); }, desc: 'AI Hub' }
     };
 
     // Check which shortcut matches
