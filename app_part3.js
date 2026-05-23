@@ -121,7 +121,7 @@ function processRecurring() {
         const intendedDay = nextDate.getDate();
         while (nextDate <= today && maxSafety > 0) {
             db.investments.push({
-                id: generateUniqueId(), date: getLocalYYYYMMDD(nextDate), type: rec.type, amount: rec.amount, note: rec.note + ' (Auto)', tags: rec.tags || '', isDividend: false, account: rec.account || db.accounts[0]
+                id: generateUniqueId(), date: getLocalYYYYMMDD(nextDate), type: rec.type, amount: rec.amount, note: rec.note + ' (Auto)', tags: rec.tags || '', account: rec.account || db.accounts[0]
             });
             nextDate = advanceMonth(nextDate, intendedDay);
             rec.nextRun = getLocalYYYYMMDD(nextDate);
@@ -146,14 +146,7 @@ function processRecurring() {
 // (updateDividendTotals, updateAccountFilter, updatePortfolioCalculations)
 // are also exposed individually for callers that only need a partial refresh.
 
-function updateDividendTotals() {
-    let dividendTotal = db.investments.filter(i => i.isDividend && !(db.categories[i.type]?.excludeDividend)).reduce((s, i) => s + i.amount, 0);
-    let dtEl = document.getElementById('dashboard-dividend-total');
-    if (dtEl) dtEl.innerText = formatMoney(dividendTotal);
-    let dsEl = document.getElementById('dividend-sheet-total');
-    if (dsEl) dsEl.innerText = formatMoney(dividendTotal);
-}
-
+// Removed updateDividendTotals
 function updateAccountFilter() {
     window.activeAccountFilter = document.getElementById('account-filter').value;
     document.getElementById('active-acc-label').innerText = window.activeAccountFilter;
@@ -198,7 +191,7 @@ function updatePortfolioCalculations() {
                 inv.date && parseDate(inv.date)
             );
 
-            let invested = validInvs.filter(i => !i.isDividend).reduce((sum, inv) => {
+            let invested = validInvs.reduce((sum, inv) => {
                 const amount = parseFloat(inv.amount) || 0;
                 return sum + amount;
             }, 0) + (db.categoryDetails[type]?.initialBal || 0);
@@ -259,12 +252,10 @@ function updatePortfolioCalculations() {
         if (window.activeAccountFilter !== 'All' && inv.account !== window.activeAccountFilter) return;
         let d = parseDate(inv.date);
         if (inv.maturityDate) { let mDate = new Date(inv.maturityDate); let diffDays = Math.ceil((mDate - now) / (1000 * 60 * 60 * 24)); if (diffDays >= 0 && diffDays <= 90) { maturities.push({ ...inv, days: diffDays, dateObj: mDate }); } }
-        if (!inv.isDividend) {
-            if (d.getFullYear() === currentY && d.getMonth() === currentM) thisMonthTotal += inv.amount;
-            if (d.getFullYear() === lastMY && d.getMonth() === lastM) lastMonthTotal += inv.amount;
-            if (d.getFullYear() === currentY) yearTotal += inv.amount;
-            if (db.categories[inv.type] && db.categories[inv.type].is80c && isCurrentFY(inv.date)) tax80cTotal += inv.amount;
-        }
+        if (d.getFullYear() === currentY && d.getMonth() === currentM) thisMonthTotal += inv.amount;
+        if (d.getFullYear() === lastMY && d.getMonth() === lastM) lastMonthTotal += inv.amount;
+        if (d.getFullYear() === currentY) yearTotal += inv.amount;
+        if (db.categories[inv.type] && db.categories[inv.type].is80c && isCurrentFY(inv.date)) tax80cTotal += inv.amount;
         if (!typeLastDate[inv.type] || d > new Date(typeLastDate[inv.type])) { typeLastDate[inv.type] = inv.date; }
     });
 
@@ -414,7 +405,7 @@ function updatePortfolioCalculations() {
                     let targetPerc = db.allocTargets[t];
 
                     // Estimate tax implication (simplified)
-                    let invs = db.investments.filter(i => i.type === t && !i.isDividend && (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter));
+                    let invs = db.investments.filter(i => i.type === t && (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter));
                     let stcg = 0, ltcg = 0;
                     let now = new Date();
                     invs.forEach(i => {
@@ -511,7 +502,7 @@ function updatePortfolioCalculations() {
     }
 
     let portGrid = document.getElementById('portfolio-grid');
-    if (portGrid) { let activeCats = Object.keys(typeTotals).filter(t => typeTotals[t] > 0 || db.allocTargets[t]); portGrid.innerHTML = activeCats.length === 0 ? `<div class="empty-state-premium" style="grid-column:1 / -1;"><span class="material-symbols-rounded">pie_chart</span><div class="es-title">Empty Portfolio</div></div>` : activeCats.map(t => { let meta = db.categories[t]; let safeT = escapeHtml(t); let safeColor = escapeHtml(meta?.color || '#ccc'); let safeIcon = escapeHtml(meta?.icon || 'help'); let dObj = new Date(typeLastDate[t]); let dateStr = typeLastDate[t] ? `${dObj.getDate()} ${dObj.toLocaleString('default', { month: 'short' })}` : "No entries"; let cur = typeTotals[t]; let inv = db.investments.filter(i => i.type === t && !i.isDividend && (activeAccountFilter === 'All' || i.account === activeAccountFilter)).reduce((s, i) => s + i.amount, 0) + (db.categoryDetails[t]?.initialBal || 0); let prof = cur - inv; let roiHtml = prof !== 0 ? `<div class="roi-tag ${prof > 0 ? 'positive' : 'negative'}">${prof > 0 ? '+' : ''}${formatMoney(prof)}</div>` : ""; let intRate = db.categoryDetails[t]?.interestRate; let intRateHtml = intRate ? `<div style="font-size:10px;background:var(--md-surface-container-highest);padding:2px 6px;border-radius:4px;font-weight:700;color:var(--md-primary);">${intRate}% APY</div>` : ""; return `<div class="port-card" onclick="openCategoryDetails('${safeT}')"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div class="port-icon" style="background:${safeColor};"><span class="material-symbols-rounded" style="font-size:20px;">${safeIcon}</span></div>${intRateHtml}</div><div class="port-type">${safeT}</div><div class="port-amt">${formatMoney(cur)}</div>${roiHtml}<div class="port-date" style="font-size:11px; margin-top:4px; color:var(--md-outline);">Last: ${dateStr}</div></div>`; }).join(''); }
+    if (portGrid) { let activeCats = Object.keys(typeTotals).filter(t => typeTotals[t] > 0 || db.allocTargets[t]); portGrid.innerHTML = activeCats.length === 0 ? `<div class="empty-state-premium" style="grid-column:1 / -1;"><span class="material-symbols-rounded">pie_chart</span><div class="es-title">Empty Portfolio</div></div>` : activeCats.map(t => { let meta = db.categories[t]; let safeT = escapeHtml(t); let safeColor = escapeHtml(meta?.color || '#ccc'); let safeIcon = escapeHtml(meta?.icon || 'help'); let dObj = new Date(typeLastDate[t]); let dateStr = typeLastDate[t] ? `${dObj.getDate()} ${dObj.toLocaleString('default', { month: 'short' })}` : "No entries"; let cur = typeTotals[t]; let inv = db.investments.filter(i => i.type === t && (activeAccountFilter === 'All' || i.account === activeAccountFilter)).reduce((s, i) => s + i.amount, 0) + (db.categoryDetails[t]?.initialBal || 0); let prof = cur - inv; let roiHtml = prof !== 0 ? `<div class="roi-tag ${prof > 0 ? 'positive' : 'negative'}">${prof > 0 ? '+' : ''}${formatMoney(prof)}</div>` : ""; let intRate = db.categoryDetails[t]?.interestRate; let intRateHtml = intRate ? `<div style="font-size:10px;background:var(--md-surface-container-highest);padding:2px 6px;border-radius:4px;font-weight:700;color:var(--md-primary);">${intRate}% APY</div>` : ""; return `<div class="port-card" onclick="openCategoryDetails('${safeT}')"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div class="port-icon" style="background:${safeColor};"><span class="material-symbols-rounded" style="font-size:20px;">${safeIcon}</span></div>${intRateHtml}</div><div class="port-type">${safeT}</div><div class="port-amt">${formatMoney(cur)}</div>${roiHtml}<div class="port-date" style="font-size:11px; margin-top:4px; color:var(--md-outline);">Last: ${dateStr}</div></div>`; }).join(''); }
 
     let goalsList = document.getElementById('goals-list');
     if (goalsList) {
@@ -519,7 +510,7 @@ function updatePortfolioCalculations() {
             let savedAmt = g.saved, isLinked = false; let monthlyContrib = 0;
             if (g.linkedCategory) {
                 // Calculate invested principal (excluding appreciation) for linked category
-                let investedPrincipal = db.investments.filter(i => i.type === g.linkedCategory && !i.isDividend && (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter)).reduce((s, i) => s + i.amount, 0) + (db.categoryDetails[g.linkedCategory]?.initialBal || 0);
+                let investedPrincipal = db.investments.filter(i => i.type === g.linkedCategory && (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter)).reduce((s, i) => s + i.amount, 0) + (db.categoryDetails[g.linkedCategory]?.initialBal || 0);
                 savedAmt = investedPrincipal;
                 isLinked = true;
                 monthlyContrib = db.recurring.filter(r => r.type === g.linkedCategory).reduce((s, r) => s + r.amount, 0);
@@ -602,10 +593,10 @@ function updatePortfolioCalculations() {
             attachSwipeListeners(dashboardList);
         }
     }
-    
+
     // Add Frequent Actions section for quick navigation
     renderFrequentActions();
-    
+
     // NEW: Show/Hide Monthly Planner Entry Card
     let plannerEntry = document.getElementById('monthly-planner-entry');
     if (plannerEntry) {
@@ -641,7 +632,7 @@ function renderAll() {
     requestAnimationFrame(() => {
         _renderAllPending = false;
         if (typeof updateAccountFilter === 'function') updateAccountFilter();
-        if (typeof updateDividendTotals === 'function') updateDividendTotals();
+
         if (typeof updatePortfolioCalculations === 'function') updatePortfolioCalculations();
         updateDashboardEntryCards();
         checkSpendAlerts();
@@ -1061,7 +1052,7 @@ function renderFrequentActions() {
 // 10. EVENT LISTENERS
 // ==========================================
 // Patch inputmode on all number inputs for mobile keyboard
-(function() {
+(function () {
     document.querySelectorAll('input[type="number"]').forEach(el => {
         if (!el.getAttribute('inputmode')) {
             el.setAttribute('inputmode', 'decimal');
@@ -1318,7 +1309,7 @@ function showLocalNotification(title, body) {
         return;
     }
     // Fallback: direct notification
-    try { new Notification(title, { body, icon: './icons/icon-192.png' }); } catch (e) {}
+    try { new Notification(title, { body, icon: './icons/icon-192.png' }); } catch (e) { }
 }
 window.showLocalNotification = showLocalNotification;
 window.ensureNotificationPermission = ensureNotificationPermission;
@@ -1336,13 +1327,11 @@ function calculatePortfolioHealth() {
     let threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
     let recentInvestments = db.investments.filter(i =>
-        !i.isDividend &&
         (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter) &&
         new Date(i.date) >= lastMonth
     ).reduce((s, i) => s + i.amount, 0);
 
     let previousInvestments = db.investments.filter(i =>
-        !i.isDividend &&
         (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter) &&
         new Date(i.date) >= threeMonthsAgo &&
         new Date(i.date) < lastMonth
@@ -1956,7 +1945,7 @@ _syncChannel.onmessage = (e) => {
 function broadcastToTabs() {
     try {
         _syncChannel.postMessage({ type: 'sync-data', data: { investments: db.investments.length, timestamp: Date.now() } });
-    } catch (e) {}
+    } catch (e) { }
 }
 
 // Export data as a shareable URL (for small datasets / manual sync)
@@ -1991,11 +1980,10 @@ async function generatePDFWealthReport() {
         reportDiv.id = 'pdf-report-container';
         reportDiv.style.cssText = 'padding:24px;font-family:Roboto,sans-serif;max-width:800px;margin:auto;background:#fff;color:#1a1a1a;';
         let now = new Date();
-        let monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        let monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         let dateStr = `${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-        let totalInv = db.investments.filter(i => !i.isDividend).reduce((s,i) => s + i.amount, 0);
-        let totalDiv = db.investments.filter(i => i.isDividend).reduce((s,i) => s + i.amount, 0);
+        let totalInv = db.investments.reduce((s, i) => s + i.amount, 0);
         let gainLoss = (currentTotalNW || 0) - totalInv;
         let categoriesHtml = '';
         Object.keys(currentTypeTotals || {}).forEach(t => {
@@ -2023,7 +2011,7 @@ async function generatePDFWealthReport() {
                 <tr><td style="padding:8px;font-weight:600;color:#6750A4;">Net Worth</td><td style="padding:8px;text-align:right;font-size:22px;font-weight:700;">₹${fmtNum(currentTotalNW || 0)}</td></tr>
                 <tr><td style="padding:8px;border-top:1px solid #eee;">Total Invested (Principal)</td><td style="padding:8px;border-top:1px solid #eee;text-align:right;">₹${fmtNum(totalInv)}</td></tr>
                 <tr><td style="padding:8px;border-top:1px solid #eee;">Unrealized Gain/Loss</td><td style="padding:8px;border-top:1px solid #eee;text-align:right;color:${gainLoss >= 0 ? '#2e7d32' : '#c62828'};">${gainLoss >= 0 ? '+' : ''}₹${fmtNum(gainLoss)}</td></tr>
-                <tr><td style="padding:8px;border-top:1px solid #eee;">Dividends Earned</td><td style="padding:8px;border-top:1px solid #eee;text-align:right;">₹${fmtNum(totalDiv)}</td></tr>
+
                 <tr><td style="padding:8px;border-top:1px solid #eee;">80C Deductions</td><td style="padding:8px;border-top:1px solid #eee;text-align:right;">₹${fmtNum(tax80c)} / ₹1,50,000 (${tax80cPerc.toFixed(0)}%)</td></tr>
             </table>
             <h3 style="color:#6750A4;font-size:16px;margin:16px 0 8px;">Portfolio Allocation</h3>
@@ -2044,10 +2032,10 @@ async function generatePDFWealthReport() {
 
         let aiCommentaryEl = document.getElementById('pdf-ai-text');
         try {
-            let prompt = `Generate a 3-4 sentence wealth insight summary for a portfolio of ₹${fmtNum(currentTotalNW || 0)} with categories: ${JSON.stringify(currentTypeTotals || {})}. 80C at ${tax80cPerc.toFixed(0)}%. Goals: ${JSON.stringify((db.goals || []).slice(0,3))}. Include one actionable tip. Raw HTML only, no markdown.`;
+            let prompt = `Generate a 3-4 sentence wealth insight summary for a portfolio of ₹${fmtNum(currentTotalNW || 0)} with categories: ${JSON.stringify(currentTypeTotals || {})}. 80C at ${tax80cPerc.toFixed(0)}%. Goals: ${JSON.stringify((db.goals || []).slice(0, 3))}. Include one actionable tip. Raw HTML only, no markdown.`;
             let aiResp = await callAIApi(prompt, "You are a wealth report analyst. Output raw HTML.");
             aiCommentaryEl.innerHTML = formatAIResponse(aiResp);
-        } catch(e) {
+        } catch (e) {
             aiCommentaryEl.innerHTML = 'Keep contributing regularly and review your allocation targets for optimal growth.';
         }
 
@@ -2062,7 +2050,7 @@ async function generatePDFWealthReport() {
         await html2pdf().set(opt).from(reportDiv).save();
         document.body.removeChild(reportDiv);
         showSnackbar('Wealth Report PDF downloaded!', 'check_circle');
-    } catch(e) {
+    } catch (e) {
         console.error('PDF generation error:', e);
         showSnackbar('PDF generation failed: ' + e.message, 'error');
     } finally {
@@ -2109,7 +2097,7 @@ function updateDashboardEntryCards() {
         let needs = db.monthlyPlanConfig.needs || 0;
         let wants = db.monthlyPlanConfig.wants || 0;
         let totalBudget = needs + wants;
-        let totalInv = db.investments.filter(i => !i.isDividend).reduce((s, i) => s + i.amount, 0);
+        let totalInv = db.investments.reduce((s, i) => s + i.amount, 0);
         let budgetStatusEl = plannerEntry.querySelector('.budget-status');
         if (!budgetStatusEl) {
             let descEl = plannerEntry.querySelector('div[style*="font-size:13px"]');

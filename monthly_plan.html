@@ -744,7 +744,7 @@ function extractSIPsAndGoals() {
         let linkedSaved = 0;
         if (goal.linkedCategory && db.investments) {
             linkedSaved = db.investments
-                .filter(i => i.type === goal.linkedCategory && !i.isDividend)
+                .filter(i => i.type === goal.linkedCategory)
                 .reduce((s, i) => s + i.amount, 0);
         }
         const totalSaved = saved + linkedSaved;
@@ -790,7 +790,7 @@ function loadActuals() {
     actualInvest = (db.investments || [])
         .filter(i => {
             const id = new Date(i.date);
-            return id.getMonth() === m && id.getFullYear() === y && !i.isDividend;
+            return id.getMonth() === m && id.getFullYear() === y;
         })
         .reduce((s, i) => s + i.amount, 0);
 
@@ -1364,8 +1364,6 @@ function syncCustomInvestments() {
                 type: inv.category || 'SIP',
                 amount: inv.amount,
                 note: inv.name || 'Custom Investment',
-                tags: 'monthly-plan',
-                isDividend: false,
                 account: db.accounts?.[0] || 'Main Portfolio'
             };
             
@@ -1596,7 +1594,7 @@ function renderMonthAnalysis() {
         const key = getMonthKey(d);
         const m = d.getMonth(), y = d.getFullYear();
         const actual = (db.investments || [])
-            .filter(inv => { const id = new Date(inv.date); return id.getMonth() === m && id.getFullYear() === y && !inv.isDividend; })
+            .filter(inv => { const id = new Date(inv.date); return id.getMonth() === m && id.getFullYear() === y; })
             .reduce((s, inv) => s + inv.amount, 0);
         const label = d.toLocaleString('default', { month: 'short' });
         const isCurrent = i === 0;

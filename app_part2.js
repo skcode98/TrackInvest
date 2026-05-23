@@ -18,7 +18,6 @@ function saveInvestment() {
         subCat: document.getElementById('inv-subcat')?.value || '',
         broker: document.getElementById('inv-broker')?.value || '',
         growth: parseFloat(document.getElementById('inv-growth')?.value) || null,
-        isDiv: document.getElementById('inv-dividend')?.checked || false,
         acc: document.getElementById('inv-account')?.value || '',
         matDate: document.getElementById('inv-maturity-simple')?.value || '',
         intRate: parseFloat(document.getElementById('inv-interest')?.value) || null,
@@ -52,7 +51,7 @@ function saveInvestment() {
         acc: sanitizeText(formInputs.acc)
     };
 
-    let { date, amt, note, tags, subCat, broker, growth, isDiv, acc, matDate, intRate, initialPayment, isTemplate, isRecurring, units, mfCode, isMonthlyContrib, payoutType, investMode, sipDay } = sanitizedInputs;
+    let { date, amt, note, tags, subCat, broker, growth, acc, matDate, intRate, initialPayment, isTemplate, isRecurring, units, mfCode, isMonthlyContrib, payoutType, investMode, sipDay } = sanitizedInputs;
 
     // Enhanced validation with field-specific error messages and visual feedback
     const validationErrors = [];
@@ -256,7 +255,6 @@ function saveInvestment() {
         subCategory: subCat,
         broker: broker,
         growthRate: growth,
-        isDividend: isDiv,
         account: acc,
         isMonthlyContrib: isMonthlyContrib,
         payoutType: payoutType,
@@ -279,7 +277,6 @@ function saveInvestment() {
             tags,
             subCategory: subCat,
             broker: broker,
-            isDividend: false,
             account: acc,
             interestRate: intRate
         });
@@ -383,7 +380,7 @@ function deleteInvestment() {
 }
 
 
-function executeQuickLog(idx) { haptic(40); let tpl = db.templates[idx]; db.investments.push({ id: generateUniqueId(), date: getLocalYYYYMMDD(new Date()), type: tpl.type, amount: tpl.amount, note: tpl.note, tags: tpl.tags, isDividend: false, account: tpl.account }); saveData(); renderAll(); showSnackbar(`Quick Logged ${formatMoney(tpl.amount)}`); }
+function executeQuickLog(idx) { haptic(40); let tpl = db.templates[idx]; db.investments.push({ id: generateUniqueId(), date: getLocalYYYYMMDD(new Date()), type: tpl.type, amount: tpl.amount, note: tpl.note, tags: tpl.tags, account: tpl.account }); saveData(); renderAll(); showSnackbar(`Quick Logged ${formatMoney(tpl.amount)}`); }
 function deleteQuickLog(event, idx) { event.stopPropagation(); haptic(40); Swal.fire({ title: 'Delete Template?', showCancelButton: true }).then((res) => { if (res.isConfirmed) { db.templates.splice(idx, 1); saveData(); renderAll(); } }); }
 
 // ==========================================
@@ -397,8 +394,6 @@ function buildUnifiedItemHTML(inv) {
     let safeType = escapeHtml(inv.type);
     let tagsHtml = ""; if (inv.tags) { inv.tags.split(',').forEach(t => { if (t.trim()) tagsHtml += `<span class="roi-tag" style="background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);">#${escapeHtml(t.trim())}</span> `; }); }
     let intHtml = inv.interestRate ? `<span class="unified-detail-tag" style="font-size:10px; background:var(--md-surface-container-highest); padding:2px 4px; border-radius:4px; font-weight:700;">${inv.interestRate}% APY</span>` : '';
-    let pClass = inv.isDividend ? "price dividend" : "price";
-
     return `
             <div class="swipe-wrapper" data-id="${inv.id}">
                 <div class="unified-item" onclick="openInvestSheet('${inv.id}')">
@@ -406,7 +401,7 @@ function buildUnifiedItemHTML(inv) {
                     <div class="unified-content">
                         <div class="unified-title">
                             <span class="title-text">${safeNote}</span> 
-                            <span class="${pClass}">+${formatMoney(inv.amount)}</span>
+                            <span class="price">+${formatMoney(inv.amount)}</span>
                         </div>
                         <span class="unified-subtitle">${dateStr} • ${safeType} ${intHtml}</span>
                         ${tagsHtml ? `<div style="margin-top:2px;">${tagsHtml}</div>` : ''}
@@ -452,12 +447,6 @@ function getEmptyStateHTML(context = 'default') {
             title: 'No Recurring SIPs',
             subtitle: 'Set up automatic monthly investments to build wealth consistently',
             action: { text: 'Add SIP', icon: 'schedule', onclick: 'openInvestSheet(); setTimeout(()=>document.getElementById(\'inv-is-monthly\').checked=true, 100)' }
-        },
-        dividend: {
-            icon: 'payments',
-            title: 'No Passive Income Yet',
-            subtitle: 'Mark investments as dividends to track your passive income stream',
-            action: { text: 'Add Dividend', icon: 'payments', onclick: 'openInvestSheet(); setTimeout(()=>document.getElementById(\'inv-dividend\').checked=true, 100)' }
         }
     };
 
@@ -571,7 +560,7 @@ function renderHistory() {
         if (dateFrom && inv.date < dateFrom) continue;
         if (dateTo && inv.date > dateTo) continue;
         filtered.push(inv);
-        if (!inv.isDividend) { liCount++; liTotal += inv.amount; }
+        liCount++; liTotal += inv.amount;
     }
 
     // Group by month only if sorting by date
@@ -922,31 +911,6 @@ function deleteGoal() {
     });
 }
 
-function openDividendSheet() {
-    haptic(30);
-    // Audit logic: Only suggest or mark if it's a high-confidence match and NOT already explicitly false
-    // But to respect user choice, we only do this once or if requested.
-    // For now, let's just use the existing isDividend flag and only highlight potential misses in UI if needed.
-
-    const dividends = db.investments.filter(i => i.isDividend).sort((a, b) => parseDate(b.date) - parseDate(a.date));
-    const total = dividends.reduce((s, i) => s + i.amount, 0);
-
-    const totalEl = document.getElementById('dividend-sheet-total');
-    if (totalEl) totalEl.innerText = formatMoney(total);
-
-    let html = dividends.length === 0 ?
-        `<div class="empty-state-premium" style="margin-top:40px;"><span class="material-symbols-rounded">payments</span><div class="es-title">No Passive Income Recorded</div><div class="es-subtitle">Add investments and mark them as 'Dividend' or use keywords like 'dividend', 'interest' in notes.</div></div>` :
-        dividends.map(buildUnifiedItemHTML).join('');
-
-    const listEl = document.getElementById('dividend-list');
-    if (listEl) {
-        listEl.innerHTML = html;
-        if (typeof attachSwipeListeners === 'function') attachSwipeListeners(listEl);
-    }
-
-    openSubSheet('dividend-sheet');
-}
-
 function openCategoryDetails(type) {
     haptic(30); window.activeCategory = type; let meta = db.categories[type] || { icon: 'savings', color: '#8D6E63' };
     document.getElementById('cat-sheet-title').innerHTML = `<span class="material-symbols-rounded" style="color:${escapeHtml(meta.color)};">${escapeHtml(meta.icon)}</span> ${escapeHtml(type)} Portfolio`;
@@ -959,7 +923,7 @@ function openCategoryDetails(type) {
 
     filtered.forEach(i => {
         let key = i.note || "General"; if (!assets[key]) assets[key] = 0;
-        if (!i.isDividend) { assets[key] += i.amount; totalInvested += i.amount; let days = (now - new Date(i.date)) / (1000 * 60 * 60 * 24); if (days <= 365) stcgTotal += i.amount; else ltcgTotal += i.amount; }
+        assets[key] += i.amount; totalInvested += i.amount; let days = (now - new Date(i.date)) / (1000 * 60 * 60 * 24); if (days <= 365) stcgTotal += i.amount; else ltcgTotal += i.amount;
     });
 
     let totalTaxBase = stcgTotal + ltcgTotal;
@@ -1296,7 +1260,6 @@ function renderSettingsSections() {
             let isDefault = (typeof defaultCategories !== 'undefined') ? defaultCategories.includes(c) : ['FD', 'PPF', 'PF', 'SIP', 'Liquid', 'Home', 'Cash', 'Stocks'].includes(c);
             let cat = db.categories[c];
             if (!cat.targetMultiplier) cat.targetMultiplier = 0;
-            if (typeof cat.excludeDividend === 'undefined') cat.excludeDividend = false;
 
             let safeC = escapeHtml(c);
             let safeColor = escapeHtml(cat?.color || '#ccc');
@@ -1313,10 +1276,6 @@ function renderSettingsSections() {
                 <div class="input-container" style="margin-bottom:0;">
                     <label style="font-size:10px;">Target (x Expense)</label>
                     <input type="number" step="0.1" value="${cat.targetMultiplier || ''}" placeholder="e.g. 6" class="md-input" style="padding:4px 8px;font-size:12px;" onchange="updateCategorySetting('${c}', 'targetMultiplier', this.value)">
-                </div>
-                <div style="display:flex;align-items:center;gap:4px;">
-                    <input type="checkbox" ${cat.excludeDividend ? 'checked' : ''} onchange="updateCategorySetting('${c}', 'excludeDividend', this.checked)">
-                    <label style="font-size:10px;">No Dividend</label>
                 </div>
             </div>
         </div>`;
@@ -1363,7 +1322,6 @@ window.loadNotificationPrefs = loadNotificationPrefs;
 function updateCategorySetting(cat, key, val) {
     if (!db.categories[cat]) return;
     if (key === 'targetMultiplier') db.categories[cat][key] = parseFloat(val) || 0;
-    else if (key === 'excludeDividend') db.categories[cat][key] = (val === true || val === 'true');
     else db.categories[cat][key] = val;
     saveData();
     // No full re-render here to avoid losing focus on input
@@ -1927,7 +1885,7 @@ function importCSV(e) {
                 let cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
                 cols = cols.map(c => c.replace(/^"|"$/g, ''));
                 if (cols.length >= 3 && cols[0] && !isNaN(parseFloat(cols[2]))) {
-                    db.investments.push({ id: generateUniqueId(), date: cols[0].trim(), type: cols[1].trim() || 'Cash', amount: parseFloat(cols[2]), note: cols[3] ? cols[3].trim() : '', tags: cols[4] ? cols[4].trim() : '', isDividend: false, account: activeAccountFilter === 'All' ? db.accounts[0] : activeAccountFilter });
+                    db.investments.push({ id: generateUniqueId(), date: cols[0].trim(), type: cols[1].trim() || 'Cash', amount: parseFloat(cols[2]), note: cols[3] ? cols[3].trim() : '', tags: cols[4] ? cols[4].trim() : '', account: activeAccountFilter === 'All' ? db.accounts[0] : activeAccountFilter });
                     added++;
                 }
             }
@@ -1967,24 +1925,9 @@ function calculateXIRR() {
         return;
     }
 
-    // Check for all-dividend case (no actual investments)
-    let hasInvestments = filteredInvs.some(i => !i.isDividend);
-    let allDividends = filteredInvs.every(i => i.isDividend);
-
-    if (allDividends) {
-        let totalDividends = filteredInvs.reduce((s, i) => s + i.amount, 0);
-        document.getElementById('xirr-result').innerHTML = `
-            <div style="text-align:center; padding:16px;">
-                <div style="font-size:14px; color:var(--md-outline); margin-bottom:8px;">📥 Dividend/Income Category</div>
-                <div style="font-size:28px; font-weight:600; color:var(--md-success);">${formatMoney(totalDividends)}</div>
-                <div style="font-size:12px; color:var(--md-outline); margin-top:8px;">Total passive income received</div>
-            </div>`;
-        return;
-    }
-
-    // Cash flows: Investments are OUTFLOWS (Negative), Dividends/CurrentValue are INFLOWS (Positive)
+    // Cash flows: Investments are OUTFLOWS (Negative), CurrentValue are INFLOWS (Positive)
     let cashFlows = filteredInvs.map(i => ({
-        amount: i.isDividend ? i.amount : -i.amount,
+        amount: -i.amount,
         date: parseDate(i.date)
     }));
 
@@ -2005,10 +1948,10 @@ function calculateXIRR() {
     cashFlows = cashFlows.filter(cf => cf.amount !== 0);
 
     // Check for single transaction case
-    let nonDividendFlows = cashFlows.filter(cf => cf.amount < 0);
-    if (nonDividendFlows.length === 1 && cashFlows.length < 2) {
-        let holdingDays = (new Date() - nonDividendFlows[0].date) / (1000 * 60 * 60 * 24);
-        let invested = Math.abs(nonDividendFlows[0].amount);
+    let investmentFlows = cashFlows.filter(cf => cf.amount < 0);
+    if (investmentFlows.length === 1 && cashFlows.length < 2) {
+        let holdingDays = (new Date() - investmentFlows[0].date) / (1000 * 60 * 60 * 24);
+        let invested = Math.abs(investmentFlows[0].amount);
         let current = currentValue || invested;
         let simpleReturn = ((current - invested) / invested) * 100;
 
@@ -2745,7 +2688,7 @@ async function generateAIForecast(alreadyOpen = false) {
         let m = now.getMonth() - i; let y = now.getFullYear();
         if (m < 0) { m += 12; y -= 1; }
         Object.keys(db.categories).forEach(cat => {
-            let sum = db.investments.filter(inv => { let d = parseDate(inv.date); return inv.type === cat && d.getMonth() === m && d.getFullYear() === y && !inv.isDividend; }).reduce((s, i) => s + i.amount, 0);
+            let sum = db.investments.filter(inv => { let d = parseDate(inv.date); return inv.type === cat && d.getMonth() === m && d.getFullYear() === y; }).reduce((s, i) => s + i.amount, 0);
             catMonthly[cat].push(sum);
         });
     }
@@ -2920,7 +2863,7 @@ async function askAIEngine(context, alreadyOpen = false) {
         let m = now.getMonth() - i; let y = now.getFullYear();
         if (m < 0) { m += 12; y -= 1; }
         Object.keys(db.categories).forEach(cat => {
-            let sum = db.investments.filter(inv => { let d = parseDate(inv.date); return inv.type === cat && d.getMonth() === m && d.getFullYear() === y && !inv.isDividend; }).reduce((s, i) => s + i.amount, 0);
+            let sum = db.investments.filter(inv => { let d = parseDate(inv.date); return inv.type === cat && d.getMonth() === m && d.getFullYear() === y; }).reduce((s, i) => s + i.amount, 0);
             catMonthly[cat].push(sum);
         });
     }

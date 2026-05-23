@@ -115,6 +115,14 @@ Review all UI→Logic→BusinessLogic→DB flows. Fix CRUD, consistency, mobile-
 
 ---
 
+## Phase 7 — Dividend Feature Deprecation
+
+| # | Issue | Fix | Status |
+|---|-------|-----|--------|
+| 34 | Dividend complexity | Removed all `isDividend` tracking logic from DB, calculation engines, and UI. Purged dividend sheet and filtering code. | ✅ |
+
+---
+
 ## Fix Log
 
 | # | File | Fix |
@@ -136,3 +144,4 @@ Review all UI→Logic→BusinessLogic→DB flows. Fix CRUD, consistency, mobile-
 | 15 | `app_part1.js:1034` | `clipboard.writeText().catch(() => {})` |
 | 16 | `style.css:2676` | `#settings-sheet max-height`: `90vh → 100dvh` |
 | 17 | `market_watch.html` | Added `attrEsc()` for onclick attribute escaping |
+| 18 | `app_part1.js`, `app_part2.js` | Removed all dividend-related UI, CSV exports, stats filtering, and logic |

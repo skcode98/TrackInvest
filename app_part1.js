@@ -937,7 +937,7 @@ function closeOverlays(fromPopState = false) {
 }
 
 // Sub-sheets open ON TOP of an existing sheet (e.g. calculators from Settings)
-const SUB_SHEET_IDS = ['xirr-sheet', 'sip-calc-sheet', 'emi-calc-sheet', 'inflation-sheet', 'ai-predict-sheet', 'history-sync-sheet', 'webrtc-sync-sheet', 'chat-history-sheet', 'dividend-sheet', 'wealth-blueprint-sheet', 'ai-sheet', 'maturity-calendar-sheet', 'ai-chat-sheet', 'monthly-target-sheet', 'projection-sheet', 'month-sheet'];
+const SUB_SHEET_IDS = ['xirr-sheet', 'sip-calc-sheet', 'emi-calc-sheet', 'inflation-sheet', 'ai-predict-sheet', 'history-sync-sheet', 'webrtc-sync-sheet', 'chat-history-sheet', 'wealth-blueprint-sheet', 'ai-sheet', 'maturity-calendar-sheet', 'ai-chat-sheet', 'monthly-target-sheet', 'projection-sheet', 'month-sheet'];
 
 function openSubSheet(sheetId) {
     if (!SUB_SHEET_IDS.includes(sheetId)) {
@@ -1040,9 +1040,9 @@ function copyNetWorth() {
 // ── CSV EXPORT ──────────────────────────────────
 function exportToCSV() {
     haptic(30);
-    let rows = [['Date', 'Type', 'Amount', 'Account', 'Note', 'Tags', 'Dividend']];
+    let rows = [['Date', 'Type', 'Amount', 'Account', 'Note', 'Tags']];
     db.investments.sort((a, b) => parseDate(b.date) - parseDate(a.date)).forEach(inv => {
-        rows.push([inv.date, inv.type, inv.amount, inv.account || '', inv.note || '', inv.tags || '', inv.isDividend ? 'Yes' : 'No']);
+        rows.push([inv.date, inv.type, inv.amount, inv.account || '', inv.note || '', inv.tags || '']);
     });
     let csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     let blob = new Blob([csv], { type: 'text/csv' });
@@ -1153,7 +1153,7 @@ function updateStatChips(totalInvested, totalMarketValue, yearTotal, thisMonthTo
 
     // Best month
     let monthMap = {};
-    db.investments.filter(i => !i.isDividend).forEach(i => {
+    db.investments.forEach(i => {
         let k = i.date.substring(0, 7);
         monthMap[k] = (monthMap[k] || 0) + i.amount;
     });
@@ -1272,7 +1272,6 @@ function getSmartDefaults() {
 
     // Amount suggestions based on history
     const recentInvestments = db.investments
-        .filter(i => !i.isDividend)
         .slice(-10);
     const avgAmount = recentInvestments.length > 0
         ? recentInvestments.reduce((sum, i) => sum + i.amount, 0) / recentInvestments.length
@@ -2294,7 +2293,7 @@ function calculateStrictValuation(type, totalInvested, rawInvs) {
 
     // Helper to get virtual investments including initial balance
     const getEffectiveInvs = () => {
-        let invs = rawInvs.filter(i => !i.isDividend);
+        let invs = [...rawInvs];
         let initialBal = db.categoryDetails[type]?.initialBal || 0;
         if (initialBal > 0) {
             // Use a date BEFORE the earliest investment so initial balance accrues interest from the start
@@ -2349,7 +2348,7 @@ function calculateStrictValuation(type, totalInvested, rawInvs) {
         const oneDayMs = 24 * 60 * 60 * 1000;
         const today = new Date();
         rawInvs.forEach(inv => {
-            if (!inv.isDividend && inv.units && inv.mfCode && db.navCache[inv.mfCode]) {
+            if (inv.units && inv.mfCode && db.navCache[inv.mfCode]) {
                 let navData = db.navCache[inv.mfCode];
                 // Check if NAV is stale (> 1 day old)
                 let navDate = navData.lastFetched ? new Date(navData.lastFetched) : new Date(navData.date);
@@ -2360,7 +2359,7 @@ function calculateStrictValuation(type, totalInvested, rawInvs) {
                 val += currentVal;
                 interestEarned += (currentVal - inv.amount);
                 hasUnits = true;
-            } else if (!inv.isDividend) {
+            } else {
                 val += inv.amount;
             }
         });
@@ -2537,7 +2536,7 @@ function renderRollingChart() {
     let now = new Date(); let chartLabels = []; let chartData = [];
     for (let i = 11; i >= 0; i--) {
         let m = now.getMonth() - i; let y = now.getFullYear(); while (m < 0) { m += 12; y -= 1; }
-        let monthInv = db.investments.filter(inv => { let d = new Date(inv.date); return d.getMonth() === m && d.getFullYear() === y && (activeAccountFilter === 'All' || inv.account === activeAccountFilter) && !inv.isDividend; }).reduce((sum, inv) => sum + inv.amount, 0);
+        let monthInv = db.investments.filter(inv => { let d = new Date(inv.date); return d.getMonth() === m && d.getFullYear() === y && (activeAccountFilter === 'All' || inv.account === activeAccountFilter); }).reduce((sum, inv) => sum + inv.amount, 0);
         chartLabels.push(`${new Date(y, m).toLocaleString('default', { month: 'short' })} ${y}`); chartData.push(monthInv);
     }
 
@@ -2581,7 +2580,7 @@ function renderCategoryChart(category) {
     let now = new Date(); let chartLabels = []; let chartData = [];
     for (let i = 5; i >= 0; i--) {
         let m = now.getMonth() - i; let y = now.getFullYear(); while (m < 0) { m += 12; y -= 1; }
-        let monthInv = db.investments.filter(inv => { let d = new Date(inv.date); return inv.type === category && d.getMonth() === m && d.getFullYear() === y && !inv.isDividend; }).reduce((sum, inv) => sum + inv.amount, 0);
+        let monthInv = db.investments.filter(inv => { let d = new Date(inv.date); return inv.type === category && d.getMonth() === m && d.getFullYear() === y; }).reduce((sum, inv) => sum + inv.amount, 0);
         chartLabels.push(`${new Date(y, m).toLocaleString('default', { month: 'short' })}`); chartData.push(monthInv);
     }
 
@@ -3318,7 +3317,7 @@ async function syncHistoricalSIP() {
                 }
 
                 let units = foundNav ? amt / foundNav : 0;
-                db.investments.push({ id: generateUniqueId(), date: dStr, type: type, amount: amt, units: units, mfCode: code, note: schemeName, tags: "backfill", isDividend: false, account: activeAccountFilter === 'All' ? db.accounts[0] : activeAccountFilter });
+                db.investments.push({ id: generateUniqueId(), date: dStr, type: type, amount: amt, units: units, mfCode: code, note: schemeName, tags: "backfill", account: activeAccountFilter === 'All' ? db.accounts[0] : activeAccountFilter });
                 added++;
                 currentDate = advanceMonth(currentDate, day);
             }
@@ -3332,7 +3331,7 @@ async function syncHistoricalSIP() {
         while (currentDate <= today) {
             let dStr = getLocalYYYYMMDD(currentDate);
 
-            db.investments.push({ id: generateUniqueId(), date: dStr, type: type, amount: amt, note: `${type} (Backfill)`, tags: "backfill", isDividend: false, account: activeAccountFilter === 'All' ? db.accounts[0] : activeAccountFilter });
+            db.investments.push({ id: generateUniqueId(), date: dStr, type: type, amount: amt, note: `${type} (Backfill)`, tags: "backfill", account: activeAccountFilter === 'All' ? db.accounts[0] : activeAccountFilter });
             added++;
             currentDate = advanceMonth(currentDate, day);
         }
@@ -3521,7 +3520,6 @@ function openInvestSheet(id = null, presetAmt = null) {
         safeSet('inv-growth', inv.growthRate || '');
         safeSet('inv-maturity-simple', inv.maturityDate || '');
         safeSet('inv-interest', inv.interestRate || '');
-        safeCheck('inv-dividend', inv.isDividend);
         safeSet('inv-account', inv.account || db.accounts[0]);
         safeSet('inv-units-hidden', inv.units || '');
         safeSet('inv-mf-code-hidden', inv.mfCode || '');
@@ -3544,7 +3542,6 @@ function openInvestSheet(id = null, presetAmt = null) {
         safeSet('inv-initial-payment', '');
         safeSet('inv-qty', '');
         safeSet('inv-price', '');
-        safeCheck('inv-dividend', false);
         safeSet('inv-account', activeAccountFilter !== 'All' ? activeAccountFilter : db.accounts[0]);
         safeSet('inv-units-hidden', '');
         safeSet('inv-mf-code-hidden', '');
