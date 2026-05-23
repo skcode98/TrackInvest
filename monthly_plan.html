@@ -235,31 +235,45 @@
         /* ── SAVE BAR ── */
         .save-bar {
             position:fixed; bottom:0; left:0; right:0;
-            padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+            padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
             background:var(--md-surface-container-low);
             border-top:1px solid var(--md-outline-variant);
-            z-index:20; display:flex; flex-wrap:wrap; gap:6px;
-            justify-content:center;
+            z-index:20; display:flex; flex-wrap:wrap; gap:5px; align-items:center;
         }
-        .save-bar .btn-primary,
-        .save-bar .btn-secondary {
-            flex:1 1 auto; min-width:0; padding:12px 8px; font-size:12px;
-            border-radius:14px; display:inline-flex; align-items:center;
-            justify-content:center; gap:4px; white-space:nowrap;
+        .save-bar .sb-group {
+            display:flex; gap:5px; flex:1 1 auto;
         }
-        .save-bar .btn-primary { flex:1 1 100%; order:99; margin-top:2px; }
-        .save-bar .icon-btn-like {
-            flex:0 0 auto; padding:10px; border-radius:12px;
-            background:var(--md-surface-container); border:none;
+        .save-bar .sb-group.left { justify-content:flex-start; }
+        .save-bar .sb-group.right { justify-content:flex-end; }
+        .save-bar .btn-icon-sq {
+            flex:0 0 auto; padding:8px; min-width:36px; min-height:36px;
+            border-radius:10px; border:none; background:var(--md-surface-container);
             color:var(--md-on-surface-variant); cursor:pointer;
             display:inline-flex; align-items:center; justify-content:center;
+            font-size:18px; transition:background 0.15s;
         }
-        .save-bar .icon-btn-like:active { background:var(--md-surface-container-highest); }
-        @media(max-width:480px) {
-            .save-bar { padding:8px 12px calc(8px + env(safe-area-inset-bottom)); gap:4px; }
-            .save-bar .btn-primary,
-            .save-bar .btn-secondary { padding:10px 6px; font-size:11px; flex:1 1 auto; min-width:0; }
-            .save-bar .btn-secondary .material-symbols-rounded { font-size:16px; }
+        .save-bar .btn-icon-sq:active { background:var(--md-surface-container-highest); }
+        .save-bar .btn-sm {
+            padding:8px 10px; font-size:11px; font-weight:500; border-radius:10px;
+            border:none; background:var(--md-surface-container);
+            color:var(--md-on-surface-variant); cursor:pointer;
+            display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+            transition:background 0.15s; font-family:inherit;
+        }
+        .save-bar .btn-sm:active { background:var(--md-surface-container-highest); }
+        .save-bar .btn-primary {
+            flex:1 1 100%; padding:12px; font-size:13px; font-weight:600;
+            border-radius:12px; border:none; margin-top:2px;
+            background:var(--md-primary); color:var(--md-on-primary);
+            cursor:pointer; display:flex; align-items:center;
+            justify-content:center; gap:6px; font-family:inherit;
+            transition:opacity 0.15s;
+        }
+        .save-bar .btn-primary:active { opacity:0.8; }
+        @media(min-width:481px) {
+            .save-bar { padding:10px 20px calc(10px + env(safe-area-inset-bottom)); gap:8px; }
+            .save-bar .btn-sm { padding:10px 14px; font-size:12px; border-radius:12px; }
+            .save-bar .btn-primary { flex:0 1 auto; padding:12px 28px; margin-top:0; }
         }
 
         /* ── MONTH NAV ── */
@@ -276,7 +290,7 @@
         }
         .month-nav button:active { background:var(--md-surface-container); }
 
-        .bottom-spacer { height: 88px; }
+        .bottom-spacer { height: 120px; }
 
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .spin { animation:spin 1s linear infinite; display:inline-block; }
@@ -573,24 +587,28 @@
         <div class="bottom-spacer"></div>
     </main>
 
-    <div class="save-bar">
-        <button class="btn-secondary" onclick="copyPrevMonthPlan()" title="Copy from last month">
-            <span class="material-symbols-rounded">content_copy</span>
-        </button>
-        <button class="btn-secondary" onclick="resetPlanner()" title="Reset this month">
-            <span class="material-symbols-rounded">refresh</span> Reset
-        </button>
-        <button class="btn-secondary" onclick="autoMatchSpend()" title="Auto-match spend categories">
-            <span class="material-symbols-rounded">link</span> Match
-        </button>
-        <button class="btn-secondary" onclick="showYearlyOverview()" title="Yearly overview">
-            <span class="material-symbols-rounded">calendar_view_month</span>
-        </button>
-        <button class="btn-secondary" onclick="exportPlanPDF()" title="Export PDF">
-            <span class="material-symbols-rounded">picture_as_pdf</span>
-        </button>
+    <div class="save-bar" id="save-bar">
+        <span class="sb-group left">
+            <button class="btn-icon-sq" onclick="copyPrevMonthPlan()" title="Copy from last month">
+                <span class="material-symbols-rounded">content_copy</span>
+            </button>
+            <button class="btn-icon-sq" onclick="resetPlanner()" title="Reset this month">
+                <span class="material-symbols-rounded">refresh</span>
+            </button>
+            <button class="btn-sm" onclick="autoMatchSpend()" title="Auto-match spend categories">
+                <span class="material-symbols-rounded" style="font-size:14px;">link</span> Match
+            </button>
+        </span>
+        <span class="sb-group right">
+            <button class="btn-icon-sq" onclick="showYearlyOverview()" title="Yearly overview">
+                <span class="material-symbols-rounded">calendar_view_month</span>
+            </button>
+            <button class="btn-icon-sq" onclick="exportPlanPDF()" title="Export PDF">
+                <span class="material-symbols-rounded">picture_as_pdf</span>
+            </button>
+        </span>
         <button class="btn-primary" onclick="savePlanner()">
-            <span class="material-symbols-rounded">save</span> Save Plan
+            <span class="material-symbols-rounded" style="font-size:18px;">save</span> Save Plan
         </button>
     </div>
 
@@ -833,6 +851,7 @@ window.onload = function () {
     renderAll();
     updateMonthUI(key);
     renderMonthAnalysis();
+    setTimeout(autoSyncOnLoad, 300);
 };
 
 // ──────────────────────────────────────────────────────────────
@@ -891,6 +910,83 @@ function updateTotalInvestDisplay() {
     const total = extractedSIPTotal + extractedGoalTotal;
     document.getElementById('total-invest-val').textContent =
         '₹' + Math.round(total).toLocaleString('en-IN');
+}
+
+// ──────────────────────────────────────────────────────────────
+// AUTO-MATCH SPEND + INVESTMENT SYNC (runs on page load)
+// ──────────────────────────────────────────────────────────────
+let _autoSyncDone = false;
+
+async function autoSyncOnLoad() {
+    if (_autoSyncDone) return;
+    _autoSyncDone = true;
+    if (viewOffset !== 0) return;
+
+    // 1. Sync actual investments from ledger (shown inline, no double-count)
+    const d = getViewDate();
+    const m = d.getMonth(), y = d.getFullYear();
+    const monthInvestments = (db.investments || []).filter(inv => {
+        const id = new Date(inv.date);
+        return id.getMonth() === m && id.getFullYear() === y;
+    });
+
+    if (monthInvestments.length > 0 && actualInvest > 0) {
+        let synced = 0;
+        monthInvestments.forEach(inv => {
+            const name = (inv.note || inv.type || 'Investment').trim();
+            const existing = plan.customInvestments.find(c =>
+                c.name && c.name.trim().toLowerCase() === name.toLowerCase()
+            );
+            if (!existing) {
+                plan.customInvestments.push({
+                    name: name,
+                    category: inv.type || 'SIP',
+                    amount: inv.amount,
+                    target: 0,
+                    autoSynced: true
+                });
+                synced++;
+            }
+        });
+        if (synced > 0) {
+            renderCustomInvestments();
+        }
+    }
+
+    // 2. Auto-match spend from ledger → needs/wants using AI or heuristic
+    if (actualSpendTotal > 0) {
+        const hasExistingData = plan.needs.some(n => (n.amount || 0) > 0) ||
+                                plan.wants.some(w => (w.amount || 0) > 0);
+        if (!hasExistingData) {
+            if (db.geminiKey || db.groqKey || db.openrouterKey || db.cerebrasKey || db.githubKey) {
+                try {
+                    await autoMatchSpendAI(true);
+                    recalc(); updatePVABars();
+                    return;
+                } catch (e) {
+                    console.warn('AI auto-match failed on load, using heuristic', e);
+                }
+            }
+            let matched = false;
+            Object.entries(actualSpendByCategory).forEach(([cat, amt]) => {
+                const cls = classifySpendCategory(cat);
+                const arr = cls === 'needs' ? plan.needs : plan.wants;
+                const match = arr.find(x => x.name && x.name.toLowerCase() === cat.toLowerCase());
+                if (match) {
+                    if (Math.abs((match.amount || 0) - amt) > 1) {
+                        match.amount = amt;
+                        matched = true;
+                    }
+                } else {
+                    _dedupAdd(arr, { name: cat, amount: amt, autoMatched: true });
+                    matched = true;
+                }
+            });
+            if (matched) {
+                renderSection('needs'); renderSection('wants'); recalc(); updatePVABars();
+            }
+        }
+    }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -975,31 +1071,10 @@ async function autoMatchSpend() {
     if (actualSpendTotal <= 0) { snack('No spend data for this month to match.', 'info'); return; }
     if (viewOffset !== 0) { snack('Can only auto-match current month', 'info'); return; }
 
-    // Show confirmation dialog with preview
-    const { value: proceed } = await Swal.fire({
-        title: 'Auto-Match Spending',
-        html: `<div style="text-align:left;font-size:13px;">
-            <strong>Spend Categories Found:</strong><br/>
-            ${Object.entries(actualSpendByCategory).slice(0,5).map(([cat, amt]) => {
-                const cls = classifySpendCategory(cat);
-                const emoji = cls === 'needs' ? '🛒' : '🎉';
-                return `<div>${emoji} ${DOMPurify.sanitize(cat)}: <strong>₹${Math.round(amt).toLocaleString('en-IN')}</strong></div>`;
-            }).join('')}
-            <br/><em style="color:var(--md-outline);">These will be matched to your needs/wants categories.</em>
-        </div>`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Apply Matches',
-        cancelButtonText: 'Cancel',
-        customClass: { confirmButton: 'swal-btn-confirm' }
-    });
-    
-    if (!proceed) return;
-
     // Try AI first if available
     if (db.geminiKey || db.groqKey || db.openrouterKey || db.cerebrasKey || db.githubKey) {
         try {
-            await autoMatchSpendAI();
+            await autoMatchSpendAI(false);
             return;
         } catch (e) {
             console.warn('AI auto-match failed, falling back to heuristic', e);
@@ -1008,6 +1083,14 @@ async function autoMatchSpend() {
 
     // Fallback: heuristic matcher (preserves existing amounts)
     applyHeuristicMatching();
+}
+
+function _dedupAdd(arr, item, nameField) {
+    nameField = nameField || 'name';
+    const name = (item[nameField] || '').toString().trim().toLowerCase();
+    if (!name) { arr.push(item); return; }
+    const exists = arr.some(x => (x[nameField] || '').toString().trim().toLowerCase() === name);
+    if (!exists) arr.push(item);
 }
 
 function applyHeuristicMatching() {
@@ -1040,10 +1123,10 @@ function applyHeuristicMatching() {
         }
         if (matched) return;
 
-        // No match found — classify and create a new row
+        // No match found — classify and create a new row (with dedup)
         const cls = classifySpendCategory(cat);
-        if (cls === 'needs') plan.needs.push({ name: cat, amount: amt, autoMatched: true });
-        else plan.wants.push({ name: cat, amount: amt, autoMatched: true });
+        if (cls === 'needs') _dedupAdd(plan.needs, { name: cat, amount: amt, autoMatched: true });
+        else _dedupAdd(plan.wants, { name: cat, amount: amt, autoMatched: true });
     });
 
     savePlanner();
@@ -1051,10 +1134,11 @@ function applyHeuristicMatching() {
     snack('✓ Auto-matched spend categories', 'link');
 }
 
-async function autoMatchSpendAI() {
-    const btn = document.querySelector('[onclick*="autoMatchSpend"]');
-    const origHtml = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
+async function autoMatchSpendAI(silent) {
+    if (!silent) {
+        const btn = document.querySelector('[onclick*="autoMatchSpend"]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
+    }
 
     try {
         const categories = Object.entries(actualSpendByCategory).map(([cat, amt]) => ({ category: cat, amount: Math.round(amt) }));
@@ -1134,9 +1218,9 @@ Return ONLY JSON, no other text.`;
 
             if (!placed) {
                 if (cls === 'needs') {
-                    plan.needs.push({ name: cat, amount: amt, aiMatched: true });
+                    _dedupAdd(plan.needs, { name: cat, amount: amt, aiMatched: true });
                 } else {
-                    plan.wants.push({ name: cat, amount: amt, aiMatched: true });
+                    _dedupAdd(plan.wants, { name: cat, amount: amt, aiMatched: true });
                 }
                 matchedCount++;
             }
@@ -1144,17 +1228,16 @@ Return ONLY JSON, no other text.`;
 
         savePlanner();
         renderSection('needs'); renderSection('wants'); recalc(); updatePVABars();
-        snack(`✓ AI matched ${matchedCount} categories`, 'smart_toy');
+        if (!silent) snack(`✓ AI matched ${matchedCount} categories`, 'smart_toy');
 
     } catch (e) {
         console.error('AI match failed:', e);
-        snack('⚠ AI match failed: ' + (e.message || 'Unknown error'), 'error');
-        // Fall back to heuristic
-        applyHeuristicMatching();
+        if (!silent) snack('⚠ AI match failed: ' + (e.message || 'Unknown error'), 'error');
+        if (!silent) applyHeuristicMatching();
     } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = origHtml;
+        if (!silent) {
+            const btn = document.querySelector('[onclick*="autoMatchSpend"]');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">link</span> Match'; }
         }
     }
 }
@@ -1635,11 +1718,14 @@ function recalc() {
     let totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
     let totalWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
     const customInvestTotal = plan.customInvestments.reduce((s, i) => s + (i.amount || 0), 0);
+    // Exclude auto-synced ledger investments from manual total to avoid double-count
+    const autoSyncedTotal = plan.customInvestments.filter(i => i.autoSynced).reduce((s, i) => s + (i.amount||0), 0);
+    const manualCustomTotal = Math.max(0, customInvestTotal - autoSyncedTotal);
     
     // FIX #4: Check for actual spend data too, not just investments
     const useActual = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
     const totalInvest = useActual
-        ? actualInvest + customInvestTotal
+        ? actualInvest + manualCustomTotal
         : extractedSIPTotal + extractedGoalTotal + customInvestTotal;
 
     // FIX #11: Use consistent data source - if we have spend, use that for needs/wants
@@ -1752,7 +1838,11 @@ function setBench(elId, val, threshold, lowerIsBetter) {
 // ──────────────────────────────────────────────────────────────
 // SAVE & RESET
 // ──────────────────────────────────────────────────────────────
+let _saveInProgress = false;
+
 function savePlanner(silent = false) {
+    if (_saveInProgress) return;
+    _saveInProgress = true;
     try {
         const key = getMonthKey(getViewDate());
         if (!db.monthlyPlans) db.monthlyPlans = {};
@@ -1766,15 +1856,31 @@ function savePlanner(silent = false) {
         if (!db.userProfile) db.userProfile = {};
         db.userProfile.monthlyExpense = plan.needs.reduce((s, i) => s + i.amount, 0);
         let existing;
-        try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Save failed: storage corrupted','error'); return; }
-        Object.assign(existing, db);
-        localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
+        try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Save failed: storage corrupted','error'); _saveInProgress = false; return; }
+        // Merge: keep existing props not in db, but overwrite monthlyPlans for current key
+        existing.monthlyPlans = existing.monthlyPlans || {};
+        existing.monthlyPlans[key] = db.monthlyPlans[key];
+        existing.userProfile = db.userProfile;
+        // Preserve all other db props
+        Object.keys(db).forEach(k => {
+            if (k !== 'monthlyPlans' && k !== 'userProfile') existing[k] = db[k];
+        });
+        try {
+            localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
+        } catch (e) {
+            // Try clearing some space if quota exceeded
+            try { localStorage.removeItem('backup_invest_db'); } catch(ee) {}
+            localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
+        }
         try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {}
         updateMonthUI(key);
         clearDirty();
         if (!silent) snack('Plan saved!', 'check_circle');
     } catch (e) {
-        snack('Save failed — storage may be full.', 'error');
+        console.error('Save failed:', e);
+        snack('Save failed — ' + (e.message || 'unknown error'), 'error');
+    } finally {
+        _saveInProgress = false;
     }
 }
 
