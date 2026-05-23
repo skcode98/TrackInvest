@@ -1736,11 +1736,13 @@ function checkMilestones(nw) {
 
 window.openMonthlyTargetSheet = function () {
     haptic(30);
+    document.getElementById('monthly-target-amt').value = db.userProfile.monthlyExpense || '';
     openSubSheet('monthly-target-sheet');
 };
 
 window.saveMonthlyTarget = function () {
-    // Redundant monthlyTargetRef removed
+    const amt = parseFloat(document.getElementById('monthly-target-amt').value) || 0;
+    db.userProfile.monthlyExpense = amt;
     saveData(); closeOverlays(); renderAll(); showSnackbar("Monthly Target Saved");
 };
 
@@ -2296,9 +2298,9 @@ function renderHeatmap() {
     // Disable prev/next at boundaries
     let prevBtn = document.getElementById('heatmap-prev');
     let nextBtn = document.getElementById('heatmap-next');
-    if (prevBtn) prevBtn.style.opacity = (year < now.getFullYear() || (year === now.getFullYear() && month <= now.getMonth())) ? '1' : '0.3';
+    if (prevBtn) prevBtn.style.opacity = '1';
     if (nextBtn) {
-        let isFuture = (year > now.getFullYear() || (year === now.getFullYear() && month >= now.getMonth()));
+        let isFuture = (year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth()));
         nextBtn.style.opacity = isFuture ? '0.3' : '1';
     }
 
@@ -2324,18 +2326,15 @@ function renderHeatmap() {
 
     // ── Spend map ──
     let spendMap = {};
-    try {
-        let sdb = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}');
-        if (sdb.spendTracker && sdb.spendTracker.entries) {
-            sdb.spendTracker.entries.forEach(e => {
-                let d = new Date(e.date);
-                if (d.getMonth() === month && d.getFullYear() === year) {
-                    let dStr = getLocalYYYYMMDD(d);
-                    spendMap[dStr] = (spendMap[dStr] || 0) + e.amount;
-                }
-            });
-        }
-    } catch (e) {}
+    if (db.spendTracker && db.spendTracker.entries) {
+        db.spendTracker.entries.forEach(e => {
+            let d = new Date(e.date);
+            if (d.getMonth() === month && d.getFullYear() === year) {
+                let dStr = getLocalYYYYMMDD(d);
+                spendMap[dStr] = (spendMap[dStr] || 0) + e.amount;
+            }
+        });
+    }
 
     function intensityClass(base, amt) {
         if (amt <= 0) return '';
@@ -2434,15 +2433,12 @@ function showDayDetails(dateStr) {
     });
 
     let spends = [];
-    try {
-        let sdb = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}');
-        if (sdb.spendTracker && sdb.spendTracker.entries) {
-            spends = sdb.spendTracker.entries.filter(e => {
-                let d = new Date(e.date);
-                return getLocalYYYYMMDD(d) === dateStr;
-            });
-        }
-    } catch (e) {}
+    if (db.spendTracker && db.spendTracker.entries) {
+        spends = db.spendTracker.entries.filter(e => {
+            let d = new Date(e.date);
+            return getLocalYYYYMMDD(d) === dateStr;
+        });
+    }
 
     let html = '<div style="text-align:left;">';
 
