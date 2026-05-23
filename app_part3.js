@@ -1,106 +1,3 @@
-function renderAIReportCharts(typeTotals) {
-    // Validate input parameter
-    if (!typeTotals || typeof typeTotals !== 'object') {
-        console.error('Invalid typeTotals parameter:', typeTotals);
-        return;
-    }
-
-    const pieCtx = document.getElementById('aiChartPie');
-    const barCtx = document.getElementById('aiChartBar');
-    if (!pieCtx || !barCtx) {
-        console.warn('Chart elements not found:', { pieCtx: !!pieCtx, barCtx: !!barCtx });
-        return;
-    }
-
-    const labels = [], data = [], bgColors = [];
-    Object.keys(typeTotals).forEach(t => {
-        if (typeTotals[t] > 0) {
-            labels.push(t);
-            data.push(typeTotals[t]);
-            bgColors.push(db.categories[t]?.color || '#ccc');
-        }
-    });
-
-    // Validate chart data before rendering
-    if (labels.length === 0 || data.length === 0) {
-        console.warn('No valid data for chart rendering');
-        return;
-    }
-
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        layout: { padding: 4 },
-        animation: { duration: 750, easing: 'easeOutQuart' }
-    };
-
-    // Enhanced cleanup to prevent memory leaks
-    if (window.aiCharts) {
-        // Properly destroy existing charts and clear references
-        if (window.aiCharts.pie) {
-            try {
-                window.aiCharts.pie.destroy();
-            } catch (e) {
-                console.warn('Failed to destroy pie chart:', e);
-            }
-            window.aiCharts.pie = null;
-        }
-        if (window.aiCharts.bar) {
-            try {
-                window.aiCharts.bar.destroy();
-            } catch (e) {
-                console.warn('Failed to destroy bar chart:', e);
-            }
-            window.aiCharts.bar = null;
-        }
-    } else {
-        window.aiCharts = {};
-    }
-
-    // Clear canvas contexts to free memory
-    if (pieCtx) {
-        const pieContext = pieCtx.getContext('2d');
-        if (pieContext) {
-            pieContext.clearRect(0, 0, pieCtx.width, pieCtx.height);
-        }
-    }
-    if (barCtx) {
-        const barContext = barCtx.getContext('2d');
-        if (barContext) {
-            barContext.clearRect(0, 0, barCtx.width, barCtx.height);
-        }
-    }
-
-    try {
-        // Create charts with proper error handling
-        window.aiCharts.pie = new Chart(pieCtx, {
-            type: 'doughnut',
-            data: { labels, datasets: [{ data, backgroundColor: bgColors, borderWidth: 0, cutout: '70%' }] },
-            options: chartOptions
-        });
-
-        window.aiCharts.bar = new Chart(barCtx, {
-            type: 'bar',
-            data: { labels, datasets: [{ data, backgroundColor: bgColors, borderRadius: 4 }] },
-            options: { ...chartOptions, scales: { x: { display: false }, y: { display: false } } }
-        });
-    } catch (error) {
-        console.error('Failed to render AI charts:', error);
-        showSnackbar('Chart rendering failed', 'error');
-
-        // Cleanup on error
-        if (window.aiCharts.pie) {
-            try { window.aiCharts.pie.destroy(); } catch (e) { console.warn('Cleanup failed:', e); }
-            window.aiCharts.pie = null;
-        }
-        if (window.aiCharts.bar) {
-            try { window.aiCharts.bar.destroy(); } catch (e) { console.warn('Cleanup failed:', e); }
-            window.aiCharts.bar = null;
-        }
-    }
-}
-
 async function generateAITags() {
     haptic(40);
     if (!db.geminiKey && !db.groqKey) return showSnackbar("Please add API Key in Settings.", "key");
@@ -724,12 +621,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (lastSheet) openSheet(lastSheet, true);
     }
 
-    // Show first-time tips for new users (after a short delay)
-    setTimeout(() => {
-        if (!db.firstTimeTipsShown && db.investments.length === 0) {
-            showFirstTimeTips();
-        }
-    }, 1000);
 });
 
 window.addEventListener('hashchange', handleNearbyHash);
@@ -755,7 +646,7 @@ async function handleNearbyHash() {
         const payload = JSON.parse(decodeURIComponent(payloadStr));
 
         if (payload.type === 'offer') {
-            console.log("Nearby: Received Offer, generating answer...");
+
             const pc = webrtcInit(true); // true means nearby mode
             await pc.setRemoteDescription(payload.sdp);
             const answer = await pc.createAnswer();
@@ -780,7 +671,7 @@ async function handleNearbyHash() {
                 showSnackbar("Handshake ready. Please share the confirmation link.", "info");
             }
         } else if (payload.type === 'answer') {
-            console.log("Nearby: Received Answer, finalizing...");
+
             if (!window.pc) {
                 showSnackbar("Connection lost. Restart Sync.", "error");
                 return;
@@ -890,7 +781,7 @@ let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
-    console.log('[PWA] Install prompt captured');
+
     // Show install button
     const installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) {
@@ -902,7 +793,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 // Handle app installed
 window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
-    console.log('[PWA] App installed');
+
     showSnackbar('App installed successfully! 🎉', 'install_mobile');
     const installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) installBtn.style.display = 'none';
@@ -916,11 +807,8 @@ function triggerPWAInstall() {
     }
     deferredInstallPrompt.prompt();
     deferredInstallPrompt.userChoice.then(result => {
-        console.log('[PWA] User choice:', result.outcome);
         if (result.outcome === 'accepted') {
             showSnackbar('Installing...', 'download');
-        } else {
-            console.log('[PWA] Install dismissed by user');
         }
         deferredInstallPrompt = null;
     }).catch(err => {
@@ -929,21 +817,7 @@ function triggerPWAInstall() {
     });
 }
 
-// Detect if running as installed PWA
-function isInstalledPWA() {
-    return window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true;
-}
-
 // ── Serverless Notifications (uses SW directly, no server needed) ──
-async function ensureNotificationPermission() {
-    if (!('Notification' in window)) return false;
-    if (Notification.permission === 'granted') return true;
-    if (Notification.permission === 'denied') return false;
-    const result = await Notification.requestPermission();
-    if (typeof loadNotificationPrefs === 'function') loadNotificationPrefs();
-    return result === 'granted';
-}
 function showLocalNotification(title, body) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     // Try via SW first (works in PWA standalone mode)
@@ -955,7 +829,6 @@ function showLocalNotification(title, body) {
     try { new Notification(title, { body, icon: './icons/icon-192.png' }); } catch (e) { }
 }
 window.showLocalNotification = showLocalNotification;
-window.ensureNotificationPermission = ensureNotificationPermission;
 
 function calculatePortfolioHealth() {
     let score = 100;
@@ -1468,7 +1341,7 @@ function webrtcInit(isNearby = false) {
 
 function setupDataChannel(channel, isNearby = false) {
     channel.onopen = () => {
-        console.log("DC Open");
+
         if (isNearby) {
             webrtcSendSync();
         }
@@ -1714,7 +1587,8 @@ function checkSpendAlerts() {
     let weekEntries = db.spendTracker.entries.filter(e => e.date >= weekStr && e.date <= todayStr);
     let weekTotal = weekEntries.reduce((s, e) => s + Math.abs(e.amount), 0);
 
-    let budget = db.monthlyPlanConfig || {};
+    let monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+    let budget = db.monthlyPlans?.[monthKey] || {};
     let needsBudget = budget.needs || 0;
     let wantsBudget = budget.wants || 0;
     let monthlyTotalBudget = needsBudget + wantsBudget;
@@ -1736,9 +1610,11 @@ function checkSpendAlerts() {
 
 function updateDashboardEntryCards() {
     let plannerEntry = document.getElementById('monthly-planner-entry');
-    if (plannerEntry && db.monthlyPlanConfig) {
-        let needs = db.monthlyPlanConfig.needs || 0;
-        let wants = db.monthlyPlanConfig.wants || 0;
+    if (plannerEntry) {
+        let monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+        let mp = db.monthlyPlans?.[monthKey] || {};
+        let needs = mp.needs || 0;
+        let wants = mp.wants || 0;
         let totalBudget = needs + wants;
         let totalInv = db.investments.reduce((s, i) => s + i.amount, 0);
         let budgetStatusEl = plannerEntry.querySelector('.budget-status');
@@ -1759,7 +1635,7 @@ function updateDashboardEntryCards() {
 
         let descEl = spendEntry.querySelector('div[style*="font-size:13px"]');
         if (descEl) {
-            let budget = (db.monthlyPlanConfig?.needs || 0) + (db.monthlyPlanConfig?.wants || 0);
+            let monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'); let budget = (db.monthlyPlans?.[monthKey]?.needs || 0) + (db.monthlyPlans?.[monthKey]?.wants || 0);
             let budgetText = budget > 0 ? ` of ₹${fmtNum(budget)}` : '';
             descEl.innerHTML = `This month: ₹${fmtNum(monthTotal)}${budgetText} · ${monthEntries.length} entries`;
         }

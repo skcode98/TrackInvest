@@ -68,46 +68,12 @@ self.addEventListener('activate', (event) => {
 
 // 3. Fetch — stale-while-revalidate for CDN, cache-first for local
 
-const CORS_PROXIES = [
-  'https://api.codetabs.com/v1/proxy?quest=',
-  'https://corsproxy.io/?',
-  'https://api.allorigins.win/raw?url=',
-];
-
-async function fetchWithProxyFallback(url) {
-  const attempts = CORS_PROXIES.map(p => p + encodeURIComponent(url));
-  for (let i = 0; i < attempts.length; i++) {
-    try {
-      const ctrl = new AbortController();
-      const id = setTimeout(() => ctrl.abort(), 10000);
-      const r = await fetch(attempts[i], { signal: ctrl.signal });
-      clearTimeout(id);
-      if (r.ok) return r;
-    } catch (_) {}
-  }
-  return new Response(JSON.stringify({ error: 'unreachable' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
-}
-
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
     // Skip non-GET and chrome-extension requests
     if (event.request.method !== 'GET') return;
     if (url.protocol === 'chrome-extension:') return;
-
-    // For API calls with CORS issues → CORS proxy chain only, skip direct fetch (will fail from deployed origin)
-    if (url.hostname.includes('mfapi.in') ||
-        url.hostname.includes('groq.com') ||
-        url.hostname.includes('generativelanguage.googleapis.com') ||
-        url.hostname.includes('openrouter.ai') ||
-        url.hostname.includes('cerebras.ai') ||
-        url.hostname.includes('models.github.ai') ||
-        url.hostname.includes('query1.finance.yahoo.com') ||
-        url.hostname.includes('mintedmetal.com') ||
-        url.hostname.includes('ibja-api.vercel.app')) {
-      event.respondWith(fetchWithProxyFallback(event.request.url));
-      return;
-    }
 
     // For same-origin: cache-first
     if (url.origin === self.location.origin) {

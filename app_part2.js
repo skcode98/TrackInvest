@@ -29,7 +29,7 @@ function saveInvestment() {
         isMonthlyContrib: document.getElementById('inv-is-monthly')?.checked || false,
         payoutType: document.getElementById('inv-payout')?.value || '',
         investMode: document.getElementById('inv-mode')?.value || '',
-        sipDay: parseInt(document.getElementById('inv-sip-day')?.value) || null
+        sipDay: parseInt(document.getElementById('inv-sip-day')?.value, 10) || null
     };
 
     // Add input field animations
@@ -706,132 +706,6 @@ function attachSwipeListeners(cE) {
     cE.addEventListener('touchend', handleTouchEnd, { passive: true });
 }
 
-// Add mobile-specific gesture support
-function addMobileGestures(container) {
-    let pullToRefreshState = {
-        startY: 0,
-        isPulling: false,
-        pullDistance: 0,
-        threshold: 80,
-        maxPull: 120
-    };
-
-    const handlePullStart = (e) => {
-        if (e.target.closest('.sheet') || e.target.closest('.quick-actions-container')) return;
-
-        pullToRefreshState.startY = e.touches[0].clientY;
-        pullToRefreshState.isPulling = true;
-    };
-
-    const handlePullMove = (e) => {
-        if (!pullToRefreshState.isPulling) return;
-
-        const currentY = e.touches[0].clientY;
-        pullToRefreshState.pullDistance = currentY - pullToRefreshState.startY;
-
-        if (pullToRefreshState.pullDistance > 0 && pullToRefreshState.pullDistance < pullToRefreshState.maxPull) {
-            e.preventDefault();
-
-            // Show pull indicator
-            const indicator = document.getElementById('pull-refresh-indicator');
-            if (indicator) {
-                indicator.style.transform = `translateY(${Math.min(pullToRefreshState.pullDistance, pullToRefreshState.threshold)}px)`;
-                indicator.style.opacity = Math.min(pullToRefreshState.pullDistance / pullToRefreshState.threshold, 1);
-            }
-        }
-    };
-
-    const handlePullEnd = (e) => {
-        if (!pullToRefreshState.isPulling) return;
-
-        if (pullToRefreshState.pullDistance >= pullToRefreshState.threshold) {
-            // Trigger refresh
-            performPullToRefresh();
-        }
-
-        // Reset state
-        pullToRefreshState.isPulling = false;
-        pullToRefreshState.pullDistance = 0;
-
-        // Hide indicator
-        const indicator = document.getElementById('pull-refresh-indicator');
-        if (indicator) {
-            indicator.style.transform = 'translateY(0)';
-            indicator.style.opacity = '0';
-        }
-    };
-
-    container.addEventListener('touchstart', handlePullStart, { passive: true });
-    container.addEventListener('touchmove', handlePullMove, { passive: false });
-    container.addEventListener('touchend', handlePullEnd, { passive: true });
-}
-
-function performPullToRefresh() {
-    haptic([30, 30, 50]);
-    showSnackbar('Refreshing...', 'refresh');
-
-    // Add visual feedback
-    const indicator = document.getElementById('pull-refresh-indicator');
-    if (indicator) {
-        indicator.innerHTML = `
-            <span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">refresh</span>
-            <div style="margin-top: 8px;">Refreshing...</div>
-        `;
-    }
-
-    // Refresh data
-    setTimeout(() => {
-        renderAll();
-        hidePullRefreshIndicator();
-        showSnackbar('Data refreshed', 'check_circle');
-    }, 1000);
-}
-
-function hidePullRefreshIndicator() {
-    const indicator = document.getElementById('pull-refresh-indicator');
-    if (indicator) {
-        indicator.style.opacity = '0';
-        setTimeout(() => {
-            if (indicator.parentNode) {
-                indicator.parentNode.removeChild(indicator);
-            }
-        }, 300);
-    }
-}
-
-// Pull-to-refresh indicator
-function showPullRefreshIndicator() {
-    if (document.getElementById('pull-refresh-indicator')) return;
-    const indicator = document.createElement('div');
-    indicator.id = 'pull-refresh-indicator';
-    indicator.className = 'pull-refresh-indicator';
-    indicator.innerHTML = '<span class="material-symbols-rounded">arrow_downward</span><div>Pull to refresh</div>';
-    indicator.style.cssText = `
-        position: fixed; top: -60px; left: 50%;
-        transform: translateX(-50%);
-        background: var(--md-primary-container);
-        color: var(--md-on-primary-container);
-        padding: 12px 20px;
-        border-radius: 0 0 16px 16px;
-        display: flex; align-items: center; gap: 8px;
-        font-size: 14px; font-weight: 500;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        transition: top 0.3s ease-out, opacity 0.3s ease-out;
-        z-index: 3000; opacity: 0;
-    `;
-    document.body.appendChild(indicator);
-    // Show the indicator briefly
-    requestAnimationFrame(() => {
-        indicator.style.top = '0px';
-        indicator.style.opacity = '1';
-    });
-    setTimeout(() => {
-        indicator.style.top = '-60px';
-        indicator.style.opacity = '0';
-        setTimeout(() => { if (indicator.parentNode) indicator.parentNode.removeChild(indicator); }, 300);
-    }, 1500);
-}
-
 // ==========================================
 // 7. MODULES (GOALS, FIRE, CATS, SETTINGS)
 // ==========================================
@@ -1014,7 +888,7 @@ function saveProfileSettings() {
     db.userProfile.salary = parseFloat(document.getElementById('settings-salary').value) || 0;
     db.userProfile.regime = document.getElementById('settings-regime').value;
     db.userProfile.monthlyExpense = parseFloat(document.getElementById('settings-expenses').value) || 0;
-    db.fyStartMonth = parseInt(document.getElementById('settings-fy-start').value) || 3;
+    db.fyStartMonth = parseInt(document.getElementById('settings-fy-start').value, 10) || 3;
     db.currency = document.getElementById('settings-currency').value || '₹';
     db.displayCurrency = document.getElementById('settings-display-currency')?.value || 'INR';
     db.currencySymbol = document.getElementById('settings-currency').value || '₹';
@@ -1455,13 +1329,6 @@ async function registerBiometric() {
     return false;
 }
 
-function toggleAIBubble() {
-    // No-op: AI Hub replaces the floating bubble. Open the hub instead.
-    openAIHub();
-}
-window.toggleAIBubble = toggleAIBubble;
-window.toggleAIBubbleVisibility = toggleAIBubble;
-
 // App Lock System with Biometric, PIN fallback, rate limiting, and auto-lock
 let appLockState = {
     failedAttempts: 0,
@@ -1508,7 +1375,7 @@ async function checkAppLock() {
                 return true;
             }
         } catch (e) {
-            console.log("Biometric auth failed, falling back to PIN", e);
+
         }
     }
 
@@ -1717,7 +1584,6 @@ function lockApp() {
     document.addEventListener(event, updateActivity, { passive: true });
 });
 
-window.checkAppLock = checkAppLock;
 window.unlockApp = unlockApp;
 window.lockApp = lockApp;
 // btoa() only accepts a binary string, but `String.fromCharCode(...bytes)` on
@@ -2101,28 +1967,6 @@ function calculateMonthlySIP() {
 function calculateEMI() { let P = parseFloat(document.getElementById('emi-principal').value); let years = parseFloat(document.getElementById('emi-tenure').value); let rate = parseFloat(document.getElementById('emi-rate').value) / 12 / 100; let n = years * 12; if (rate === 0) { document.getElementById('emi-result').innerHTML = `Monthly EMI: <strong>${formatMoney(P / n)}</strong>`; return; } let emi = P * rate * Math.pow(1 + rate, n) / (Math.pow(1 + rate, n) - 1); document.getElementById('emi-result').innerHTML = `Monthly EMI: <strong>${formatMoney(emi)}</strong>`; }
 function calculateInflation() { let pv = parseFloat(document.getElementById('inf-present').value); let years = parseFloat(document.getElementById('inf-years').value); let rate = parseFloat(document.getElementById('inf-rate').value) / 100; let fv = pv * Math.pow(1 + rate, years); document.getElementById('inf-result').innerHTML = `Future Value: <strong>${formatMoney(fv)}</strong>`; }
 
-// === Standalone calculator functions (required by tests) ===
-function calculateMonthlySIPValue(target, years, rate) {
-    if (!target || target <= 0) return null;
-    if (!years || years <= 0) return null;
-    let r = rate / 100 / 12; let n = years * 12;
-    if (r === 0) return target / n;
-    // SIP at start of period: FV = P * [((1+r)^n - 1)/r] * (1+r)
-    return target * r / ((Math.pow(1 + r, n) - 1) * (1 + r));
-}
-function calculateEMIValue(principal, years, rate) {
-    if (!principal || principal <= 0) return null;
-    if (!years || years <= 0) return null;
-    let r = rate / 100 / 12; let n = years * 12;
-    if (r === 0) return principal / n;
-    return principal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-}
-function calculateInflationValue(pv, years, rate) {
-    if (!pv || pv <= 0) return null;
-    if (years === undefined || years < 0) return null;
-    if (rate === undefined || rate < 0) return null;
-    return pv * Math.pow(1 + rate / 100, years);
-}
 function checkDuplicates(newEntry) { let dups = db.investments.filter(i => i.date === newEntry.date && i.type === newEntry.type && i.amount === newEntry.amount && i.id !== newEntry.id); if (dups.length > 0) { showSnackbar("Possible duplicate entry detected!", "warning"); } }
 function autoBackupReminder() { let now = new Date().toDateString(); if (db.lastBackupPrompt !== now && (new Date() - new Date(db.lastBackupPrompt || 0)) > 7 * 24 * 60 * 60 * 1000) { showSnackbar("Remember to backup your data! (Settings > Backup)", "cloud_download"); db.lastBackupPrompt = now; saveData(); } }
 function dataCleanup() { Swal.fire({ title: 'Cleanup Old Entries', text: 'Enter cutoff date (YYYY-MM-DD) to remove entries older than that date.', input: 'text', showCancelButton: true }).then(res => { if (res.isConfirmed && res.value) { let cutoff = parseDate(res.value); let before = db.investments.length; db.investments = db.investments.filter(i => parseDate(i.date) >= cutoff); saveData(); renderAll(); showSnackbar(`Removed ${before - db.investments.length} entries.`); } }); }
@@ -2247,8 +2091,6 @@ function processAICharts(text) {
             return renderAIBarChart(data, labels, colors, max);
         } else if (type === 'pie' || type === 'donut') {
             return renderAIPieChart(data, labels, colors, total);
-        } else if (type === 'progress') {
-            return renderAIProgressChart(data, labels, colors);
         }
         return match;
     });
@@ -2605,22 +2447,6 @@ window.downloadAIHubReport = downloadAIHubReport;
 
 // ── Legacy bridge functions (redirect to hub) ──
 
-function openAIChat() {
-    openAIHub('chat');
-}
-
-function viewChatHistory() {
-    haptic(30);
-    openAIHub('chat');
-    toggleChatHistory();
-}
-
-function loadChatSession(idx) {
-    haptic(40);
-    openAIHub('chat');
-    loadHubChatSession(idx);
-}
-
 function toggleAIPopup(forceState, view) {
     if (forceState) {
         if (view === 'report') {
@@ -2649,15 +2475,8 @@ function openAIReportSheet(reportData) {
 }
 window.openAIReportSheet = openAIReportSheet;
 
-function startNewChatInPopup() { startNewChatInHub(); }
-function loadChatSessionInPopup(idx) { loadHubChatSession(idx); }
-async function sendAIChatInPopup() { await sendAIChatInHub(); }
-
 window.toggleAIPopup = toggleAIPopup;
 window.renderAIPopupContent = renderAIPopupContent;
-window.startNewChatInPopup = startNewChatInPopup;
-window.loadChatSessionInPopup = loadChatSessionInPopup;
-window.sendAIChatInPopup = sendAIChatInPopup;
 
 function openAIPredictSheet(alreadyOpen = false) {
     if (!alreadyOpen) openAIHub('reports');
