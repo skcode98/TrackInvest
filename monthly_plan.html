@@ -1707,8 +1707,8 @@ function recalc() {
     const plannedTotal = heroPlannedNeeds + heroPlannedWants + heroPlannedInvest;
     pnEl.textContent = '₹' + (income > 0 ? Math.round(plannedTotal) : 0).toLocaleString('en-IN');
     // Actual = live data (spend + invest)
-    const hasActualData = viewOffset <= 0 && (actualSpendTotal > 0 || actualInvest > 0);
-    if (hasActualData) {
+    const hasLiveData = viewOffset <= 0 && (actualSpendTotal > 0 || actualInvest > 0);
+    if (hasLiveData) {
         const actualTotal = actualSpendTotal + actualInvest;
         acEl.textContent = '₹' + Math.round(actualTotal).toLocaleString('en-IN');
     } else {
