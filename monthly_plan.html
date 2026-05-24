@@ -567,32 +567,13 @@
             </div>
         </div>
 
-        <!-- NEEDS & FIXED CARD -->
+        <!-- FIXED NEEDS CARD -->
         <div class="planner-card">
             <div class="card-title">
                 <span class="material-symbols-rounded" style="color:var(--cat-needs);">gavel</span>
-                Needs & Fixed
+                Fixed Needs
             </div>
             <div id="needs-pva" class="pva-bar" style="display:none;"></div>
-
-            <!-- Fixed Expenses Sub-section -->
-            <div style="display:flex;align-items:center;gap:6px;margin:16px 0 8px;">
-                <span class="material-symbols-rounded" style="font-size:16px;color:var(--md-outline);">handshake</span>
-                <span style="font-size:13px;font-weight:600;color:var(--md-outline);">Fixed Expenses</span>
-                <span style="font-size:10px;color:var(--md-outline);font-weight:400;">(manual)</span>
-            </div>
-            <div id="fixed-container"></div>
-            <button class="add-row-btn" onclick="addRow('fixedExpenses')" style="margin-top:4px;">
-                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Fixed Expense
-            </button>
-
-            <div style="border-top:1px solid var(--md-outline-variant);margin:14px 0;"></div>
-
-            <!-- Needs -->
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                <span class="material-symbols-rounded" style="font-size:16px;color:var(--md-outline);">shopping_cart</span>
-                <span style="font-size:13px;font-weight:600;color:var(--md-outline);">Needs</span>
-            </div>
             <div id="needs-container"></div>
             <button class="add-row-btn" onclick="addRow('needs')">
                 <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Expense
@@ -1461,7 +1442,6 @@ function renderActualInvestBreakdown() {
 // PLAN vs ACTUAL BARS
 // ──────────────────────────────────────────────────────────────
 function updatePVABars() {
-    const plannedFixed   = (plan.fixedExpenses||[]).reduce((s, i) => s + i.amount, 0);
     const plannedNeeds   = plan.needs.reduce((s, i) => s + i.amount, 0);
     const plannedWants   = plan.wants.reduce((s, i) => s + i.amount, 0);
     const plannedInvestManual = (plan.investments||[]).reduce((s, i) => s + i.amount, 0);
@@ -1473,9 +1453,8 @@ function updatePVABars() {
     const actualWants = hasActual && actualSpendTotal > 0 ? Math.round(actualWantsFromSpend) : 0;
     const actualInvestTotal = hasActual ? actualInvest : 0;
 
-    // Needs PVA (fixed + needs combined) — show if planned>0 or actual data exists
-    const needsPlanned = plannedFixed + plannedNeeds;
-    renderPVA('needs-pva', needsPlanned, actualNeeds, needsPlanned > 0 || actualSpendTotal > 0, 0);
+    // Needs PVA — show if planned>0 or actual data exists
+    renderPVA('needs-pva', plannedNeeds, actualNeeds, plannedNeeds > 0 || actualSpendTotal > 0, 0);
 
     // Wants PVA — show if planned>0 or actual data exists
     renderPVA('wants-pva', plannedWants, actualWants, plannedWants > 0 || actualSpendTotal > 0, 0);
@@ -1751,10 +1730,9 @@ function updateIncomeAmount(index, el) {
 
 function autoFillWants() {
     const income       = plan.income.reduce((s, i) => s + i.amount, 0);
-    const plannedFixed = (plan.fixedExpenses||[]).reduce((s, i) => s + i.amount, 0);
     const plannedNeeds = plan.needs.reduce((s, i) => s + i.amount, 0);
     const plannedInvestManual = (plan.investments||[]).reduce((s, i) => s + i.amount, 0);
-    const totalNeeds = plannedFixed + plannedNeeds;
+    const totalNeeds = plannedNeeds;
     const totalInvest = plannedInvestManual + extractedSIPTotal + extractedGoalTotal;
     const surplus = income - totalNeeds - totalInvest;
     if (surplus <= 0 || plan.wants.length === 0) {
@@ -1775,7 +1753,6 @@ function recalc() {
     const income = plan.income.reduce((s, i) => s + i.amount, 0);
 
     // Planned totals from user inputs
-    const plannedFixed = (plan.fixedExpenses||[]).reduce((s, i) => s + i.amount, 0);
     const plannedNeeds = plan.needs.reduce((s, i) => s + i.amount, 0);
     const plannedWants = plan.wants.reduce((s, i) => s + i.amount, 0);
     const plannedInvestManual = (plan.investments||[]).reduce((s, i) => s + i.amount, 0);
@@ -1788,9 +1765,8 @@ function recalc() {
     const actualWants = hasActual ? Math.round(actualWantsFromSpend) : 0;
     const actualInvestTotal = hasActual ? actualInvest : 0;
 
-    // Combined: Needs = fixed expenses + needs
-    const totalNeedsPlanned = plannedFixed + plannedNeeds;
-    const totalNeedsActual = plannedFixed + actualNeeds; // fixed has no actual, so stays as planned
+    const totalNeedsPlanned = plannedNeeds;
+    const totalNeedsActual = actualNeeds;
 
     const totalWantsPlanned = plannedWants;
     const totalWantsActual = actualWants;
@@ -2332,8 +2308,6 @@ function escapeHtml(str) {
 
 function getActualForItem(type, itemName) {
     if (!itemName || viewOffset > 0) return 0;
-    if (type === 'fixedExpenses') return 0;
-
     if (type === 'investments') {
         const d = getViewDate(); let m = d.getMonth(), y = d.getFullYear();
         if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
