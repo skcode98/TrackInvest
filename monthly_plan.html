@@ -396,9 +396,19 @@
         <div class="planner-hero surplus" id="hero-card">
             <div class="hero-label">Unallocated Balance</div>
             <div class="hero-balance" id="hero-balance">₹0</div>
-            <div class="hero-status" id="hero-status">
-                <span class="material-symbols-rounded" style="font-size:14px;" id="hero-icon">info</span>
-                <span id="hero-msg">Enter your income to begin</span>
+            <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;font-weight:500;flex-wrap:wrap;">
+                <span style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.07);padding:3px 10px;border-radius:20px;">
+                    <span class="material-symbols-rounded" style="font-size:12px;">edit_note</span>
+                    Planned: <span id="hero-planned">₹0</span>
+                </span>
+                <span style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.07);padding:3px 10px;border-radius:20px;">
+                    <span class="material-symbols-rounded" style="font-size:12px;">receipt_long</span>
+                    Actual: <span id="hero-actual">₹0</span>
+                </span>
+                <span class="hero-status" id="hero-status" style="margin:0;background:rgba(0,0,0,0.07);padding:3px 10px;border-radius:20px;">
+                    <span class="material-symbols-rounded" style="font-size:12px;" id="hero-icon">info</span>
+                    <span id="hero-msg">Enter your income to begin</span>
+                </span>
             </div>
         </div>
 
@@ -630,7 +640,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="./shared_ai.js"></script>
 <script>
     window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
@@ -1437,6 +1447,8 @@ function makeRow(item, index, type) {
     const badge = item.aiMatched ? `<span style="font-size:10px;background:var(--md-primary-container);color:var(--md-on-primary-container);padding:2px 6px;border-radius:6px;margin-left:6px;" title="This amount was matched from your actual spending using AI categorization.">✨ AI</span>` :
                   item.autoMatched ? `<span style="font-size:10px;background:var(--md-surface-container-highest);color:var(--md-on-surface);padding:2px 6px;border-radius:6px;margin-left:6px;" title="This amount was matched from your actual spending using exact or partial name matching.">⚙️ Auto</span>` : '';
                   
+    const actualAmt = getActualForItem(type, item.name);
+    const hasActual = actualAmt > 0 && (viewOffset <= 0);
     wrap.innerHTML = `
         <div class="plan-row-label" style="flex:1; min-width:0;">
             <div style="display:flex;align-items:center;">
@@ -1446,10 +1458,16 @@ function makeRow(item, index, type) {
             </div>
             ${hint ? `<div class="hint">${hint}</div>` : ''}
         </div>
-        <div class="plan-input-box">
-            <span>₹</span>
-            <input type="number" class="plan-input" value="${item.amount || ''}" placeholder="0"
-                oninput="updateAmount('${type}',${index},this)">
+        <div class="plan-input-box" style="flex-direction:column;align-items:stretch;gap:2px;padding:4px 10px;">
+            <div style="display:flex;align-items:center;gap:2px;">
+                <span style="font-size:11px;color:var(--md-outline);min-width:10px;">P</span>
+                <input type="number" class="plan-input" value="${item.amount || ''}" placeholder="0"
+                    oninput="updateAmount('${type}',${index},this)">
+            </div>
+            ${hasActual ? `<div style="display:flex;align-items:center;gap:2px;border-top:1px solid var(--md-outline-variant);padding-top:2px;">
+                <span style="font-size:11px;color:var(--md-tertiary);min-width:10px;">A</span>
+                <span style="font-size:13px;font-weight:600;color:var(--md-tertiary);text-align:right;width:100%;">₹${Math.round(actualAmt).toLocaleString('en-IN')}</span>
+            </div>` : ''}
         </div>
         <button class="del-btn" onclick="showRowDetail('${type}',${index})" title="View which spends map to this item">
             <span class="material-symbols-rounded" style="font-size:18px;">visibility</span>
@@ -1586,13 +1604,24 @@ function recalc() {
     updateTotalInvestDisplay(useActual ? totalInvest : null);
 
     // Hero
-    const hero   = document.getElementById('hero-card');
-    const balEl  = document.getElementById('hero-balance');
-    const msgEl  = document.getElementById('hero-msg');
-    const iconEl = document.getElementById('hero-icon');
+    const hero    = document.getElementById('hero-card');
+    const balEl   = document.getElementById('hero-balance');
+    const msgEl   = document.getElementById('hero-msg');
+    const iconEl  = document.getElementById('hero-icon');
+    const pnEl    = document.getElementById('hero-planned');
+    const acEl    = document.getElementById('hero-actual');
 
     balEl.textContent = (balance >= 0 ? '₹' : '-₹') +
         Math.abs(Math.round(balance)).toLocaleString('en-IN');
+
+    const plannedTotal = totalNeeds + totalWants + totalInvest;
+    pnEl.textContent = '₹' + (income > 0 ? Math.round(plannedTotal) : 0).toLocaleString('en-IN');
+    if (viewOffset <= 0 && (actualSpendTotal > 0 || actualInvest > 0)) {
+        const actualTotal = actualSpendTotal + actualInvest;
+        acEl.textContent = '₹' + Math.round(actualTotal).toLocaleString('en-IN');
+    } else {
+        acEl.textContent = '₹0';
+    }
 
     hero.className = 'planner-hero ';
     if (balance < 0) {
@@ -1863,7 +1892,7 @@ async function exportPlanPDF() {
     if (typeof html2pdf === 'undefined') { snack('PDF library not loaded', 'error'); return; }
 
     const el = document.createElement('div');
-    el.style.cssText = 'padding:24px;font-family:Roboto,sans-serif;color:#111318;background:#fff;';
+    el.style.cssText = 'padding:24px;font-family:Roboto,sans-serif;color:#111318;background:#fff;width:680px;box-sizing:border-box;';
     const totalInvest = extractedSIPTotal + extractedGoalTotal;
     el.innerHTML = `
         <h2 style="color:#415F91;margin-bottom:16px;">Monthly Plan — ${getViewDate().toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
@@ -1888,11 +1917,14 @@ async function exportPlanPDF() {
     `;
     document.body.appendChild(el);
 
+    // Small delay for font loading before rendering
+    await new Promise(r => setTimeout(r, 100));
+
     try {
         await html2pdf().set({
             margin: [10, 10, 10, 10],
             filename: `TrackInvest_Plan_${getViewDate().toLocaleString('default', { month: 'short', year: 'numeric' })}.pdf`,
-            html2canvas: { scale: 2, letterRendering: true, useCORS: true, allowTaint: false },
+            html2canvas: { scale: 2, letterRendering: true, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         }).from(el).save();
     } catch (e) {
@@ -2022,6 +2054,29 @@ function escapeHtml(str) {
     return String(str || '')
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function getActualForItem(type, itemName) {
+    if (!itemName) return 0;
+    const itemLower = itemName.toLowerCase();
+    // Try last mapping log first
+    if (window.__lastMappingLog && window.__lastMappingLog.length > 0) {
+        const mappedFrom = window.__lastMappingLog
+            .filter(ml => ml.to === itemName && ml.type === type)
+            .map(ml => ml.from);
+        if (mappedFrom.length > 0) {
+            const d = getViewDate(); let m = d.getMonth(), y = d.getFullYear();
+            if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+            const all = ((db.spendTracker && db.spendTracker.entries) || []).filter(e => {
+                const ed = new Date(e.date); return ed.getMonth() === m && ed.getFullYear() === y;
+            });
+            return all.filter(e => mappedFrom.includes(e.category || 'Uncategorized'))
+                .reduce((s, e) => s + (e.amount || 0), 0);
+        }
+    }
+    // Fallback to global needs/wants totals
+    if (type === 'needs') return Math.round(actualNeedsFromSpend);
+    return Math.round(actualWantsFromSpend);
 }
 
 function showSpendBreakdown(type) {
@@ -2231,7 +2286,7 @@ async function unifiedAutoSync() {
     savePlanner(true);
     showOverlay('AI Auto-Sync Complete', html);
 
-    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span> AI Auto-Sync (Investments + Spend)'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span> AI Sync'; }
     snack('✓ Auto-sync complete — investments & spending mapped', 'auto_awesome');
 }
 
