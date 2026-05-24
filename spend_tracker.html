@@ -8,9 +8,9 @@
     <title>Spend Tracker | TrackInvest</title>
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-        font-src 'self' https://fonts.gstatic.com;
+        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         connect-src 'self' https://api.groq.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.cerebras.ai https://models.github.ai https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         img-src 'self' data:;
     ">
@@ -24,6 +24,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="./version.js"></script>
     <style>
+        body { padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
         :root { --cat-food:#E3724A; --cat-transport:#415F91; --cat-bills:#186D33; --cat-entertainment:#9C27B0; --cat-health:#D96200; --cat-shopping:#E91E63; --cat-groceries:#388E3C; --cat-rent:#5C6BC0; --cat-travel:#00ACC1; --cat-education:#7B1FA2; --cat-investment:#F57C00; --cat-income:#2E7D32; --cat-other:#8E9099; }
 
         /* ── Hero overrides ── */
@@ -64,9 +65,10 @@
         .spend-list { display:flex; flex-direction:column; gap:8px; }
         .spend-card { display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--md-surface-container); border-radius:18px; transition:0.2s; border:1px solid transparent; }
         .spend-card:active { background:var(--md-surface-container-highest); border-color:var(--md-outline-variant); transform:scale(0.99); }
-        .spend-date { font-size:11px; color:var(--md-outline); min-width:36px; font-weight:500; }
-        .spend-comment { font-size:14px; color:var(--md-on-surface); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .spend-amt { font-size:15px; font-weight:600; white-space:nowrap; color:var(--md-on-surface); min-width:65px; text-align:right; }
+        .spend-cat-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .spend-date { font-size:11px; color:var(--md-outline); min-width:36px; font-weight:500; flex-shrink:0; }
+        .spend-comment { font-size:14px; color:var(--md-on-surface); flex:1; min-width:0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3; }
+        .spend-amt { font-size:15px; font-weight:600; white-space:nowrap; color:var(--md-on-surface); min-width:65px; text-align:right; flex-shrink:0; }
 
         /* ── Category badge ── */
         .cat-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:10px; font-size:11px; font-weight:600; cursor:pointer; border:none; font-family:inherit; white-space:nowrap; transition:0.2s; }
@@ -89,8 +91,9 @@
         .biggest-item { background:var(--md-surface-container); border-radius:20px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:0.2s; border:1px solid var(--md-error-container); }
         .biggest-item:active { transform:scale(0.98); background:var(--md-surface-container-highest); }
 
-        /* ── Section headers ── */
+        /* ── Section headers / action rows ── */
         .st-section { font-size:14px; font-weight:500; color:var(--md-primary); margin:24px 0 16px 4px; display:flex; align-items:center; gap:8px; }
+        .st-action-row { display:flex; gap:8px; }
         .month-nav { display:flex; align-items:center; justify-content:space-between; background:var(--md-surface-container-highest); border-radius:100px; padding:4px 12px; margin-bottom:20px; }
         .month-nav .icon-btn { color:var(--md-on-surface-variant); }
         .spend-empty { padding:48px 20px; text-align:center; background:var(--md-surface-container); border-radius:24px; border:1px solid var(--md-outline-variant); }
@@ -98,23 +101,53 @@
         .spend-empty div { font-size:14px; color:var(--md-on-surface-variant); }
 
         @media(max-width:480px) {
-            .chart-card { min-width:240px; padding:12px; }
-            .chart-card canvas { max-height:140px !important; }
+            .chart-card { min-width:220px; padding:12px; }
+            .chart-card canvas { max-height:130px !important; }
             .quick-add-bar { flex-wrap:wrap; }
             .quick-add-bar .btn-primary { width:100%; }
             .import-sheet { max-width:100%; border-radius:20px 20px 0 0; padding:16px; }
             .budget-rows { padding:8px 12px; }
-            .budget-row { flex-wrap:wrap; gap:4px; padding:8px 0; }
-            .budget-row .b-label { width:100%; font-size:12px; }
-            .budget-row .b-budget { font-size:11px; min-width:50px; }
-            .budget-row .b-target { font-size:11px; min-width:50px; }
-            .budget-row .b-actual { font-size:13px; min-width:60px; }
+            .budget-row { gap:4px; padding:8px 0; }
+            .budget-row .b-label { font-size:11px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+            .budget-row .b-budget { font-size:11px; min-width:40px; }
+            .budget-row .b-target { font-size:11px; min-width:40px; }
+            .budget-row .b-actual { font-size:12px; min-width:50px; }
+            .budget-header .bh-budget { min-width:40px; font-size:10px; }
+            .budget-header .bh-target { min-width:40px; font-size:10px; }
+            .budget-header .bh-actual { min-width:50px; font-size:10px; }
+            .budget-header .bh-status { min-width:30px; font-size:10px; }
             .spend-card { padding:10px 12px; gap:6px; }
-            .spend-comment { font-size:13px; }
-            .spend-amt { font-size:14px; min-width:55px; }
-            .sankey-svg { height:140px; }
-            .filter-tabs { gap:2px; padding:3px; }
-            .filter-tab { padding:6px 10px; font-size:12px; }
+            .spend-comment { font-size:13px; -webkit-line-clamp:2; }
+            .spend-amt { font-size:14px; min-width:50px; }
+            .spend-cat-dot { width:6px; height:6px; }
+            .cat-badge { font-size:10px; padding:3px 8px; }
+            .sankey-svg { height:120px; }
+            .filter-tabs { gap:2px; padding:3px; overflow-x:auto; }
+            .filter-tab { padding:8px 12px; font-size:11px; flex-shrink:0; min-height:36px; }
+            .st-section { font-size:13px; margin:16px 0 12px 4px; }
+            .st-action-row { flex-direction:column; gap:6px; }
+            .st-action-row .btn-secondary,
+            .st-action-row .btn-primary { width:100%; }
+            .biggest-item { padding:12px 14px; }
+            .budget-header { font-size:9px; }
+            .budget-header .bh-budget,
+            .budget-header .bh-target { display:none; }
+            .budget-row .b-budget,
+            .budget-row .b-target { display:none; }
+        }
+
+        @media(max-width:380px) {
+            .spend-card { padding:8px 10px; gap:4px; }
+            .spend-cat-dot { display:none; }
+            .spend-date { font-size:10px; min-width:28px; }
+            .spend-comment { font-size:12px; -webkit-line-clamp:1; }
+            .spend-amt { font-size:13px; min-width:42px; }
+            .cat-badge { font-size:9px; padding:2px 6px; border-radius:8px; }
+            .budget-rows { padding:4px 8px; }
+            .hero-title { font-size:32px; }
+            .stat-chip { padding:6px 10px; min-width:0; }
+            .stat-chip > span { font-size:11px; }
+            .budget-row .b-actual { min-width:40px; font-size:11px; }
         }
     </style>
 </head>
@@ -202,6 +235,7 @@
         <div id="budget-section" style="display:none; margin-bottom:16px;">
             <div class="st-section"><span class="material-symbols-rounded">compare_arrows</span> Budget vs Actual</div>
             <div class="budget-rows" id="budget-list"></div>
+            <div id="budget-breakdown-container" style="margin-top:12px;"></div>
         </div>
 
         <!-- Charts -->
@@ -215,25 +249,16 @@
         <!-- Biggest Single Expense -->
         <div id="biggest-item-section" style="display:none;"></div>
 
-        <!-- Spend Summary Card -->
-        <div id="spend-summary-card" style="display:none;background:var(--md-surface-container);border-radius:18px;padding:20px;margin-bottom:16px;border:1px solid var(--md-outline-variant);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <span style="font-weight:500;font-size:16px;"><span class="material-symbols-rounded" style="font-size:18px;vertical-align:middle;">receipt_long</span> Spend Summary</span>
-                <span id="spend-summary-total" style="font-weight:700;font-size:18px;color:var(--md-primary);">₹0</span>
-            </div>
-            <div id="spend-summary-budget-bar" style="display:none;margin-bottom:12px;background:var(--md-surface-container-highest);border-radius:999px;height:8px;overflow:hidden;">
-                <div id="spend-summary-budget-fill" style="height:100%;width:0%;background:var(--md-primary);border-radius:999px;transition:width 0.4s;"></div>
-            </div>
-            <div id="spend-summary-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;"></div>
-        </div>
+        <!-- Budget vs Actual (with per-category breakdown) -->
+
 
         <!-- AI Actions -->
         <div class="st-section ai-dependent"><span class="material-symbols-rounded">auto_awesome</span> AI Tools</div>
         <div class="st-action-row ai-dependent">
-            <button class="btn-secondary" style="flex:1;padding:12px;" onclick="runAICategorization()" id="ai-cat-btn"><span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize</button>
+            <button class="btn-primary" style="flex:1;padding:12px;" onclick="runAICategorization()" id="ai-cat-btn"><span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize</button>
             <button class="btn-secondary" style="flex:1;padding:12px;" onclick="runAIInsights()" id="ai-insights-btn"><span class="material-symbols-rounded">insights</span> Insights</button>
         </div>
-        <div class="st-action-row ai-dependent-info" style="margin-bottom:16px;">
+        <div id="ai-info-banner" class="st-action-row ai-dependent-info" style="margin-bottom:12px;">
             <div style="padding:12px 16px;background:var(--md-surface-container);border-radius:14px;font-size:12px;color:var(--md-outline);text-align:center;">
                 <span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle;">auto_awesome</span>
                 Enable AI in Settings → App to auto-categorize & analyze spending.
@@ -268,6 +293,7 @@
     <script src="./shared_ai.js"></script>
     <script>
         window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
         // Cross-tab sync listener
         try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; } catch(e){}
         const STORAGE_KEY = 'appHubInvestDb';
@@ -536,6 +562,52 @@
 
             list.innerHTML = html;
 
+            // ── Per-category breakdown mini bars ──
+            const breakdownContainer = document.getElementById('budget-breakdown-container');
+            const cats = {};
+            entries.forEach(e => { const c = e.category || 'Uncategorized'; cats[c] = (cats[c] || 0) + e.amount; });
+            const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+            if (sorted.length > 0) {
+                let bHtml = '<div style="display:flex;align-items:center;gap:6px;margin:4px 0 8px;font-size:13px;font-weight:500;color:var(--md-on-surface-variant);">'
+                    + '<span class="material-symbols-rounded" style="font-size:16px;">donut_small</span> Category Breakdown</div>';
+                sorted.forEach(([cat, amt]) => {
+                    const pct = totalActual > 0 ? (amt / totalActual * 100) : 0;
+                    const color = CAT_COLORS[cat] || '#8E9099';
+                    bHtml += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--md-surface-container);margin-bottom:4px;">'
+                        + '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:' + color + ';"></div>'
+                        + '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:500;color:var(--md-on-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + cat + '</div>'
+                        + '<div style="background:var(--md-surface-container-highest);border-radius:999px;height:4px;overflow:hidden;margin-top:3px;">'
+                        + '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:999px;transition:width 0.4s;"></div></div></div>'
+                        + '<div style="text-align:right;flex-shrink:0;"><div style="font-size:13px;font-weight:600;color:var(--md-on-surface);">₹' + amt.toLocaleString('en-IN') + '</div>'
+                        + '<div style="font-size:10px;color:var(--md-outline);">' + pct.toFixed(1) + '%</div></div></div>';
+                });
+                // Budget progress bar
+                const budget = (() => {
+                    try {
+                        const key = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
+                        if (db.monthlyPlans && db.monthlyPlans[key]) {
+                            const plan = db.monthlyPlans[key];
+                            let b = 0;
+                            if (plan.needs) b += plan.needs.reduce((s, i) => s + i.amount, 0);
+                            if (plan.wants) b += plan.wants.reduce((s, i) => s + i.amount, 0);
+                            return b;
+                        }
+                    } catch (e) {}
+                    return 0;
+                })();
+                if (budget > 0) {
+                    const bpct = Math.min(totalActual / budget * 100, 100);
+                    bHtml += '<div style="margin-top:10px;padding:8px 10px;background:var(--md-surface-container-highest);border-radius:12px;">'
+                        + '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--md-outline);margin-bottom:4px;">'
+                        + '<span>Budget Utilized</span><span>₹' + totalActual.toLocaleString('en-IN') + ' / ₹' + budget.toLocaleString('en-IN') + '</span></div>'
+                        + '<div style="background:var(--md-surface-container);border-radius:999px;height:6px;overflow:hidden;">'
+                        + '<div style="height:100%;width:' + bpct + '%;background:' + (bpct > 90 ? (bpct > 100 ? 'var(--md-error)' : '#F4A100') : 'var(--md-primary)') + ';border-radius:999px;transition:width 0.4s;"></div></div></div>';
+                }
+                breakdownContainer.innerHTML = bHtml;
+            } else {
+                breakdownContainer.innerHTML = '';
+            }
+
             // Update hero with budget info
             const heroBudget = document.getElementById('hero-vs-budget');
             if (totalBudget > 0) {
@@ -755,6 +827,7 @@
             let html='';
             entries.forEach(e=>{const d=new Date(e.date);const cat=e.category||'Uncategorized';const color=CAT_COLORS[cat]||'#8E9099';
                 html+=`<div class="spend-card" onclick="openSpendSheet('${e.id}')" style="cursor:pointer;">
+                    <div class="spend-cat-dot" style="background:${color};"></div>
                     <div class="spend-date">${d.getDate()} ${d.toLocaleString('default',{month:'short'})}</div>
                     <div class="spend-comment">${DOMPurify.sanitize(e.comment||'—')}</div>
                     <div class="spend-amt">₹${e.amount.toLocaleString('en-IN')}</div>
@@ -814,64 +887,16 @@
                 <div class="stat-chip"><div class="stat-chip-label">Biggest</div><div class="stat-chip-val">₹${e.length>0?Math.max(...e.map(x=>x.amount)).toLocaleString('en-IN'):0}</div></div>`;
         }
 
-        // ── SPEND SUMMARY CARD ──
-        function getBudgetForMonth() {
-            try {
-                const key = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
-                const mainDB = JSON.parse(localStorage.getItem('appHubInvestDb')) || {};
-                if (mainDB.monthlyPlans && mainDB.monthlyPlans[key]) {
-                    const plan = mainDB.monthlyPlans[key];
-                    let budget = 0;
-                    if (plan.needs) budget += plan.needs.reduce((s, i) => s + i.amount, 0);
-                    if (plan.wants) budget += plan.wants.reduce((s, i) => s + i.amount, 0);
-                    return budget;
-                }
-            } catch (e) {}
-            return 0;
-        }
-
-        function renderSpendSummary() {
-            const entries = getMonthEntries();
-            const card = document.getElementById('spend-summary-card');
-            const totalEl = document.getElementById('spend-summary-total');
-            const grid = document.getElementById('spend-summary-grid');
-            const budgetBar = document.getElementById('spend-summary-budget-bar');
-            const fill = document.getElementById('spend-summary-budget-fill');
-            if (entries.length === 0) { card.style.display = 'none'; return; }
-            card.style.display = 'block';
-            const total = entries.reduce((s, e) => s + e.amount, 0);
-            totalEl.innerText = '₹' + total.toLocaleString('en-IN');
-            const cats = {};
-            entries.forEach(e => { const c = e.category || 'Uncategorized'; cats[c] = (cats[c] || 0) + e.amount; });
-            const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
-            let html = '';
-            sorted.forEach(([cat, amt]) => {
-                const pct = total > 0 ? (amt / total * 100) : 0;
-                const color = CAT_COLORS[cat] || '#8E9099';
-                html += '<div style="display:flex;flex-direction:column;gap:2px;padding:6px 8px;border-radius:10px;background:var(--md-surface-container-highest);">'
-                    + '<div style="display:flex;justify-content:space-between;font-size:12px;">'
-                    + '<span style="color:var(--md-on-surface-variant);">' + cat + '</span>'
-                    + '<span style="font-weight:500;">₹' + amt.toLocaleString('en-IN') + '</span>'
-                    + '</div>'
-                    + '<div style="background:var(--md-surface-container);border-radius:999px;height:4px;overflow:hidden;">'
-                    + '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:999px;"></div></div>'
-                    + '<span style="font-size:10px;color:var(--md-outline);text-align:right;">' + pct.toFixed(1) + '%</span>'
-                    + '</div>';
-            });
-            grid.innerHTML = html;
-            const budget = getBudgetForMonth();
-            if (budget > 0) {
-                budgetBar.style.display = 'block';
-                const pct = Math.min(total / budget * 100, 100);
-                fill.style.width = pct + '%';
-                fill.style.background = pct > 90 ? (pct > 100 ? 'var(--md-error)' : '#F4A100') : 'var(--md-primary)';
-            } else {
-                budgetBar.style.display = 'none';
-            }
-        }
-
         // ── MAIN ──
-        function renderAll() { renderQuickStats(); renderBudgetVsActual(); renderSpendSummary(); renderCharts(); renderSankey(); renderBiggestItem(); renderSpendList(); updateCommentSuggestions(); }
+        function renderAll() {
+            // Toggle AI info banner based on available keys
+            const banner = document.getElementById('ai-info-banner');
+            if (banner) {
+                const hasAI = !!(db.geminiKey || db.groqKey || db.openrouterKey || db.cerebrasKey || db.githubKey);
+                banner.style.display = hasAI ? 'none' : '';
+            }
+            renderQuickStats(); renderBudgetVsActual(); renderCharts(); renderSankey(); renderBiggestItem(); renderSpendList(); updateCommentSuggestions();
+        }
     </script>
 </body>
 </html>

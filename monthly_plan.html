@@ -6,10 +6,10 @@
     <title>Monthly Planner | TrackInvest</title>
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-        font-src 'self' https://fonts.gstatic.com;
-        connect-src 'self' https://api.groq.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.cerebras.ai https://models.github.ai;
+        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        connect-src 'self' https://api.groq.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.cerebras.ai https://models.github.ai https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         img-src 'self' data:;
     ">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="./style.css">
     <script src="./version.js"></script>
     <style>
+        body { padding-bottom:calc(120px + env(safe-area-inset-bottom)); }
         :root {
             --cat-needs:   #BA1A1A;
             --cat-invest:  #415F91;
@@ -151,7 +152,7 @@
             background:transparent; border:none; color:var(--md-outline);
             cursor:pointer; padding:10px; min-width:44px; min-height:44px;
             border-radius:50%; flex-shrink:0;
-            display:flex; align-items:center; justify-content:center;
+            display:inline-flex; align-items:center; justify-content:center;
             transition:color 0.2s, background 0.2s;
         }
         .del-btn:hover { color:var(--md-error); background:var(--md-error-container); }
@@ -223,44 +224,85 @@
         .save-bar {
             position:fixed; bottom:0; left:0; right:0;
             padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-            background:var(--md-surface-container-low);
-            border-top:1px solid var(--md-outline-variant);
-            z-index:20; display:flex; flex-wrap:wrap; gap:5px; align-items:center;
+            background:var(--md-surface-container);
+            border-top:1px solid var(--md-surface-container-highest);
+            z-index:100; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+            box-shadow:0 -2px 8px rgba(0,0,0,0.06);
         }
         .save-bar .sb-group {
-            display:flex; gap:5px; flex:1 1 auto;
+            display:flex; gap:6px; flex:1 1 auto;
         }
         .save-bar .sb-group.left { justify-content:flex-start; }
-        .save-bar .sb-group.right { justify-content:flex-end; }
         .save-bar .btn-icon-sq {
-            flex:0 0 auto; padding:8px; min-width:36px; min-height:36px;
-            border-radius:10px; border:none; background:var(--md-surface-container);
+            flex:0 0 auto; width:40px; height:40px;
+            border-radius:12px; border:none; background:var(--md-surface-container-highest);
             color:var(--md-on-surface-variant); cursor:pointer;
             display:inline-flex; align-items:center; justify-content:center;
-            font-size:18px; transition:background 0.15s;
+            font-size:18px; transition:0.15s;
         }
-        .save-bar .btn-icon-sq:active { background:var(--md-surface-container-highest); }
-        .save-bar .btn-sm {
-            padding:8px 10px; font-size:11px; font-weight:500; border-radius:10px;
-            border:none; background:var(--md-surface-container);
-            color:var(--md-on-surface-variant); cursor:pointer;
-            display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
-            transition:background 0.15s; font-family:inherit;
-        }
-        .save-bar .btn-sm:active { background:var(--md-surface-container-highest); }
+        .save-bar .btn-icon-sq:active { background:var(--md-surface-container-high); transform:scale(0.94); }
         .save-bar .btn-primary {
-            flex:1 1 100%; padding:12px; font-size:13px; font-weight:600;
-            border-radius:12px; border:none; margin-top:2px;
+            flex:1; padding:12px; font-size:13px; font-weight:600;
+            border-radius:12px; border:none;
             background:var(--md-primary); color:var(--md-on-primary);
             cursor:pointer; display:flex; align-items:center;
             justify-content:center; gap:6px; font-family:inherit;
-            transition:opacity 0.15s;
+            transition:opacity 0.15s; min-width:0;
         }
-        .save-bar .btn-primary:active { opacity:0.8; }
+        .save-bar .btn-primary:active { opacity:0.8; transform:scale(0.97); }
         @media(min-width:481px) {
-            .save-bar { padding:10px 20px calc(10px + env(safe-area-inset-bottom)); gap:8px; }
-            .save-bar .btn-sm { padding:10px 14px; font-size:12px; border-radius:12px; }
-            .save-bar .btn-primary { flex:0 1 auto; padding:12px 28px; margin-top:0; }
+            .save-bar { padding:10px 20px calc(10px + env(safe-area-inset-bottom)); gap:10px; }
+            .save-bar .sb-group { gap:8px; }
+            .save-bar .btn-icon-sq { width:44px; height:44px; border-radius:14px; }
+            .save-bar .btn-primary { flex:0 1 auto; padding:12px 28px; border-radius:100px; font-size:14px; }
+        }
+
+        @media(max-width:480px) {
+            .planner-hero { padding:16px; }
+            .hero-balance { font-size:32px; }
+            .planner-card { padding:14px; border-radius:18px; }
+            .card-title { font-size:14px; margin-bottom:12px; }
+            .plan-row { padding:8px 0; gap:6px; }
+            .plan-row-label .name { font-size:14px; }
+            .plan-input { width:100%; max-width:80px; font-size:14px; }
+            .plan-target-input { width:60px; font-size:12px; }
+            .plan-input-box { padding:4px 8px; border-radius:8px; }
+            .total-row { padding:10px 12px; font-size:13px; }
+            .total-row strong { font-size:14px; }
+            .metric-chip { padding:10px 12px; min-width:80px; border-radius:14px; }
+            .metric-chip-val { font-size:16px; }
+            .pva-bar { padding:8px 10px; }
+            .pva-val { font-size:13px; }
+            .pva-label { font-size:9px; }
+            .extracted-row { padding:8px 0; }
+            .extracted-val { font-size:14px; }
+            .horizon-input { width:44px; font-size:14px; padding:2px 4px; }
+            .goal-sub-item { font-size:11px; padding:5px 10px; }
+            .add-row-btn { padding:10px 12px; font-size:12px; min-height:44px; }
+            .ai-tip-card { padding:12px 14px; }
+            .ai-tip-card .text { font-size:12px; }
+            .income-source-row { padding:7px 0; gap:6px; }
+            .income-name-input { font-size:14px; }
+            .benchmark-row { padding:8px 10px; }
+            .bench-val { font-size:12px; }
+            .alloc-legend-row { font-size:10px; gap:6px; }
+            .month-nav { font-size:12px; padding:3px 8px; }
+            .month-nav button { padding:8px; min-height:40px; min-width:40px; }
+            #breakdown-overlay > div { padding:16px !important; border-radius:16px !important; max-width:94vw !important; }
+        }
+
+        @media(max-width:380px) {
+            .planner-hero { padding:12px; }
+            .hero-balance { font-size:28px; }
+            .planner-card { padding:10px; border-radius:14px; }
+            .plan-row-label .name { font-size:13px; }
+            .plan-input { max-width:65px; font-size:13px; }
+            .del-btn { min-width:36px; min-height:36px; padding:6px; }
+            .extracted-val { font-size:13px; }
+            .total-row { padding:8px 10px; font-size:12px; }
+            .total-row strong { font-size:13px; }
+            .save-bar .btn-icon-sq { width:36px; height:36px; font-size:16px; }
+            .save-bar .btn-primary { padding:10px; font-size:12px; }
         }
 
         /* ── MONTH NAV ── */
@@ -277,7 +319,7 @@
         }
         .month-nav button:active { background:var(--md-surface-container); }
 
-        .bottom-spacer { height: 120px; }
+        .bottom-spacer { height: 100px; }
 
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .spin { animation:spin 1s linear infinite; display:inline-block; }
@@ -523,14 +565,6 @@
             <button class="add-row-btn" onclick="addRow('wants')">
                 <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Category
             </button>
-            <div style="display:flex; gap:8px; margin-top:10px;">
-                <button class="btn-secondary" style="flex:1; padding:10px; font-size:13px;" onclick="autoMatchSpend()">
-                    <span class="material-symbols-rounded" style="font-size:16px;">sync</span> Sync Spend
-                </button>
-                <button class="btn-secondary" style="flex:1; padding:10px; font-size:13px;" onclick="autoFillWants()">
-                    <span class="material-symbols-rounded" style="font-size:16px;">magic_button</span> Auto-split Surplus
-                </button>
-            </div>
             <div class="total-row" style="cursor:pointer;" onclick="showSpendBreakdown('wants')" title="Tap to see detailed spend entries">
                 <span>Subtotal<span id="wants-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
                 <strong id="total-wants-val">₹0</strong>
@@ -548,8 +582,6 @@
             <button class="btn-icon-sq" onclick="resetPlanner()" title="Reset this month">
                 <span class="material-symbols-rounded">refresh</span>
             </button>
-        </span>
-        <span class="sb-group right">
             <button class="btn-icon-sq" onclick="showYearlyOverview()" title="Yearly overview">
                 <span class="material-symbols-rounded">calendar_view_month</span>
             </button>
@@ -557,7 +589,10 @@
                 <span class="material-symbols-rounded">picture_as_pdf</span>
             </button>
         </span>
-        <button class="btn-primary" onclick="savePlanner()">
+        <button class="btn-primary" onclick="unifiedAutoSync()" id="bottom-sync-btn" style="flex:1;">
+            <span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span> AI Auto-Sync
+        </button>
+        <button class="btn-primary" onclick="savePlanner()" style="flex:1;">
             <span class="material-symbols-rounded" style="font-size:18px;">save</span> Save Plan
         </button>
     </div>
@@ -599,6 +634,7 @@
     <script src="./shared_ai.js"></script>
 <script>
     window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
     // ──────────────────────────────────────────────────────────────
     // STATE
     // ──────────────────────────────────────────────────────────────
@@ -628,7 +664,9 @@ function getDefaultPlan() {
             { name: 'Dining & Restaurants',  amount: 0 },
             { name: 'Shopping & Lifestyle',  amount: 0 },
             { name: 'Entertainment',         amount: 0 }
-        ]
+        ],
+        investments: [],
+        customInvestments: []
     };
 }
 function cloneItem(item) {
@@ -727,6 +765,8 @@ function loadPlanForMonth(key) {
         plan.income = Array.isArray(saved.income) ? saved.income.map(x => ({...x})) : getDefaultPlan().income;
         plan.needs = Array.isArray(saved.needs) ? saved.needs.map(x => cloneItem(x)) : getDefaultPlan().needs;
         plan.wants = Array.isArray(saved.wants) ? saved.wants.map(x => cloneItem(x)) : getDefaultPlan().wants;
+        plan.investments = Array.isArray(saved.investments) ? saved.investments.map(x => ({...x})) : [];
+        plan.customInvestments = Array.isArray(saved.customInvestments) ? saved.customInvestments.map(x => ({...x})) : [];
         if (saved.goalHorizon) document.getElementById('goal-horizon').value = saved.goalHorizon;
     } else {
         plan = getDefaultPlan();
@@ -747,8 +787,18 @@ function saveCurrentPlanSilent() {
         income: plan.income.map(x => ({...x})),
         needs: plan.needs.map(x => ({...x})),
         wants: plan.wants.map(x => ({...x})),
+        investments: (plan.investments||[]).map(x => ({...x})),
+        customInvestments: (plan.customInvestments||[]).map(x => ({...x})),
         goalHorizon: parseInt(document.getElementById('goal-horizon').value, 10) || 24
     };
+    // Persist to localStorage immediately so month-navigation doesn't lose changes
+    try {
+        const raw = localStorage.getItem('appHubInvestDb') || '{}';
+        const stored = JSON.parse(raw);
+        if (!stored.monthlyPlans) stored.monthlyPlans = {};
+        stored.monthlyPlans[key] = JSON.parse(JSON.stringify(db.monthlyPlans[key]));
+        localStorage.setItem('appHubInvestDb', JSON.stringify(stored));
+    } catch(e) { console.warn('Silent save to localStorage failed:', e); }
 }
 
 function copyPrevMonthPlan() {
@@ -797,7 +847,7 @@ window.onload = function () {
     renderAll();
     updateMonthUI(key);
     renderMonthAnalysis();
-    setTimeout(autoSyncOnLoad, 300);
+    autoSyncOnLoad();
 };
 
 // ──────────────────────────────────────────────────────────────
@@ -963,7 +1013,7 @@ function loadActuals() {
 function classifySpendCategory(category) {
     if (!category) return 'wants';
     const c = String(category).toLowerCase();
-    const needsKeywords = ['rent','emi','mortgage','grocery','groceries','house','housing','utility','utilities','electricity','internet','gas','water','mobile','phone','bills','fuel','transport','bus','train','commute','school','tuition','health','doctor','medicine','medical'];
+    const needsKeywords = ['rent','emi','mortgage','grocery','groceries','house','housing','utility','utilities','electricity','internet','gas','water','mobile','phone','bills','fuel','transport','bus','train','commute','school','tuition','health','doctor','medicine','medical','food & dining'];
     for (let k of needsKeywords) if (c.includes(k)) return 'needs';
     // If category exactly matches one of the plan needs entries, treat as needs
     const lowerNeeds = (plan.needs||[]).map(n => String(n.name||'').toLowerCase());
@@ -1011,6 +1061,15 @@ function applyHeuristicMatching() {
     plan.needs = Array.isArray(plan.needs) ? plan.needs : [];
     plan.wants = Array.isArray(plan.wants) ? plan.wants : [];
 
+    // First pass: strip amounts from items previously filled by auto-match
+    plan.needs.forEach(n => { if (n._autoFilled) n.amount = 0; });
+    plan.wants.forEach(w => { if (w._autoFilled) w.amount = 0; });
+    // Remove empty autoMatched items (they'll be recreated if needed)
+    plan.needs = plan.needs.filter(n => !(n.autoMatched && !n.amount));
+    plan.wants = plan.wants.filter(w => !(w.autoMatched && !w.amount));
+
+    const mappingLog = [];
+
     Object.entries(actualSpendByCategory).forEach(([cat, amt]) => {
         const lc = (cat || '').toLowerCase();
         let matched = false;
@@ -1021,7 +1080,10 @@ function applyHeuristicMatching() {
             if (!name) continue;
             if (lc.includes(name) || name.includes(lc) || hasCommonToken(name, lc)) {
                 plan.needs[i].amount = (plan.needs[i].amount || 0) + amt;
-                matched = true; break;
+                plan.needs[i]._autoFilled = true;
+                matched = true;
+                mappingLog.push({ from: cat, to: plan.needs[i].name, type: 'needs', amount: amt });
+                break;
             }
         }
         if (matched) return;
@@ -1032,20 +1094,61 @@ function applyHeuristicMatching() {
             if (!name) continue;
             if (lc.includes(name) || name.includes(lc) || hasCommonToken(name, lc)) {
                 plan.wants[i].amount = (plan.wants[i].amount || 0) + amt;
-                matched = true; break;
+                plan.wants[i]._autoFilled = true;
+                matched = true;
+                mappingLog.push({ from: cat, to: plan.wants[i].name, type: 'wants', amount: amt });
+                break;
             }
         }
         if (matched) return;
 
         // No match found — classify and create a new row (with dedup)
         const cls = classifySpendCategory(cat);
-        if (cls === 'needs') _dedupAdd(plan.needs, { name: cat, amount: amt, autoMatched: true });
-        else _dedupAdd(plan.wants, { name: cat, amount: amt, autoMatched: true });
+        if (cls === 'needs') {
+            _dedupAdd(plan.needs, { name: cat, amount: amt, autoMatched: true, _autoFilled: true });
+            mappingLog.push({ from: cat, to: cat, type: 'needs', amount: amt });
+        } else {
+            _dedupAdd(plan.wants, { name: cat, amount: amt, autoMatched: true, _autoFilled: true });
+            mappingLog.push({ from: cat, to: cat, type: 'wants', amount: amt });
+        }
     });
 
     savePlanner();
     renderSection('needs'); renderSection('wants'); recalc(); updatePVABars();
-    snack('✓ Auto-matched spend categories', 'link');
+    window.__lastMappingLog = mappingLog;
+    showSyncBreakdown(mappingLog);
+}
+
+function showSyncBreakdown(mappings) {
+    if (!mappings && window.__lastMappingLog) mappings = window.__lastMappingLog;
+    if (!mappings || mappings.length === 0) { snack('No mapping data available. Run sync first.', 'info'); return; }
+    const needsItems = mappings.filter(m => m.type === 'needs');
+    const wantsItems = mappings.filter(m => m.type === 'wants');
+    let html = '';
+    if (needsItems.length > 0) {
+        html += '<div style="font-weight:600;color:var(--cat-needs);margin:12px 0 8px;">🛡️ Needs</div>';
+        needsItems.forEach(m => {
+            html += `<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--md-surface-container);border-radius:8px;margin-bottom:4px;font-size:13px;">
+                <span style="flex:1;">${escapeHtml(m.from)}</span>
+                <span style="color:var(--md-outline);margin:0 8px;">→</span>
+                <span style="flex:1;font-weight:500;">${escapeHtml(m.to)}</span>
+                <span style="font-weight:600;min-width:80px;text-align:right;">₹${Math.round(m.amount).toLocaleString('en-IN')}</span>
+            </div>`;
+        });
+    }
+    if (wantsItems.length > 0) {
+        html += '<div style="font-weight:600;color:var(--cat-wants);margin:12px 0 8px;">🎉 Wants</div>';
+        wantsItems.forEach(m => {
+            html += `<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--md-surface-container);border-radius:8px;margin-bottom:4px;font-size:13px;">
+                <span style="flex:1;">${escapeHtml(m.from)}</span>
+                <span style="color:var(--md-outline);margin:0 8px;">→</span>
+                <span style="flex:1;font-weight:500;">${escapeHtml(m.to)}</span>
+                <span style="font-weight:600;min-width:80px;text-align:right;">₹${Math.round(m.amount).toLocaleString('en-IN')}</span>
+            </div>`;
+        });
+    }
+    if (!html) { snack('No spend data to sync.', 'info'); return; }
+    showOverlay('Spend → Budget Mapping', html);
 }
 
 async function autoMatchSpendAI(silent) {
@@ -1097,10 +1200,15 @@ Return ONLY JSON, no other text.`;
             throw new Error('No valid mappings after validation');
         }
 
-        // FIX #2: Don't zero arrays - preserve existing items and accumulate
+        // Zero amounts on previously auto-filled items before re-mapping
         plan.needs = Array.isArray(plan.needs) ? plan.needs : [];
         plan.wants = Array.isArray(plan.wants) ? plan.wants : [];
+        plan.needs.forEach(n => { if (n._autoFilled) n.amount = 0; });
+        plan.wants.forEach(w => { if (w._autoFilled) w.amount = 0; });
+        plan.needs = plan.needs.filter(n => !(n.autoMatched && !n.amount && !n.aiMatched));
+        plan.wants = plan.wants.filter(w => !(w.autoMatched && !w.amount && !w.aiMatched));
 
+        const mappingLog = [];
         let matchedCount = 0;
         validMappings.forEach(m => {
             const cat = m.category;
@@ -1113,7 +1221,9 @@ Return ONLY JSON, no other text.`;
                 const slot = arr.find(x => (x.name||'').toLowerCase() === target.toLowerCase());
                 if (slot) {
                     slot.amount = (slot.amount || 0) + amt;
+                    slot._autoFilled = true;
                     matchedCount++;
+                    mappingLog.push({ from: cat, to: slot.name, type: cls, amount: amt });
                     return;
                 }
             }
@@ -1124,25 +1234,30 @@ Return ONLY JSON, no other text.`;
             for (let entry of arr) {
                 if (hasCommonToken(entry.name, cat)) {
                     entry.amount = (entry.amount || 0) + amt;
+                    entry._autoFilled = true;
                     placed = true;
                     matchedCount++;
+                    mappingLog.push({ from: cat, to: entry.name, type: cls, amount: amt });
                     break;
                 }
             }
 
             if (!placed) {
                 if (cls === 'needs') {
-                    _dedupAdd(plan.needs, { name: cat, amount: amt, aiMatched: true });
+                    _dedupAdd(plan.needs, { name: cat, amount: amt, aiMatched: true, _autoFilled: true });
                 } else {
-                    _dedupAdd(plan.wants, { name: cat, amount: amt, aiMatched: true });
+                    _dedupAdd(plan.wants, { name: cat, amount: amt, aiMatched: true, _autoFilled: true });
                 }
                 matchedCount++;
+                mappingLog.push({ from: cat, to: cat, type: cls, amount: amt });
             }
         });
 
+        window.__lastMappingLog = mappingLog;
         savePlanner();
         renderSection('needs'); renderSection('wants'); recalc(); updatePVABars();
-        if (!silent) snack(`✓ AI matched ${matchedCount} categories`, 'smart_toy');
+        if (!silent) showSyncBreakdown(mappingLog);
+        if (!silent && mappingLog.length === 0) snack(`✓ AI matched ${matchedCount} categories`, 'smart_toy');
 
     } catch (e) {
         console.error('AI match failed:', e);
@@ -1336,6 +1451,9 @@ function makeRow(item, index, type) {
             <input type="number" class="plan-input" value="${item.amount || ''}" placeholder="0"
                 oninput="updateAmount('${type}',${index},this)">
         </div>
+        <button class="del-btn" onclick="showRowDetail('${type}',${index})" title="View which spends map to this item">
+            <span class="material-symbols-rounded" style="font-size:18px;">visibility</span>
+        </button>
         <button class="del-btn" onclick="removeRow('${type}',${index})" title="Remove">
             <span class="material-symbols-rounded" style="font-size:18px;">delete</span>
         </button>`;
@@ -1576,13 +1694,19 @@ function savePlanner(silent = false) {
             income:      plan.income.map(x => ({...x})),
             needs:       plan.needs.map(x => ({...x})),
             wants:       plan.wants.map(x => ({...x})),
+            investments: (plan.investments||[]).map(x => ({...x})),
+            customInvestments: (plan.customInvestments||[]).map(x => ({...x})),
             goalHorizon: parseInt(document.getElementById('goal-horizon').value, 10) || 24
         };
         if (!db.userProfile) db.userProfile = {};
         db.userProfile.monthlyExpense = plan.needs.reduce((s, i) => s + i.amount, 0);
         let existing;
         try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Save failed: storage corrupted','error'); _saveInProgress = false; return; }
-        Object.assign(existing, db);
+        // Merge only the fields this page owns — don't overwrite the full db
+        if (!existing.monthlyPlans) existing.monthlyPlans = {};
+        existing.monthlyPlans[key] = JSON.parse(JSON.stringify(db.monthlyPlans[key]));
+        if (db.userProfile) existing.userProfile = existing.userProfile || {};
+        if (db.userProfile) existing.userProfile.monthlyExpense = db.userProfile.monthlyExpense;
         try {
             localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
         } catch (e) {
@@ -1880,7 +2004,7 @@ Give ONE short, specific, actionable tip in 2 sentences max. Focus on the bigges
 
 function callAI(prompt) {
     if (window.__aiEnabled === false) return Promise.reject(new Error('AI features disabled in Settings'));
-    return callAIProvider({ geminiKey: db.geminiKey, groqKey: db.groqKey, openrouterKey: db.openrouterKey, cerebrasKey: db.cerebrasKey, githubKey: db.githubKey }, prompt, '');
+    return callAIProvider({ geminiKey: db.geminiKey, groqKey: db.groqKey, openrouterKey: db.openrouterKey, cerebrasKey: db.cerebrasKey, githubKey: db.githubKey }, prompt, 'You are a helpful Indian personal finance assistant. Keep responses concise and actionable.');
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -1927,6 +2051,85 @@ function showSpendBreakdown(type) {
     showOverlay(type === 'needs' ? 'Needs Breakdown' : 'Wants Breakdown', html);
 }
 
+function showRowDetail(type, index) {
+    const item = plan[type] && plan[type][index];
+    if (!item) { snack('Item not found.', 'error'); return; }
+    const itemName = (item.name || '').toLowerCase();
+
+    // Get current month spend entries
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+    const allEntries = ((db.spendTracker && db.spendTracker.entries) || []).filter(e => {
+        const ed = new Date(e.date); return ed.getMonth() === m && ed.getFullYear() === y;
+    });
+    if (allEntries.length === 0) { snack('No spend entries for this month.', 'info'); return; }
+
+    // Determine which entries map to this item: use _autoFilled mapping log if available
+    let matchedEntries = [];
+    if (window.__lastMappingLog && window.__lastMappingLog.length > 0) {
+        // Find mapping entries where target is this item name
+        const mappedFrom = window.__lastMappingLog
+            .filter(ml => ml.to === item.name && ml.type === type)
+            .map(ml => ml.from);
+        if (mappedFrom.length > 0) {
+            matchedEntries = allEntries.filter(e => mappedFrom.includes(e.category || 'Uncategorized'));
+        }
+    }
+
+    // Fallback: keyword/token matching (same logic as applyHeuristicMatching)
+    if (matchedEntries.length === 0 && itemName) {
+        const needsKeywords = ['rent','emi','mortgage','grocery','groceries','house','housing','utility','utilities','electricity','internet','gas','water','mobile','phone','bills','fuel','transport','bus','train','commute','school','tuition','health','doctor','medicine','medical','food & dining'];
+        matchedEntries = allEntries.filter(e => {
+            const cat = (e.category || '').toLowerCase();
+            const comment = (e.comment || '').toLowerCase();
+            // Direct match: entry category or comment contains item name or vice versa
+            if (cat.includes(itemName) || itemName.includes(cat)) return true;
+            if (comment.includes(itemName) || itemName.includes(comment)) return true;
+            // Check needs/wants classification matches this item's type
+            const cls = classifySpendCategory(cat);
+            if (cls !== type) return false;
+            // Token-based matching (same as hasCommonToken logic)
+            if (hasCommonToken(cat, itemName)) return true;
+            // For needs, check if any needsKeyword appears in both
+            if (type === 'needs') {
+                return needsKeywords.some(kw => cat.includes(kw) || itemName.includes(kw));
+            }
+            return false;
+        });
+    }
+
+    if (matchedEntries.length === 0) {
+        snack('No spend entries mapped to "' + (item.name || '') + '" yet. Run sync first.', 'info');
+        return;
+    }
+
+    const total = matchedEntries.reduce((s, e) => s + (e.amount || 0), 0);
+    const isNeeds = type === 'needs';
+    let html = `<div style="margin-bottom:8px;font-size:13px;color:var(--md-outline);">
+        Showing ${matchedEntries.length} spend entr${matchedEntries.length === 1 ? 'y' : 'ies'} mapped to <strong>${escapeHtml(item.name)}</strong></div>`;
+    html += matchedEntries.map(e =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;background:var(--md-surface-container);border-radius:10px;margin-bottom:4px;font-size:13px;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.comment || '—')}</div>
+                <div style="font-size:11px;color:var(--md-outline);">${escapeHtml(e.category || 'Uncategorized')} · ${new Date(e.date).toLocaleDateString('en-IN', {day:'numeric',month:'short'})}</div>
+            </div>
+            <div style="font-weight:600;color:${isNeeds ? 'var(--cat-needs)' : 'var(--cat-wants)'};flex-shrink:0;">₹${Math.round(e.amount).toLocaleString('en-IN')}</div>
+        </div>`
+    ).join('');
+    const remaining = item.amount - total;
+    html += `<div style="display:flex;justify-content:space-between;padding:12px 8px 0;margin-top:6px;border-top:2px solid var(--md-outline-variant);font-weight:700;">
+        <span>Mapped Total</span><span style="color:${isNeeds ? 'var(--cat-needs)' : 'var(--cat-wants)'};">₹${Math.round(total).toLocaleString('en-IN')}</span>
+    </div>`;
+    if (remaining > 0) {
+        html += `<div style="display:flex;justify-content:space-between;padding:4px 8px 0;font-size:12px;color:var(--md-outline);">
+            <span>Planned: ₹${Math.round(item.amount).toLocaleString('en-IN')}</span>
+            <span>Unmatched: ₹${Math.round(remaining).toLocaleString('en-IN')}</span>
+        </div>`;
+    }
+    showOverlay('Spend Mapping: ' + escapeHtml(item.name), html);
+}
+
 function showInvestBreakdown() {
     const d = getViewDate();
     let m = d.getMonth(), y = d.getFullYear();
@@ -1953,6 +2156,83 @@ function showInvestBreakdown() {
     html += `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:700;border-top:2px solid var(--md-on-surface);">
         <span>Total Investments</span><span>₹${Math.round(total).toLocaleString('en-IN')}</span></div>`;
     showOverlay('Investment Breakdown', html);
+}
+
+async function unifiedAutoSync() {
+    if (viewOffset !== 0) { snack('Auto-sync only works for the current month.', 'info'); return; }
+    const btn = document.querySelector('[onclick*="unifiedAutoSync"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;font-size:18px;">autorenew</span> Syncing...'; }
+
+    // 1. Sync investments from live data
+    extractSIPsAndGoals();
+
+    // 2. Sync spending into needs/wants
+    if (actualSpendTotal > 0) {
+        if (db.geminiKey || db.groqKey || db.openrouterKey || db.cerebrasKey || db.githubKey) {
+            try {
+                await autoMatchSpendAI(true);
+            } catch (e) {
+                console.warn('AI sync failed, using heuristic', e);
+                applyHeuristicMatching();
+            }
+        } else {
+            applyHeuristicMatching();
+        }
+    }
+
+    // 3. Build combined breakdown
+    let html = '<div style="margin-bottom:16px;"><div style="font-weight:600;font-size:15px;margin-bottom:8px;">📊 Investments</div>';
+    const sipTotal = extractedSIPTotal || 0;
+    const goalTotal = extractedGoalTotal || 0;
+    const investTotal = sipTotal + goalTotal;
+    html += `<div style="display:flex;justify-content:space-between;padding:8px;background:var(--md-surface-container);border-radius:8px;">
+        <span>SIPs</span><span style="font-weight:600;">₹${Math.round(sipTotal).toLocaleString('en-IN')}</span>
+    </div>`;
+    if (goalTotal > 0) {
+        html += `<div style="display:flex;justify-content:space-between;padding:8px;background:var(--md-surface-container);border-radius:8px;margin-top:4px;">
+            <span>Goal Provisions</span><span style="font-weight:600;color:var(--md-secondary);">₹${Math.round(goalTotal).toLocaleString('en-IN')}</span>
+        </div>`;
+    }
+    html += `<div style="display:flex;justify-content:space-between;padding:10px 8px 0;margin-top:6px;border-top:2px solid var(--md-outline-variant);font-weight:700;">
+        <span>Total Investments</span><span>₹${Math.round(investTotal).toLocaleString('en-IN')}</span>
+    </div></div>`;
+
+    // Show actual invest entries if any
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    const actualEntries = (db.investments || []).filter(i => {
+        const id = new Date(i.date); return id.getMonth() === m && id.getFullYear() === y;
+    });
+    if (actualEntries.length > 0) {
+        html += '<div style="margin-bottom:16px;"><div style="font-weight:600;font-size:15px;margin-bottom:8px;">📋 Actual Investment Entries</div>';
+        actualEntries.forEach(e => {
+            const meta = db.categories[e.type] || { icon: 'savings', color: '#8D6E63' };
+            html += `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--md-surface-container);border-radius:8px;margin-bottom:3px;font-size:12px;">
+                <span class="material-symbols-rounded" style="font-size:14px;color:${escapeHtml(meta.color)};">${escapeHtml(meta.icon)}</span>
+                <span style="flex:1;">${escapeHtml(e.note || e.type)}</span>
+                <span style="font-weight:600;">₹${Math.round(e.amount).toLocaleString('en-IN')}</span>
+            </div>`;
+        });
+        html += '</div>';
+    }
+
+    html += '<div style="margin-bottom:8px;"><div style="font-weight:600;font-size:15px;margin-bottom:4px;">💳 Spending → Budget</div>';
+    html += '<div style="font-size:12px;color:var(--md-outline);margin-bottom:8px;">The mapping breakdown is available below — or tap <button class="btn-secondary" style="display:inline-flex;padding:4px 10px;font-size:11px;vertical-align:middle;" onclick="showSyncBreakdown();document.getElementById(\'breakdown-overlay\').style.display=\'none\'"><span class="material-symbols-rounded" style="font-size:12px;">list_alt</span> View Full Mapping</button></div></div>';
+
+    html += `<div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn-secondary" style="flex:1;padding:10px;font-size:13px;" onclick="document.getElementById('breakdown-overlay').style.display='none';document.querySelector('[onclick*=\\'unifiedAutoSync\\']')?.scrollIntoView({behavior:'smooth'});">
+            <span class="material-symbols-rounded" style="font-size:14px;">check</span> Done
+        </button>
+        <button class="btn-secondary" style="flex:1;padding:10px;font-size:13px;" onclick="savePlanner();document.getElementById('breakdown-overlay').style.display='none';snack('Plan saved!','check_circle')">
+            <span class="material-symbols-rounded" style="font-size:14px;">save</span> Save & Close
+        </button>
+    </div>`;
+
+    savePlanner(true);
+    showOverlay('AI Auto-Sync Complete', html);
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span> AI Auto-Sync (Investments + Spend)'; }
+    snack('✓ Auto-sync complete — investments & spending mapped', 'auto_awesome');
 }
 
 function showOverlay(title, bodyHtml) {
@@ -1988,7 +2268,7 @@ try {
             if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
             
             const key = getMonthKey(getViewDate());
-            if (db.monthlyPlans && db.monthlyPlans[key]) Object.assign(plan, db.monthlyPlans[key]);
+            loadPlanForMonth(key);
             
             loadActuals();
             extractSIPsAndGoals();

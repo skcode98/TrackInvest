@@ -1195,11 +1195,12 @@ function renderSettingsSections() {
     if (catList) catList.innerHTML = catHtml;
 
     // Badges section
+    const badgeSym = db.currency && db.currency !== 'INR' ? (db.currencySymbol || db.currency + ' ') : '₹';
     let badgeHtml = "";
     milestoneThresholds.forEach(t => {
         let unlocked = db.milestones.includes(t.val);
-        if (unlocked) badgeHtml += `<div class="badge-item"><span class="material-symbols-rounded">workspace_premium</span> ${t.label}</div>`;
-        else badgeHtml += `<div class="badge-item locked"><span class="material-symbols-rounded">lock</span> ${t.label}</div>`;
+        if (unlocked) badgeHtml += `<div class="badge-item"><span class="material-symbols-rounded">workspace_premium</span> ${badgeSym}${t.label}</div>`;
+        else badgeHtml += `<div class="badge-item locked"><span class="material-symbols-rounded">lock</span> ${badgeSym}${t.label}</div>`;
     });
     let badgeGrid = document.getElementById('badge-grid');
     if (badgeGrid) badgeGrid.innerHTML = badgeHtml;
@@ -2158,20 +2159,20 @@ function buildFinancialContext() {
     const parts = [];
     parts.push('Current date: ' + new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }));
 
-    // Portfolio
+    // Portfolio — use the centrally computed values for consistency
     if (Array.isArray(db.investments) && db.investments.length > 0) {
-        const totalVal = db.investments.reduce((s, i) => s + (i.amount * (i.units || 1)), 0);
+        const totalVal = currentTotalNW || db.investments.reduce((s, i) => s + (i.amount || 0), 0);
         const totalInv = db.investments.reduce((s, i) => s + (i.amount || 0), 0);
         const pnl = totalVal - totalInv;
-        const topHoldings = db.investments.sort((a, b) => (b.amount * (b.units || 1)) - (a.amount * (a.units || 1))).slice(0, 8);
+        const topHoldings = [...db.investments].sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 8);
         parts.push('Portfolio: ' + db.investments.length + ' investments, total value ₹' + totalVal.toLocaleString('en-IN') + ', invested ₹' + totalInv.toLocaleString('en-IN') + ', P&L ₹' + Math.round(pnl).toLocaleString('en-IN'));
-        parts.push('Top holdings: ' + topHoldings.map(i => i.name + ' (₹' + Math.round(i.amount * (i.units || 1)).toLocaleString('en-IN') + ')').join(', '));
+        parts.push('Top holdings: ' + topHoldings.map(i => (i.note || i.type || 'Unknown') + ' (₹' + Math.round(i.amount || 0).toLocaleString('en-IN') + ')').join(', '));
     }
 
     // SIPs
-    if (Array.isArray(db.sips) && db.sips.length > 0) {
-        const sipTotal = db.sips.reduce((s, i) => s + (i.amount || 0), 0);
-        parts.push('SIPs: ' + db.sips.length + ' active, total monthly ₹' + sipTotal.toLocaleString('en-IN'));
+    if (Array.isArray(db.recurring) && db.recurring.length > 0) {
+        const sipTotal = db.recurring.reduce((s, i) => s + (i.amount || 0), 0);
+        parts.push('SIPs: ' + db.recurring.length + ' active, total monthly ₹' + sipTotal.toLocaleString('en-IN'));
     }
 
     // Goals

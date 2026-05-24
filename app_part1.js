@@ -176,8 +176,8 @@ if (!db.categories || Object.keys(db.categories).length === 0) {
 }
 
 const milestoneThresholds = [
-    { val: 100000, label: '₹1 Lakh' }, { val: 500000, label: '₹5 Lakh' }, { val: 1000000, label: '₹10 Lakh' },
-    { val: 5000000, label: '₹50 Lakh' }, { val: 10000000, label: '₹1 Crore' }
+    { val: 100000, label: '1 Lakh' }, { val: 500000, label: '5 Lakh' }, { val: 1000000, label: '10 Lakh' },
+    { val: 5000000, label: '50 Lakh' }, { val: 10000000, label: '1 Crore' }
 ];
 
 window.editInvId = null, window.editGoalId = null, window.editRecurringId = null, window.currentInvType = Object.keys(db.categories)[0] || 'Cash';
@@ -608,11 +608,12 @@ document.addEventListener('touchstart', () => window.userInteracted = true, { on
     document.documentElement.style.setProperty('--scrollbar-width', sw + 'px');
 })();
 
-let _idCounter = 0;
+let _idCounter = (() => { try { return parseInt(sessionStorage.getItem('_idCounter') || '0', 10); } catch(e) { return 0; } })();
 function generateUniqueId() {
     const ts = Date.now();
     const counter = ++_idCounter % 10000;
     const random = Math.floor(Math.random() * 1000);
+    try { sessionStorage.setItem('_idCounter', String(_idCounter)); } catch(e) {}
     return `${ts}${counter}${random}`;
 }
 
@@ -1768,8 +1769,9 @@ function escapeHtml(str) {
 
 function checkMilestones(nw) {
     let unlocked = false;
+    const sym = db.currency && db.currency !== 'INR' ? (db.currencySymbol || db.currency + ' ') : '₹';
     milestoneThresholds.forEach(t => {
-        if (nw >= t.val && !db.milestones.includes(t.val)) { db.milestones.push(t.val); unlocked = true; showSnackbar(`Milestone Unlocked: ${t.label}! 🎉`, "workspace_premium"); }
+        if (nw >= t.val && !db.milestones.includes(t.val)) { db.milestones.push(t.val); unlocked = true; showSnackbar(`Milestone Unlocked: ${sym}${t.label}! 🎉`, "workspace_premium"); }
     });
     if (unlocked) { saveData(); window.fireMilestoneConfetti(); }
 }

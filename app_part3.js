@@ -466,7 +466,7 @@ function updatePortfolioCalculations() {
                 } else if (savedAmt > 0 && g.linkedCategory) {
                     // No monthly contribution but has existing value with growth
                     let growthRate = 0.08; // Default 8%
-                    const catGrowthRates = { 'SIP': 0.12, 'Stocks': 0.12, 'PPF': 0.071, 'PF': 0.0815, 'FD': 0.07 };
+                    const catGrowthRates = { 'SIP': 0.12, 'Stocks': 0.12, 'PPF': 0.071, 'PF': 0.0815, 'FD': 0.07, 'Liquid': 0.06, 'Cash': 0 };
                     growthRate = catGrowthRates[g.linkedCategory] || 0.08;
 
                     let yearsToTarget = Math.log(g.target / savedAmt) / Math.log(1 + growthRate);
@@ -607,6 +607,10 @@ function renderFrequentActions() {
 })();
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Register service worker for PWA offline support
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e));
+    }
     const isUnlocked = await checkAppLock();
     initUI();
     processRecurring();
@@ -793,13 +797,13 @@ function generateScheduledNotifications() {
     db._notifLastRun = today;
 
     // SIP reminders
-    if (prefs.sipReminders !== false && Array.isArray(db.sips)) {
+    if (prefs.sipReminders !== false && Array.isArray(db.recurring)) {
         const now = new Date();
-        db.sips.forEach(sip => {
-            if (!sip.date && !sip.day) return;
-            let sipDay = sip.day || new Date(sip.date).getDate();
+        db.recurring.forEach(sip => {
+            if (!sip.nextRun) return;
+            let sipDay = new Date(sip.nextRun).getDate();
             if (sipDay === now.getDate()) {
-                addInAppNotification('SIP Due Today', sip.name + ' — ₹' + (sip.amount || 0).toLocaleString('en-IN'), 'sip', 'repeat');
+                addInAppNotification('SIP Due Today', sip.note + ' — ₹' + (sip.amount || 0).toLocaleString('en-IN'), 'sip', 'repeat');
             }
         });
     }
@@ -1060,11 +1064,11 @@ const _syncChannel = new BroadcastChannel('trackinvest-sync');
 _syncChannel.onmessage = (e) => {
     const msg = e.data;
     if (msg && msg.type === 'sync-data') {
-        const incomingCount = msg.data?.investments?.length || 0;
-        const localCount = db.investments.length;
-        if (incomingCount > localCount) {
-            showSnackbar(`Tab sync: ${incomingCount - localCount} new entries from another tab. Reload to see them.`, 'sync');
-        }
+        try {
+            const raw = localStorage.getItem('appHubInvestDb');
+            if (raw) db = JSON.parse(raw);
+            renderAll();
+        } catch (ex) { console.warn('Tab sync failed:', ex); }
     }
 };
 
