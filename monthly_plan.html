@@ -583,16 +583,6 @@
                 <strong id="total-needs-val">₹0</strong>
             </div>
         </div>
-            <div id="needs-pva" class="pva-bar" style="display:none;"></div>
-            <div id="needs-container"></div>
-            <button class="add-row-btn" onclick="addRow('needs')">
-                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Expense
-            </button>
-            <div class="total-row" style="cursor:pointer;" onclick="showSpendBreakdown('needs')" title="Tap to see detailed spend entries">
-                <span>Subtotal<span id="needs-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
-                <strong id="total-needs-val">₹0</strong>
-            </div>
-        </div>
 
         <!-- WANTS CARD -->
         <div class="planner-card">
@@ -2449,13 +2439,12 @@ function showInvestBreakdown() {
     let m = d.getMonth(), y = d.getFullYear();
     if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
     const entries = (db.investments || []).filter(i => {
-        const id = parseDate(i.date);
-        return id.getMonth() === m && id.getFullYear() === y;
+        const id = new Date(i.date); return id.getMonth() === m && id.getFullYear() === y;
     });
     if (entries.length === 0) { snack('No investment entries for this month.', 'info'); return; }
     let total = entries.reduce((s, i) => s + i.amount, 0);
     let html = entries.map(i => {
-        let meta = db.categories[i.type] || { icon: 'savings', color: '#8D6E63' };
+        let meta = (db.categories || {})[i.type] || { icon: 'savings', color: '#8D6E63' };
         return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
             <div>
                 <div style="display:flex;align-items:center;gap:6px;">
@@ -2520,7 +2509,7 @@ async function unifiedAutoSync() {
     if (actualEntries.length > 0) {
         html += '<div style="margin-bottom:16px;"><div style="font-weight:600;font-size:15px;margin-bottom:8px;">📋 Actual Investment Entries</div>';
         actualEntries.forEach(e => {
-            const meta = db.categories[e.type] || { icon: 'savings', color: '#8D6E63' };
+            const meta = (db.categories || {})[e.type] || { icon: 'savings', color: '#8D6E63' };
             html += `<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--md-surface-container);border-radius:8px;margin-bottom:3px;font-size:12px;">
                 <span class="material-symbols-rounded" style="font-size:14px;color:${escapeHtml(meta.color)};">${escapeHtml(meta.icon)}</span>
                 <span style="flex:1;">${escapeHtml(e.note || e.type)}</span>

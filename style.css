@@ -565,7 +565,7 @@ tr:last-child td {
     margin-bottom: 24px;
     position: relative;
     overflow: hidden;
-    box-shadow: var(--md-shadow-1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
 .advisor-card::after {
@@ -1765,7 +1765,7 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .input-container:focus-within {
     border-bottom: 2px solid var(--md-primary);
-    background: var(--md-surface-variant);
+    background: var(--md-surface-container);
 }
 
 .input-container label {
@@ -1947,55 +1947,6 @@ input:checked+.slider:before {
 }
 
 /* AI MD Formats */
-.ai-md {
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--md-on-surface);
-    background: var(--md-surface-container);
-    padding: 16px;
-    border-radius: 16px;
-}
-
-.ai-md h3 {
-    color: var(--md-primary);
-    font-size: 18px;
-    margin: 20px 0 8px 0;
-    border-bottom: 1px solid var(--md-surface-container-highest);
-    padding-bottom: 4px;
-}
-
-.ai-md p {
-    margin-bottom: 12px;
-}
-
-.ai-md ul {
-    padding-left: 20px;
-    margin-bottom: 16px;
-}
-
-.ai-md table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 16px;
-    font-size: 13px;
-    text-align: left;
-    background: var(--md-surface-container-low);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.ai-md th {
-    background: var(--md-primary-container);
-    color: var(--md-on-primary-container);
-    padding: 10px;
-    border-bottom: 2px solid var(--md-primary);
-}
-
-.ai-md td {
-    padding: 10px;
-    border-bottom: 1px solid var(--md-surface-container-highest);
-}
-
 .ai-chat-log {
     flex: 1;
     overflow-y: auto;
@@ -2085,6 +2036,9 @@ input:checked+.slider:before {
     font-size: 14px;
     line-height: 1.6;
     color: var(--md-on-surface);
+    background: var(--md-surface-container);
+    padding: 16px;
+    border-radius: 16px;
 }
 
 .ai-md h1,
@@ -2281,7 +2235,7 @@ input:checked+.slider:before {
 
 .nearby-sync-bar {
     height: 6px;
-    background: var(--md-surface-variant);
+    background: var(--md-surface-container);
     border-radius: 3px;
     overflow: hidden;
     position: relative;

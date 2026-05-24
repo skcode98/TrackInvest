@@ -2420,17 +2420,17 @@ async function generateAIForecast(alreadyOpen = false) {
 
     // Build category monthly data (last 3 months per category)
     let now = new Date(); let catMonthly = {};
-    Object.keys(db.categories).forEach(cat => { catMonthly[cat] = []; });
+    (Object.keys(db.categories || {})).forEach(cat => { catMonthly[cat] = []; });
     for (let i = 2; i >= 0; i--) {
         let m = now.getMonth() - i; let y = now.getFullYear();
         if (m < 0) { m += 12; y -= 1; }
-        Object.keys(db.categories).forEach(cat => {
-            let sum = db.investments.filter(inv => { let d = parseDate(inv.date); return inv.type === cat && d.getMonth() === m && d.getFullYear() === y; }).reduce((s, i) => s + i.amount, 0);
+        (Object.keys(db.categories || {})).forEach(cat => {
+            let sum = (db.investments || []).filter(inv => { let d = parseDate(inv.date); return inv.type === cat && d.getMonth() === m && d.getFullYear() === y; }).reduce((s, i) => s + i.amount, 0);
             catMonthly[cat].push(sum);
         });
     }
     let autoSips = {};
-    db.recurring.forEach(r => { autoSips[r.type] = (autoSips[r.type] || 0) + r.amount; });
+    (db.recurring || []).forEach(r => { autoSips[r.type] = (autoSips[r.type] || 0) + r.amount; });
 
     let prompt = `You are a financial AI. Given this user data, predict next month investment for each category. Return ONLY a JSON array: [{"category":"X","predicted":N,"trend":"up|down|stable","reason":"short reason"}]. Categories data (last 3 months each): ${JSON.stringify(catMonthly)}. Auto-SIPs per category: ${JSON.stringify(autoSips)}. Net worth: ${currentTotalNW}. Salary: ${db.userProfile.salary}. Only include categories with investments. No markdown.`;
 
@@ -2444,7 +2444,7 @@ async function generateAIForecast(alreadyOpen = false) {
                     <div style="font-size:36px;font-weight:600;">₹${fmtNum(total)}</div>
                 </div><div style="display:flex;flex-direction:column;gap:12px;">`;
         predictions.forEach(p => {
-            let meta = db.categories[p.category] || { color: '#8D6E63', icon: 'savings' };
+            let meta = (db.categories || {})[p.category] || { color: '#8D6E63', icon: 'savings' };
             let trendIcon = p.trend === 'up' ? 'trending_up' : p.trend === 'down' ? 'trending_down' : 'trending_flat';
             let trendColor = p.trend === 'up' ? 'var(--md-success)' : p.trend === 'down' ? 'var(--md-error)' : 'var(--md-outline)';
             let trendBg = p.trend === 'up' ? 'var(--md-success-container)' : p.trend === 'down' ? 'var(--md-error-container)' : 'var(--md-surface-container-highest)';

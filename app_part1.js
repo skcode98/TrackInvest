@@ -220,14 +220,13 @@ let chartDataCache = {
 };
 
 // Loading state management
-let _loadingGuard = 0;
 function setLoading(elementId, isLoading, message = '') {
     const el = document.getElementById(elementId);
     if (!el) return;
 
     if (isLoading) {
-        _loadingGuard++;
-        el.style.setProperty('--load-g', String(_loadingGuard));
+        const guard = parseInt(el.dataset.loadGuard || '0', 10) + 1;
+        el.dataset.loadGuard = String(guard);
         if (el.dataset.originalContent === undefined) {
             el.dataset.originalContent = el.innerHTML;
         }
@@ -237,9 +236,12 @@ function setLoading(elementId, isLoading, message = '') {
         </div>`;
         el.disabled = true;
     } else {
-        if (String(_loadingGuard) !== el.style.getPropertyValue('--load-g')) return;
-        _loadingGuard = 0;
-        el.style.removeProperty('--load-g');
+        const guard = parseInt(el.dataset.loadGuard || '0', 10);
+        if (guard <= 0) return;
+        const newGuard = guard - 1;
+        el.dataset.loadGuard = String(newGuard);
+        if (newGuard > 0) return;
+        delete el.dataset.loadGuard;
         if (el.dataset.originalContent) {
             el.innerHTML = el.dataset.originalContent;
             delete el.dataset.originalContent;
@@ -1285,7 +1287,7 @@ async function clearChatHistory() {
         if (db.chatHistory && db.chatHistory.length > 50) {
             const originalLength = db.chatHistory.length;
             db.chatHistory = db.chatHistory.slice(-50);
-            localStorage.setItem('appHubInvestDb', JSON.stringify(db));
+            saveData();
 
             return {
                 success: true,
@@ -1305,7 +1307,7 @@ async function clearNavigationCache() {
 
         if (cacheSize > 100) {
             db.navCache = {};
-            localStorage.setItem('appHubInvestDb', JSON.stringify(db));
+            saveData();
 
             return {
                 success: true,
@@ -1366,7 +1368,7 @@ async function resetCorruptedSettings() {
                 }
             });
 
-            localStorage.setItem('appHubInvestDb', JSON.stringify(db));
+            saveData();
 
             return {
                 success: true,
@@ -2520,7 +2522,7 @@ function showDayDetails(dateStr) {
         spends.forEach(e => {
             let cat = e.category || 'Uncategorized';
             html += `<div style="display:flex;justify-content:space-between;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--md-surface-container-highest);">
-                <div><div style="font-weight:500;font-size:13px;">${DOMPurify.sanitize(e.comment || '—',{ALLOWED_TAGS:[],ALLOWED_ATTR:[]})}</div><div style="font-size:11px;color:var(--md-outline);">${escapeHtml(cat)}</div></div>
+                <div><div style="font-weight:500;font-size:13px;">${(DOMPurify ? DOMPurify.sanitize(e.comment || '—',{ALLOWED_TAGS:[],ALLOWED_ATTR:[]}) : escapeHtml(e.comment || '—'))}</div><div style="font-size:11px;color:var(--md-outline);">${escapeHtml(cat)}</div></div>
                 <div style="font-weight:600;color:var(--md-error);">${formatMoney(e.amount)}</div>
             </div>`;
         });
