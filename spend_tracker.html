@@ -193,7 +193,6 @@
         <div class="input-container"><label>Category</label>
             <select id="spend-category-select" class="md-input">
                 <option value="Uncategorized">Auto-detect</option>
-                ${Object.keys(CAT_COLORS).map(c => `<option value="${c}">${c}</option>`).join('')}
             </select>
         </div>
         <div class="input-container"><label>Date</label><input type="date" id="spend-date-input" class="md-input"></div>
@@ -344,6 +343,15 @@
         // ── SPEND ENTRY SHEET ──
         let spendEditId = null;
 
+        function populateCategorySelect() {
+            const sel = document.getElementById('spend-category-select');
+            if (!sel) return;
+            const current = sel.value || 'Uncategorized';
+            sel.innerHTML = '<option value="Uncategorized">Auto-detect</option>'
+                + Object.keys(CAT_COLORS).map(c => `<option value="${c}">${c}</option>`).join('');
+            sel.value = current;
+        }
+
         function openSpendSheet(id = null) {
             spendEditId = id;
             const title = document.getElementById('spend-sheet-title');
@@ -360,6 +368,8 @@
                     document.getElementById('spend-amt-input').value = e.amount;
                     document.getElementById('spend-comment-input').value = e.comment || '';
                     document.getElementById('spend-date-input').value = new Date(e.date).toISOString().split('T')[0];
+                    const catSel = document.getElementById('spend-category-select');
+                    if (catSel && e.category && CAT_COLORS[e.category]) catSel.value = e.category;
                 }
             } else {
                 if (title) title.innerText = 'Add Expense';
@@ -369,6 +379,8 @@
                 document.getElementById('spend-amt-input').value = '';
                 document.getElementById('spend-comment-input').value = '';
                 document.getElementById('spend-date-input').value = new Date().toISOString().split('T')[0];
+                const catSel = document.getElementById('spend-category-select');
+                if (catSel) catSel.value = 'Uncategorized';
                 setTimeout(() => document.getElementById('spend-amt-input').focus(), 200);
             }
             document.getElementById('spend-sheet').classList.add('open');
@@ -452,6 +464,7 @@
             document.getElementById('spend-date-input').addEventListener('keydown', e => {
                 if (e.key === 'Enter') saveSpendEntry();
             });
+            populateCategorySelect();
             updateCommentSuggestions();
             renderAll();
         });
@@ -523,12 +536,6 @@
             const invTarget = getTargetForCategories(plan.investments);
             const invActual = sumOfCategories(totals, BUDGET_CAT_MAP.investments);
             if (invBudget > 0 || invActual > 0 || invTarget > 0) rows.push({ label: 'Investments', budget: invBudget, target: invTarget, actual: invActual, color: '#F57C00' });
-
-            // Custom Investments
-            const custInvBudget = (plan.customInvestments||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
-            const custInvTarget = getTargetForCategories(plan.customInvestments);
-            const custInvActual = sumOfCategories(totals, BUDGET_CAT_MAP.customInvestments);
-            if (custInvBudget > 0 || custInvActual > 0 || custInvTarget > 0) rows.push({ label: 'Extra Investments', budget: custInvBudget, target: custInvTarget, actual: custInvActual, color: '#F57C00' });
 
             // Other (uncategorized spend)
             const otherActual = entries.filter(e => !e.category || e.category==='Uncategorized').reduce((s,e) => s+e.amount, 0);
@@ -628,7 +635,7 @@
                 heroBudget.style.color = totalActual <= compareBudget ? 'rgba(255,255,255,0.8)' : 'rgba(255,200,200,0.9)';
             }
         }
-        function sumOfCategories(totals, cats) { return cats.reduce((s,c) => s + (totals[c]||0), 0); }
+        function sumOfCategories(totals, cats) { return Array.isArray(cats) ? cats.reduce((s,c) => s + (totals[c]||0), 0) : 0; }
 
         // ── CSV IMPORT ──
         function importCSVFile(e) {
@@ -777,7 +784,7 @@
         async function aiSuggestCategory() {
             const comment = document.getElementById('spend-comment-input')?.value.trim();
             if (!comment || comment.length < 3) return;
-            if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return showSnackbar("Add API key in Settings","key");
+            if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return snack("Add API key in Settings","key");
             const btn = document.getElementById('ai-cat-suggest-btn');
             if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;animation:spin 1s linear infinite;">autorenew</span>'; }
             try {
@@ -787,9 +794,9 @@
                 if (CAT_COLORS[cat]) {
                     const catSel = document.getElementById('spend-category-select');
                     if (catSel) catSel.value = cat;
-                    showSnackbar(`Suggested: ${cat}`, 'auto_awesome');
+                    snack(`Suggested: ${cat}`, 'auto_awesome');
                 }
-            } catch(e) { showSnackbar("AI suggest failed", "error"); }
+            } catch(e) { snack("AI suggest failed", "error"); }
             if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">auto_awesome</span>'; }
         }
 
@@ -923,6 +930,14 @@
                 <div class="stat-chip"><div class="stat-chip-label">Top Category</div><div class="stat-chip-val">${topCat?topCat[0]:'—'}</div></div>
                 <div class="stat-chip"><div class="stat-chip-label">Categories</div><div class="stat-chip-val">${Object.keys(cats).length}</div></div>
                 <div class="stat-chip"><div class="stat-chip-label">Biggest</div><div class="stat-chip-val">₹${e.length>0?Math.max(...e.map(x=>x.amount)).toLocaleString('en-IN'):0}</div></div>`;
+        }
+
+        function snack(msg, icon) {
+            const el = document.getElementById('snackbar') || (() => { const d = document.createElement('div'); d.id = 'snackbar'; d.className = 'snackbar'; document.body.appendChild(d); return d; })();
+            const ic = icon || 'info';
+            el.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;">' + ic + '</span> ' + DOMPurify.sanitize(msg, {ALLOWED_TAGS:[]});
+            el.classList.add('show');
+            clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2500);
         }
 
         // ── MAIN ──

@@ -295,12 +295,9 @@ function updatePortfolioCalculations() {
 
     let allocBar = document.getElementById('alloc-bar');
     if (allocBar) {
-        let allocHtml = "", legendHtml = "", rebalanceHtml = "", hasRebalanceTargets = false;
-        let shortfalls = {}, totalShortfall = 0;
-
-        const allCategoriesForRebalance = new Set([...Object.keys(typeTotals), ...Object.keys(db.allocTargets)]);
-
-        allCategoriesForRebalance.forEach(t => {
+        let allocHtml = "", legendHtml = "";
+        const allocCats = new Set([...Object.keys(typeTotals), ...Object.keys(db.allocTargets || {})]);
+        allocCats.forEach(t => {
             let value = typeTotals[t] || 0;
             if (value > 0 && totalMarketValue > 0) {
                 let perc = (value / totalMarketValue) * 100;
@@ -308,171 +305,10 @@ function updatePortfolioCalculations() {
                 allocHtml += `<div class="alloc-segment" style="width:${perc}%;background:${safeColor};"></div>`;
                 legendHtml += `<span><span class="alloc-dot" style="background:${safeColor}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span>${escapeHtml(t)} ${perc.toFixed(0)}%</span>`;
             }
-            if (db.allocTargets[t]) {
-                hasRebalanceTargets = true;
-                let targetAmt = (db.allocTargets[t] / 100) * (totalMarketValue + (db.projectionNextMonth || 0));
-                let diff = targetAmt - value;
-                if (diff > 0) {
-                    shortfalls[t] = diff;
-                    totalShortfall += diff;
-                }
-            }
         });
-
-        // Check for over-allocated categories (>50% or >20% above target)
-        let overAllocated = {};
-        Object.keys(typeTotals).forEach(t => {
-            if (db.allocTargets[t] && totalMarketValue > 0) {
-                let currentPerc = (typeTotals[t] / totalMarketValue) * 100;
-                let targetPerc = db.allocTargets[t];
-                if (currentPerc > targetPerc * 1.2 || currentPerc > 50) {
-                    let excess = typeTotals[t] - (targetPerc / 100 * totalMarketValue);
-                    if (excess > 0) overAllocated[t] = excess;
-                }
-            }
-        });
-
-        // Build rebalancing suggestions
-        if ((totalShortfall > 0 || Object.keys(overAllocated).length > 0) && db.projectionNextMonth > 0) {
-            let remainingToInvest = db.projectionNextMonth;
-            let allocatedSoFar = 0;
-
-            // Show over-allocation warnings first
-            if (Object.keys(overAllocated).length > 0) {
-                rebalanceHtml += `<div style="font-size:11px; color:var(--md-error); margin-bottom:8px; font-weight:500;">⚠️ Consider reducing:</div>`;
-                Object.keys(overAllocated).forEach(t => {
-                    let excess = overAllocated[t];
-                    let curPerc = ((typeTotals[t] / totalMarketValue) * 100).toFixed(0);
-                    let targetPerc = db.allocTargets[t];
-
-                    // Estimate tax implication (simplified)
-                    let invs = db.investments.filter(i => i.type === t && (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter));
-                    let stcg = 0, ltcg = 0;
-                    let now = new Date();
-                    invs.forEach(i => {
-                        let days = (now - new Date(i.date)) / (1000 * 60 * 60 * 24);
-                        if (days <= 365) stcg += i.amount;
-                        else ltcg += i.amount;
-                    });
-                    let taxHint = stcg > 0 ? `<span style="color:var(--md-error); font-size:9px;">(${formatMoney(stcg)} STCG taxable)</span>` :
-                        ltcg > 0 ? `<span style="color:var(--md-success); font-size:9px;">(LTCG - check exemption)</span>` : '';
-
-                    let safeColorOver = escapeHtml(db.categories[t]?.color || '#ccc');
-                    rebalanceHtml += `<div class="reb-item" style="display:flex; flex-direction:column; margin-bottom:10px; padding:8px; background:var(--md-error-container); border-radius:8px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span><span class="alloc-dot" style="background:${safeColorOver}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${escapeHtml(t)}</span>
-                            <span style="color:var(--md-error); font-weight:600;">-${formatMoney(Math.min(excess, db.projectionNextMonth * 0.5))}</span>
-                        </div>
-                        <div style="font-size:10px; color:var(--md-on-error-container); margin-left:14px;">${curPerc}% allocated (Target: ${targetPerc}%) ${taxHint}</div>
-                    </div>`;
-                });
-                rebalanceHtml += `<div style="margin:12px 0; border-top:1px solid var(--md-outline-variant);"></div>`;
-            }
-
-            if (totalShortfall > 0) {
-                rebalanceHtml += `<div style="font-size:11px; color:var(--md-on-surface-variant); margin-bottom:8px;">Invest ₹${db.projectionNextMonth} in under-allocated categories:</div>`;
-
-                // First pass: Fill shortfalls proportionally
-                Object.keys(shortfalls).forEach(t => {
-                    let ratio = shortfalls[t] / totalShortfall;
-                    let investNext = Math.min(shortfalls[t], db.projectionNextMonth * ratio);
-
-                    if (investNext > 0) {
-                        let curValue = typeTotals[t] || 0;
-                        let curPerc = totalMarketValue > 0 ? (curValue / totalMarketValue * 100).toFixed(0) : 0;
-                        let targetPerc = db.allocTargets[t];
-                        let safeColorShort = escapeHtml(db.categories[t]?.color || '#ccc');
-
-                        rebalanceHtml += `<div class="reb-item" style="display:flex; flex-direction:column; margin-bottom:10px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span><span class="alloc-dot" style="background:${safeColorShort}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${escapeHtml(t)}</span>
-                                <span style="color:var(--md-primary); font-weight:600;">+${formatMoney(investNext)}</span>
-                            </div>
-                            <div style="font-size:10px; color:var(--md-outline); margin-left:14px;">Current: ${curPerc}% → Target: ${targetPerc}%</div>
-                        </div>`;
-                        allocatedSoFar += investNext;
-                    }
-                });
-
-                // Second pass: Leftover distribution
-                remainingToInvest -= allocatedSoFar;
-                if (remainingToInvest > 10) {
-                    rebalanceHtml += `<div style="font-size:11px; color:var(--md-primary); margin:8px 0 4px 0; border-top:1px dashed var(--md-outline-variant); padding-top:8px;">Distribute remaining ₹${formatMoney(remainingToInvest)}:</div>`;
-                    Object.keys(db.allocTargets).forEach(t => {
-                        let weight = db.allocTargets[t] / 100;
-                        let extra = remainingToInvest * weight;
-                        if (extra > 1) {
-                            rebalanceHtml += `<div class="reb-item" style="display:flex; justify-content:space-between; align-items:center; opacity:0.8; font-size:13px;">
-                                <span style="margin-left:14px;">${escapeHtml(t)}</span>
-                                <span>+${formatMoney(extra)}</span>
-                            </div>`;
-                        }
-                    });
-                }
-            }
-        } else if (Object.keys(overAllocated).length > 0 && db.projectionNextMonth === 0) {
-            // Only showing reduction suggestions, no new investment
-            rebalanceHtml += `<div style="font-size:11px; color:var(--md-error); margin-bottom:8px; font-weight:500;">⚠️ Portfolio Over-Concentrated:</div>`;
-            Object.keys(overAllocated).forEach(t => {
-                let curPerc = ((typeTotals[t] / totalMarketValue) * 100).toFixed(0);
-                let targetPerc = db.allocTargets[t];
-                let safeColorOA = escapeHtml(db.categories[t]?.color || '#ccc');
-                rebalanceHtml += `<div class="reb-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:8px; background:var(--md-error-container); border-radius:8px;">
-                    <span><span class="alloc-dot" style="background:${safeColorOA}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;"></span>${escapeHtml(t)}</span>
-                    <span style="color:var(--md-error);">${curPerc}% (Target: ${targetPerc}%)</span>
-                </div>`;
-            });
-            rebalanceHtml += `<div style="font-size:11px; color:var(--md-outline); text-align:center; margin-top:12px;">Consider rebalancing by pausing new investments in over-allocated categories.</div>`;
-        } else if (hasRebalanceTargets && db.projectionNextMonth === 0) {
-            rebalanceHtml = `<div style="font-size:12px; color:var(--md-outline); text-align:center; padding:12px;">Set 'Next Month Projection' in Dashboard to see rebalancing guide.</div>`;
-        }
-
         allocBar.innerHTML = allocHtml;
         const allocLegend = document.getElementById('alloc-legend');
         if (allocLegend) allocLegend.innerHTML = legendHtml;
-        let rebSec = document.getElementById('rebalance-section');
-        if (rebSec) {
-            if (hasRebalanceTargets && rebalanceHtml !== "") {
-                rebSec.innerHTML = `<div class="rebalance-card" style="background:var(--md-surface); border:1px solid var(--md-outline-variant); border-radius:16px; padding:16px;">
-                    <div class="rebalance-title" style="font-weight:500; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-                        <span class="material-symbols-rounded" style="font-size:18px; color:var(--md-primary);">balance</span> Rebalance Guide
-                    </div>
-                    <div class="rebalance-list">${rebalanceHtml}</div>
-                </div>`;
-                rebSec.style.display = 'block';
-                // AI rebalancing insight (only if not cached today)
-                if (hasRebalanceTargets && totalShortfall > 0 && window.__aiEnabled !== false) {
-                    const rebCacheKey = 'reb_' + new Date().toDateString();
-                    if (!window.__rebCache) window.__rebCache = {};
-                    if (!window.__rebCache[rebCacheKey]) {
-                        const catData = Object.keys(shortfalls).map(t => {
-                            const cur = typeTotals[t] || 0;
-                            const tgt = db.allocTargets[t] || 0;
-                            return { category: t, currentPct: totalMarketValue > 0 ? ((cur/totalMarketValue)*100).toFixed(0) : 0, targetPct: tgt, shortfall: Math.round(shortfalls[t]) };
-                        });
-                        const overData = Object.keys(overAllocated).map(t => ({ category: t, excess: Math.round(overAllocated[t]) }));
-                        window.__rebCache[rebCacheKey] = { catData, overData };
-                        (async () => {
-                            try {
-                                const r = await callAIApi(`Portfolio rebalancing needed. Under-allocated: ${JSON.stringify(catData)}. Over-allocated: ${JSON.stringify(overData)}. Monthly projection: ₹${db.projectionNextMonth || 0}. Suggest 1-2 specific actions in plain English, focusing on which category to reduce and which to increase. Keep to 2 sentences.`, 'You are a portfolio rebalancing advisor. Be specific and actionable.');
-                                if (r) {
-                                    const aiRebSec = document.getElementById('rebalance-section');
-                                    if (aiRebSec) {
-                                        const aiCard = document.createElement('div');
-                                        aiCard.className = 'rebalance-card';
-                                        aiCard.style.cssText = 'background:var(--md-tertiary-container);border:1px solid var(--md-outline-variant);border-radius:16px;padding:16px;margin-top:8px;';
-                                        aiCard.innerHTML = `<div style="display:flex;align-items:center;gap:6px;font-weight:500;font-size:13px;margin-bottom:4px;"><span class="material-symbols-rounded" style="font-size:16px;color:var(--md-on-tertiary-container);">auto_awesome</span> AI Advice</div><div style="font-size:12px;color:var(--md-on-tertiary-container);">${DOMPurify.sanitize(r.replace(/\*{1,2}/g,''))}</div>`;
-                                        aiRebSec.appendChild(aiCard);
-                                    }
-                                }
-                            } catch (e) {}
-                        })();
-                    }
-                }
-            } else {
-                rebSec.style.display = 'none';
-            }
-        }
     }
 
     let portGrid = document.getElementById('portfolio-grid');
@@ -590,7 +426,7 @@ function updatePortfolioCalculations() {
     let pPercent = document.getElementById('progress-percent'); if (pPercent) pPercent.innerText = Math.round(pct) + '%';
     let pCircle = document.getElementById('progress-circle'); if (pCircle) pCircle.style.strokeDashoffset = 188.4 * (1 - pct / 100);
 
-    updateRebalanceBadge(); autoBackupReminder();
+    autoBackupReminder();
 }
 
 // Master render entry point — debounced + rAF to prevent jank on rapid calls
