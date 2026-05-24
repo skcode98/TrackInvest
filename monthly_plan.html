@@ -409,6 +409,8 @@
                     <span class="material-symbols-rounded" style="font-size:12px;" id="hero-icon">info</span>
                     <span id="hero-msg">Enter your income to begin</span>
                 </span>
+                <span id="hero-comparison" style="display:none;align-items:center;gap:4px;background:rgba(0,0,0,0.07);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;">
+                </span>
             </div>
         </div>
 
@@ -508,13 +510,31 @@
         <!-- AUTO-EXTRACTED CARD -->
         <div class="planner-card">
             <div class="card-title">
-                <span class="material-symbols-rounded">sync</span> Auto-Extracted
+                <span class="material-symbols-rounded">account_balance</span> Investments
                 <span class="card-badge"><span class="material-symbols-rounded" style="font-size:12px;">database</span> Live Data</span>
             </div>
 
             <!-- Plan vs Actual: investments -->
             <div id="invest-pva" class="pva-bar" style="display:none;"></div>
             <div id="actual-invest-breakdown" style="margin-bottom:12px;"></div>
+
+            <!-- Editable Planned Investments -->
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <span class="material-symbols-rounded" style="font-size:16px;color:var(--md-outline);">edit_note</span>
+                <span style="font-size:13px;font-weight:600;color:var(--md-outline);">Planned Investments</span>
+                <span style="font-size:10px;color:var(--md-outline);font-weight:400;">(enter manually)</span>
+            </div>
+            <div id="investment-rows"></div>
+            <button class="add-row-btn" onclick="addRow('investments')" style="margin-bottom:12px;">
+                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Investment Plan
+            </button>
+
+            <div style="border-top:1px solid var(--md-outline-variant);margin:14px 0;"></div>
+
+            <!-- Auto-extracted SIPs & Goals -->
+            <div style="font-size:13px;font-weight:600;color:var(--md-outline);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                <span class="material-symbols-rounded" style="font-size:16px;">sync</span> Auto-Extracted
+            </div>
 
             <div class="extracted-row">
                 <div>
@@ -547,12 +567,41 @@
             </div>
         </div>
 
-        <!-- FIXED NEEDS CARD -->
+        <!-- NEEDS & FIXED CARD -->
         <div class="planner-card">
             <div class="card-title">
                 <span class="material-symbols-rounded" style="color:var(--cat-needs);">gavel</span>
-                Fixed Needs
+                Needs & Fixed
             </div>
+            <div id="needs-pva" class="pva-bar" style="display:none;"></div>
+
+            <!-- Fixed Expenses Sub-section -->
+            <div style="display:flex;align-items:center;gap:6px;margin:16px 0 8px;">
+                <span class="material-symbols-rounded" style="font-size:16px;color:var(--md-outline);">handshake</span>
+                <span style="font-size:13px;font-weight:600;color:var(--md-outline);">Fixed Expenses</span>
+                <span style="font-size:10px;color:var(--md-outline);font-weight:400;">(manual)</span>
+            </div>
+            <div id="fixed-container"></div>
+            <button class="add-row-btn" onclick="addRow('fixedExpenses')" style="margin-top:4px;">
+                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Fixed Expense
+            </button>
+
+            <div style="border-top:1px solid var(--md-outline-variant);margin:14px 0;"></div>
+
+            <!-- Needs -->
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <span class="material-symbols-rounded" style="font-size:16px;color:var(--md-outline);">shopping_cart</span>
+                <span style="font-size:13px;font-weight:600;color:var(--md-outline);">Needs</span>
+            </div>
+            <div id="needs-container"></div>
+            <button class="add-row-btn" onclick="addRow('needs')">
+                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Expense
+            </button>
+            <div class="total-row" style="cursor:pointer;" onclick="showSpendBreakdown('needs')">
+                <span>Subtotal<span id="needs-subtotal-label" style="font-size:10px;color:var(--md-outline);font-weight:400;"></span></span>
+                <strong id="total-needs-val">₹0</strong>
+            </div>
+        </div>
             <div id="needs-pva" class="pva-bar" style="display:none;"></div>
             <div id="needs-container"></div>
             <button class="add-row-btn" onclick="addRow('needs')">
@@ -675,7 +724,12 @@ function getDefaultPlan() {
             { name: 'Shopping & Lifestyle',  amount: 0 },
             { name: 'Entertainment',         amount: 0 }
         ],
-        investments: [],
+        investments: [
+            { name: 'SIP', amount: 0 },
+            { name: 'Stocks', amount: 0 },
+            { name: 'Mutual Funds', amount: 0 },
+            { name: 'Gold', amount: 0 }
+        ],
         customInvestments: []
     };
 }
@@ -762,7 +816,8 @@ function isEmptyPlan(p) {
     const i = (p.income||[]).reduce((s,x) => s + (x.amount||0), 0);
     const n = (p.needs||[]).reduce((s,x) => s + (x.amount||0), 0);
     const w = (p.wants||[]).reduce((s,x) => s + (x.amount||0), 0);
-    return i + n + w === 0;
+    const v = (p.investments||[]).reduce((s,x) => s + (x.amount||0), 0);
+    return i + n + w + v === 0;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -775,12 +830,13 @@ function loadPlanForMonth(key) {
         plan.income = Array.isArray(saved.income) ? saved.income.map(x => ({...x})) : getDefaultPlan().income;
         plan.needs = Array.isArray(saved.needs) ? saved.needs.map(x => cloneItem(x)) : getDefaultPlan().needs;
         plan.wants = Array.isArray(saved.wants) ? saved.wants.map(x => cloneItem(x)) : getDefaultPlan().wants;
-        plan.investments = Array.isArray(saved.investments) ? saved.investments.map(x => ({...x})) : [];
+        plan.investments = Array.isArray(saved.investments) && saved.investments.length > 0
+            ? saved.investments.map(x => ({...x}))
+            : getDefaultPlan().investments.map(x => ({...x}));
         plan.customInvestments = Array.isArray(saved.customInvestments) ? saved.customInvestments.map(x => ({...x})) : [];
         if (saved.goalHorizon) document.getElementById('goal-horizon').value = saved.goalHorizon;
     } else {
         plan = getDefaultPlan();
-        // Seed from user profile for the first time
         if (!db._profileSeeded) {
             db._profileSeeded = true;
             const ms = db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0;
@@ -820,6 +876,7 @@ function copyPrevMonthPlan() {
     plan.income = (prev.income||[]).map(x => ({...x}));
     plan.needs = (prev.needs||[]).map(x => cloneItem(x));
     plan.wants = (prev.wants||[]).map(x => cloneItem(x));
+    plan.investments = (prev.investments||[]).map(x => ({...x}));
     renderAll();
     recalc();
     updatePVABars();
@@ -997,7 +1054,10 @@ function extractSIPsAndGoals() {
 }
 
 function updateTotalInvestDisplay(actualTotal) {
-    const total = actualTotal != null ? actualTotal : (extractedSIPTotal + extractedGoalTotal);
+    const plannedManual = (plan.investments||[]).reduce((s, i) => s + i.amount, 0);
+    const total = actualTotal != null
+        ? actualTotal
+        : (plannedManual + extractedSIPTotal + extractedGoalTotal);
     document.getElementById('total-invest-val').textContent =
         '₹' + Math.round(total).toLocaleString('en-IN');
 }
@@ -1401,23 +1461,27 @@ function renderActualInvestBreakdown() {
 // PLAN vs ACTUAL BARS
 // ──────────────────────────────────────────────────────────────
 function updatePVABars() {
-    const plannedInvest = extractedSIPTotal + extractedGoalTotal;
-    const plannedNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
-    const plannedWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
+    const plannedFixed   = (plan.fixedExpenses||[]).reduce((s, i) => s + i.amount, 0);
+    const plannedNeeds   = plan.needs.reduce((s, i) => s + i.amount, 0);
+    const plannedWants   = plan.wants.reduce((s, i) => s + i.amount, 0);
+    const plannedInvestManual = (plan.investments||[]).reduce((s, i) => s + i.amount, 0);
+    const plannedInvestAuto = extractedSIPTotal + extractedGoalTotal;
+    const plannedInvestTotal = plannedInvestManual + plannedInvestAuto;
 
-    // Investments: always show (actual from ledger)
-    renderPVA('invest-pva', plannedInvest, actualInvest, true, 0);
+    const hasActual = viewOffset <= 0;
+    const actualNeeds = hasActual && actualSpendTotal > 0 ? Math.round(actualNeedsFromSpend) : 0;
+    const actualWants = hasActual && actualSpendTotal > 0 ? Math.round(actualWantsFromSpend) : 0;
+    const actualInvestTotal = hasActual ? actualInvest : 0;
 
-    // Needs & Wants actual from spend tracker (show for all months with data)
-    const actualNeeds = actualSpendTotal > 0 ? Math.round(actualNeedsFromSpend) : 0;
-    const actualWants = actualSpendTotal > 0 ? Math.round(actualWantsFromSpend) : 0;
-    if (actualSpendTotal > 0) {
-        renderPVA('needs-pva', plannedNeeds, actualNeeds, false, 0);
-        renderPVA('wants-pva', plannedWants, actualWants, false, 0);
-    } else {
-        document.getElementById('needs-pva').style.display = 'none';
-        document.getElementById('wants-pva').style.display = 'none';
-    }
+    // Needs PVA (fixed + needs combined) — show if planned>0 or actual data exists
+    const needsPlanned = plannedFixed + plannedNeeds;
+    renderPVA('needs-pva', needsPlanned, actualNeeds, needsPlanned > 0 || actualSpendTotal > 0, 0);
+
+    // Wants PVA — show if planned>0 or actual data exists
+    renderPVA('wants-pva', plannedWants, actualWants, plannedWants > 0 || actualSpendTotal > 0, 0);
+
+    // Investments PVA (manual + auto)
+    renderPVA('invest-pva', plannedInvestTotal, actualInvestTotal, true, 0);
 }
 
 
@@ -1474,6 +1538,7 @@ function renderAll() {
     renderIncomeSection();
     renderSection('needs');
     renderSection('wants');
+    renderInvestmentPlanSection();
     recalc();
 }
 
@@ -1485,12 +1550,29 @@ function renderIncomeSection() {
     plan.income.forEach((item, i) => container.appendChild(makeIncomeRow(item, i)));
 }
 
+function renderInvestmentPlanSection() {
+    const container = document.getElementById('investment-rows');
+    if (!container) return;
+    if (!Array.isArray(plan.investments)) plan.investments = [];
+    container.innerHTML = '';
+    plan.investments.forEach((item, i) => container.appendChild(makeRow(item, i, 'investments')));
+}
+
 function renderSection(type) {
     const container = document.getElementById(`${type}-container`);
     if (!container) return;
     if (!Array.isArray(plan[type])) plan[type] = [];
     container.innerHTML = '';
     plan[type].forEach((item, i) => container.appendChild(makeRow(item, i, type)));
+    if ((type === 'needs' || type === 'wants') && viewOffset <= 0 && actualSpendTotal > 0) {
+        const plannedLc = new Set(plan[type].map(i => (i.name||'').toLowerCase().trim()));
+        const unplanned = Object.entries(actualSpendByCategory).filter(([cat, amt]) => {
+            const cls = classifySpendCategory(cat);
+            if (cls !== type) return false;
+            return !plannedLc.has(cat.toLowerCase().trim());
+        });
+        unplanned.forEach(([cat, amt]) => container.appendChild(makeUnplannedRow(cat, amt, type)));
+    }
 }
 
 function makeIncomeRow(item, index) {
@@ -1532,7 +1614,7 @@ function makeRow(item, index, type) {
                   item.autoMatched ? `<span style="font-size:10px;background:var(--md-surface-container-highest);color:var(--md-on-surface);padding:2px 6px;border-radius:6px;margin-left:6px;" title="This amount was matched from your actual spending using exact or partial name matching.">⚙️ Auto</span>` : '';
                   
     const actualAmt = getActualForItem(type, item.name);
-    const hasActual = actualAmt > 0 && (viewOffset <= 0);
+    const showActual = actualAmt > 0 && viewOffset <= 0;
     wrap.innerHTML = `
         <div class="plan-row-label" style="flex:1; min-width:0;">
             <div style="display:flex;align-items:center;">
@@ -1548,17 +1630,42 @@ function makeRow(item, index, type) {
                 <input type="number" class="plan-input" value="${item.amount || ''}" placeholder="0"
                     oninput="updateAmount('${type}',${index},this)">
             </div>
-            ${hasActual ? `<div style="display:flex;align-items:center;gap:2px;border-top:1px solid var(--md-outline-variant);padding-top:2px;">
+            ${showActual ? `<div style="display:flex;align-items:center;gap:2px;border-top:1px solid var(--md-outline-variant);padding-top:2px;">
                 <span style="font-size:11px;color:var(--md-tertiary);min-width:10px;">A</span>
                 <span style="font-size:13px;font-weight:600;color:var(--md-tertiary);text-align:right;width:100%;">₹${Math.round(actualAmt).toLocaleString('en-IN')}</span>
             </div>` : ''}
         </div>
-        <button class="del-btn" onclick="showRowDetail('${type}',${index})" title="View which spends map to this item">
+        <button class="del-btn" onclick="showRowDetail('${type}',${index})" title="View details">
             <span class="material-symbols-rounded" style="font-size:18px;">visibility</span>
         </button>
         <button class="del-btn" onclick="removeRow('${type}',${index})" title="Remove">
             <span class="material-symbols-rounded" style="font-size:18px;">delete</span>
         </button>`;
+    return wrap;
+}
+
+function makeUnplannedRow(category, amount, type) {
+    const wrap = document.createElement('div');
+    wrap.className = 'plan-row';
+    wrap.style.opacity = '0.85';
+    wrap.innerHTML = `
+        <div class="plan-row-label" style="flex:1; min-width:0;">
+            <div style="display:flex;align-items:center;">
+                <span style="font-size:15px;font-weight:500;color:var(--md-on-surface);">${escapeHtml(category)}</span>
+                <span style="font-size:10px;background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);padding:2px 6px;border-radius:6px;margin-left:6px;">unplanned</span>
+            </div>
+        </div>
+        <div class="plan-input-box" style="flex-direction:column;align-items:stretch;gap:2px;padding:4px 10px;border-color:var(--md-outline-variant);">
+            <div style="display:flex;align-items:center;gap:2px;">
+                <span style="font-size:11px;color:var(--md-outline);min-width:10px;">P</span>
+                <span style="font-size:14px;font-weight:600;color:var(--md-outline);text-align:right;width:100%;">₹0</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:2px;border-top:1px solid var(--md-outline-variant);padding-top:2px;">
+                <span style="font-size:11px;color:var(--md-tertiary);min-width:10px;">A</span>
+                <span style="font-size:13px;font-weight:600;color:var(--md-tertiary);text-align:right;width:100%;">₹${Math.round(amount).toLocaleString('en-IN')}</span>
+            </div>
+        </div>
+        <div style="width:72px;"></div>`;
     return wrap;
 }
 
@@ -1578,18 +1685,30 @@ function updateName(type, index, val) {
 }
 
 function addRow(type) {
-    plan[type].push({ name: type === 'needs' ? 'New Expense' : 'New Category', amount: 0 });
-    renderSection(type);
+    if (type === 'investments') {
+        plan.investments.push({ name: 'New Investment', amount: 0 });
+        renderInvestmentPlanSection();
+    } else {
+        plan[type].push({ name: type === 'needs' ? 'New Expense' : 'New Category', amount: 0 });
+        renderSection(type);
+    }
     recalc();
-    const rows = document.querySelectorAll(`#${type}-container .plan-row`);
+    updatePVABars();
+    const container = type === 'investments' ? '#investment-rows' : `#${type}-container`;
+    const rows = document.querySelectorAll(`${container} .plan-row`);
     const last = rows[rows.length - 1];
     if (last) { const ni = last.querySelector('.name'); if (ni) { ni.select(); ni.focus(); } }
     markDirty();
 }
 
 function removeRow(type, index) {
-    plan[type].splice(index, 1);
-    renderSection(type);
+    if (type === 'investments') {
+        plan.investments.splice(index, 1);
+        renderInvestmentPlanSection();
+    } else {
+        plan[type].splice(index, 1);
+        renderSection(type);
+    }
     recalc();
     updatePVABars();
     markDirty();
@@ -1631,14 +1750,13 @@ function updateIncomeAmount(index, el) {
 }
 
 function autoFillWants() {
-    const income      = plan.income.reduce((s, i) => s + i.amount, 0);
-    let totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
-    const useActual = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
-    const totalInvest = useActual ? actualInvest : extractedSIPTotal + extractedGoalTotal;
-    if (viewOffset <= 0 && actualSpendTotal > 0) {
-        totalNeeds = Math.round(actualNeedsFromSpend);
-    }
-    const surplus     = income - totalNeeds - totalInvest;
+    const income       = plan.income.reduce((s, i) => s + i.amount, 0);
+    const plannedFixed = (plan.fixedExpenses||[]).reduce((s, i) => s + i.amount, 0);
+    const plannedNeeds = plan.needs.reduce((s, i) => s + i.amount, 0);
+    const plannedInvestManual = (plan.investments||[]).reduce((s, i) => s + i.amount, 0);
+    const totalNeeds = plannedFixed + plannedNeeds;
+    const totalInvest = plannedInvestManual + extractedSIPTotal + extractedGoalTotal;
+    const surplus = income - totalNeeds - totalInvest;
     if (surplus <= 0 || plan.wants.length === 0) {
         snack('No surplus to split among wants.', 'info'); return;
     }
@@ -1654,43 +1772,60 @@ function autoFillWants() {
 // RECALCULATE
 // ──────────────────────────────────────────────────────────────
 function recalc() {
-    const income       = plan.income.reduce((s, i) => s + i.amount, 0);
-    let totalNeeds   = plan.needs.reduce((s, i) => s + i.amount, 0);
-    let totalWants   = plan.wants.reduce((s, i) => s + i.amount, 0);
-    const useActual  = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
-    const plannedInvest = extractedSIPTotal + extractedGoalTotal;
-    const totalInvest   = useActual ? actualInvest : plannedInvest;
+    const income = plan.income.reduce((s, i) => s + i.amount, 0);
 
-    // Preserve planned values for hero badges (before overwrite)
-    const heroPlannedNeeds   = totalNeeds;
-    const heroPlannedWants   = totalWants;
-    const heroPlannedInvest  = plannedInvest;
+    // Planned totals from user inputs
+    const plannedFixed = (plan.fixedExpenses||[]).reduce((s, i) => s + i.amount, 0);
+    const plannedNeeds = plan.needs.reduce((s, i) => s + i.amount, 0);
+    const plannedWants = plan.wants.reduce((s, i) => s + i.amount, 0);
+    const plannedInvestManual = (plan.investments||[]).reduce((s, i) => s + i.amount, 0);
+    const plannedInvestAuto = extractedSIPTotal + extractedGoalTotal;
+    const plannedInvestTotal = plannedInvestManual + plannedInvestAuto;
 
-    if (viewOffset <= 0 && actualSpendTotal > 0) {
-        totalNeeds = Math.round(actualNeedsFromSpend);
-        totalWants = Math.round(actualWantsFromSpend);
-    }
+    // Actual totals from live data (current/past months)
+    const hasActual = viewOffset <= 0;
+    const actualNeeds = hasActual ? Math.round(actualNeedsFromSpend) : 0;
+    const actualWants = hasActual ? Math.round(actualWantsFromSpend) : 0;
+    const actualInvestTotal = hasActual ? actualInvest : 0;
 
-    // Determine label suffix: show "(planned)" or "(actual)" on subtotals
-    const labelSuffix = useActual ? ' (actual)' : ' (planned)';
+    // Combined: Needs = fixed expenses + needs
+    const totalNeedsPlanned = plannedFixed + plannedNeeds;
+    const totalNeedsActual = plannedFixed + actualNeeds; // fixed has no actual, so stays as planned
 
-    const totalOut    = totalNeeds + totalWants + totalInvest;
-    const balance     = income - totalOut;
+    const totalWantsPlanned = plannedWants;
+    const totalWantsActual = actualWants;
+
+    const totalInvestPlanned = plannedInvestTotal;
+    const totalInvestActual = actualInvestTotal;
+
+    const totalOutPlanned = totalNeedsPlanned + totalWantsPlanned + totalInvestPlanned;
+    const totalOutActual = totalNeedsActual + totalWantsActual + totalInvestActual;
+
+    const balancePlanned = income - totalOutPlanned;
+    const balanceActual = income - totalOutActual;
+
+    const isFuture = viewOffset > 0;
+    const isPast = viewOffset < 0;
+    const isCurrent = viewOffset === 0;
 
     document.getElementById('total-income-val').textContent = '₹' + Math.round(income).toLocaleString('en-IN');
 
-    // Show data source label next to each subtotal
+    // Subtotal labels
     const needsLabel = document.getElementById('needs-subtotal-label');
     const wantsLabel = document.getElementById('wants-subtotal-label');
     const investLabel = document.getElementById('invest-subtotal-label');
-    if (needsLabel) needsLabel.textContent = useActual ? ' (actual)' : '';
-    if (wantsLabel) wantsLabel.textContent = useActual ? ' (actual)' : '';
-    if (investLabel) investLabel.textContent = useActual ? ' (actual)' : '';
+    if (needsLabel) needsLabel.textContent = hasActual ? ` (P: ₹${Math.round(totalNeedsPlanned).toLocaleString('en-IN')})` : '';
+    if (wantsLabel) wantsLabel.textContent = hasActual ? ` (P: ₹${Math.round(totalWantsPlanned).toLocaleString('en-IN')})` : '';
+    if (investLabel) investLabel.textContent = hasActual ? ` (P: ₹${Math.round(plannedInvestTotal).toLocaleString('en-IN')})` : '';
 
-    document.getElementById('total-needs-val').textContent  = '₹' + Math.round(totalNeeds).toLocaleString('en-IN');
-    document.getElementById('total-wants-val').textContent  = '₹' + Math.round(totalWants).toLocaleString('en-IN');
-    document.getElementById('m-total-out').textContent      = '₹' + Math.round(totalOut).toLocaleString('en-IN');
-    updateTotalInvestDisplay(useActual ? totalInvest : null);
+    const displayNeeds = hasActual && actualSpendTotal > 0 ? totalNeedsActual : totalNeedsPlanned;
+    const displayWants = hasActual && actualSpendTotal > 0 ? totalWantsActual : totalWantsPlanned;
+    const displayInvest = hasActual ? totalInvestActual : totalInvestPlanned;
+
+    document.getElementById('total-needs-val').textContent  = '₹' + Math.round(displayNeeds).toLocaleString('en-IN');
+    document.getElementById('total-wants-val').textContent  = '₹' + Math.round(displayWants).toLocaleString('en-IN');
+    document.getElementById('m-total-out').textContent      = '₹' + Math.round(displayNeeds + displayWants + displayInvest).toLocaleString('en-IN');
+    updateTotalInvestDisplay(hasActual ? displayInvest : null);
 
     // Hero
     const hero    = document.getElementById('hero-card');
@@ -1700,46 +1835,71 @@ function recalc() {
     const pnEl    = document.getElementById('hero-planned');
     const acEl    = document.getElementById('hero-actual');
 
-    balEl.textContent = (balance >= 0 ? '₹' : '-₹') +
-        Math.abs(Math.round(balance)).toLocaleString('en-IN');
+    // Primary unallocated balance
+    const primaryBalance = isFuture ? balancePlanned : balanceActual;
 
-    // Planned = always from plan inputs (never actual)
-    const plannedTotal = heroPlannedNeeds + heroPlannedWants + heroPlannedInvest;
-    pnEl.textContent = '₹' + (income > 0 ? Math.round(plannedTotal) : 0).toLocaleString('en-IN');
-    // Actual = live data (spend + invest)
-    const hasLiveData = viewOffset <= 0 && (actualSpendTotal > 0 || actualInvest > 0);
+    balEl.textContent = (primaryBalance >= 0 ? '₹' : '-₹') +
+        Math.abs(Math.round(primaryBalance)).toLocaleString('en-IN');
+
+    // Planned badge: always show planned total outflow
+    const plannedTotalOut = totalNeedsPlanned + totalWantsPlanned + totalInvestPlanned;
+    pnEl.textContent = '₹' + (income > 0 ? Math.round(plannedTotalOut).toLocaleString('en-IN') : '0');
+
+    // Actual badge
+    const hasLiveData = hasActual && (actualSpendTotal > 0 || actualInvest > 0);
     if (hasLiveData) {
-        const actualTotal = actualSpendTotal + actualInvest;
-        acEl.textContent = '₹' + Math.round(actualTotal).toLocaleString('en-IN');
+        const actualTotalOut = totalNeedsActual + totalWantsActual + totalInvestActual;
+        acEl.textContent = '₹' + Math.round(actualTotalOut).toLocaleString('en-IN');
     } else {
-        acEl.textContent = '₹0';
+        acEl.textContent = isFuture ? '— (future)' : '₹0';
     }
 
+    // Hero color + message based on actual balance for current/past, planned for future
+    const checkBalance = isFuture ? balancePlanned : balanceActual;
     hero.className = 'planner-hero ';
-    if (balance < 0) {
+    if (checkBalance < 0) {
         hero.className += 'deficit';
         iconEl.textContent = 'warning';
-        msgEl.textContent  = 'Over-allocated! Reduce expenses or increase income.';
-    } else if (balance <= income * 0.02) {
+        msgEl.textContent  = isFuture
+            ? 'Plan shows over-allocation — adjust categories.'
+            : 'Over-allocated! Actual spending exceeds income.';
+    } else if (checkBalance <= income * 0.02) {
         hero.className += 'zero';
         iconEl.textContent = 'check_circle';
         msgEl.textContent  = income === 0 ? 'Enter your income to begin' : 'Perfect zero-based budget!';
-    } else if (balance < income * 0.05) {
+    } else if (checkBalance < income * 0.05) {
         hero.className += 'zero';
         iconEl.textContent = 'check_circle';
         msgEl.textContent  = 'Nearly zero-based — great allocation!';
     } else {
         hero.className += 'surplus';
         iconEl.textContent = 'info';
-        msgEl.textContent  = `₹${Math.round(balance).toLocaleString('en-IN')} unallocated — assign it or save more.`;
+        const balanceLabel = isFuture ? 'projected surplus' : 'unallocated';
+        msgEl.textContent  = `₹${Math.round(checkBalance).toLocaleString('en-IN')} ${balanceLabel}`;
     }
 
-    // FIX #5: Add data source labels to hero card
+    // Planned vs Actual comparison for past months
+    const comparisonEl = document.getElementById('hero-comparison');
+    if (isPast && hasLiveData && income > 0) {
+        const delta = totalOutPlanned - (totalNeedsActual + totalWantsActual + totalInvestActual);
+        const absDelta = Math.abs(Math.round(delta));
+        const pctPlanned = income > 0 ? Math.round((totalOutPlanned / income) * 100) : 0;
+        const pctActual = income > 0 ? Math.round(((totalNeedsActual + totalWantsActual + totalInvestActual) / income) * 100) : 0;
+        if (comparisonEl) {
+            comparisonEl.style.display = '';
+            const compHtml = delta >= 0
+                ? `<span style="color:var(--md-success);">${delta === 0 ? 'On track' : '₹' + absDelta.toLocaleString('en-IN') + ' under budget'}</span>`
+                : `<span style="color:var(--cat-needs);">₹${absDelta.toLocaleString('en-IN')} over budget</span>`;
+            comparisonEl.innerHTML = `<span class="material-symbols-rounded" style="font-size:12px;">compare</span> ${compHtml} · Planned ${pctPlanned}% · Actual ${pctActual}% of income`;
+        }
+    } else if (comparisonEl) {
+        comparisonEl.style.display = 'none';
+    }
+
+    // Data source label
     const viewMonth = getViewDate().toLocaleString('default', { month: 'long', year: 'numeric' });
-    const dataSource = viewOffset === 0 ? 'Current month' : (viewOffset < 0 ? 'Past month' : 'Future month');
-    const hasActualSpend = viewOffset <= 0 && actualSpendTotal > 0;
-    const hasActualData = hasActualSpend || (viewOffset <= 0 && actualInvest > 0);
-    const dataLabel = hasActualData ? ` | Spend: ₹${Math.round(actualSpendTotal).toLocaleString('en-IN')} · Invest: ₹${Math.round(actualInvest).toLocaleString('en-IN')}` : '';
+    const dataSource = isCurrent ? 'Current month' : (isPast ? 'Past month' : 'Future month');
+    const dataLabel = hasActual ? ` | Spend: ₹${Math.round(actualSpendTotal).toLocaleString('en-IN')} · Invest: ₹${Math.round(actualInvest).toLocaleString('en-IN')}` : '';
     
     let dataSourceEl = document.querySelector('.hero-data-source');
     if (!dataSourceEl) {
@@ -1748,11 +1908,30 @@ function recalc() {
         dataSourceEl.style.cssText = 'font-size:11px;color:var(--md-outline);margin-top:8px;opacity:0.75;';
         hero.appendChild(dataSourceEl);
     }
-    dataSourceEl.textContent = `📅 ${viewMonth} • ${dataSource}${dataLabel}`;
+    const monthIndicator = isFuture ? '📅 ' + viewMonth + ' • Projected' : '📅 ' + viewMonth + ' • ' + dataSource;
+    dataSourceEl.textContent = monthIndicator + dataLabel;
+
+    const pctEl = document.querySelector('.hero-pct-planned');
+    if (!pctEl) {
+        const newPct = document.createElement('div');
+        newPct.className = 'hero-pct-planned';
+        newPct.style.cssText = 'font-size:10px;color:var(--md-outline);margin-top:2px;';
+        if (dataSourceEl) dataSourceEl.parentNode.insertBefore(newPct, dataSourceEl.nextSibling);
+    }
+    if (income > 0) {
+        const pctPlanned = Math.round((totalOutPlanned / income) * 100);
+        const pctActual = income > 0 && hasLiveData ? Math.round(((totalNeedsActual + totalWantsActual + totalInvestActual) / income) * 100) : null;
+        const pctEl2 = document.querySelector('.hero-pct-planned');
+        if (pctEl2) {
+            pctEl2.textContent = pctActual !== null
+                ? `Planned ${Math.round(balancePlanned).toLocaleString('en-IN')} · Actual ${Math.round(balanceActual).toLocaleString('en-IN')} unallocated`
+                : `Planned covers ${pctPlanned}% of income`;
+        }
+    }
 
     // Metrics
-    const savingsRate = income > 0 ? Math.round((totalInvest / income) * 100) : 0;
-    const needsRatio  = income > 0 ? Math.round((totalNeeds  / income) * 100) : 0;
+    const savingsRate = income > 0 ? Math.round((totalInvestPlanned / income) * 100) : 0;
+    const needsRatio  = income > 0 ? Math.round((totalNeedsPlanned / income) * 100) : 0;
     const srEl = document.getElementById('m-savings-rate');
     const nrEl = document.getElementById('m-needs-ratio');
     srEl.textContent = savingsRate + '%';
@@ -1760,11 +1939,17 @@ function recalc() {
     nrEl.textContent = needsRatio + '%';
     nrEl.style.color = needsRatio > 50 ? 'var(--cat-needs)' : 'var(--md-success)';
 
-    // Allocation bar
+    // Savings rate tooltip: planned vs actual
+    const actualSavingsRate = income > 0 && hasActual ? Math.round((totalInvestActual / income) * 100) : null;
+    srEl.title = actualSavingsRate !== null
+        ? `Planned: ${savingsRate}% | Actual: ${actualSavingsRate}%`
+        : `Planned savings rate`;
+
+    // Allocation bar (always uses planned values)
     if (income > 0) {
-        const pN = Math.min(100, (totalNeeds  / income) * 100);
-        const pI = Math.min(100 - pN,  (totalInvest / income) * 100);
-        const pW = Math.min(100 - pN - pI, (totalWants  / income) * 100);
+        const pN = Math.min(100, (totalNeedsPlanned / income) * 100);
+        const pI = Math.min(100 - pN, (totalInvestPlanned / income) * 100);
+        const pW = Math.min(100 - pN - pI, (totalWantsPlanned / income) * 100);
         const pU = Math.max(0, 100 - pN - pI - pW);
 
         document.getElementById('seg-needs').style.width   = pN + '%';
@@ -1852,9 +2037,6 @@ function resetPlanner() {
     const key = getMonthKey(getViewDate());
     if (db.monthlyPlans) delete db.monthlyPlans[key];
     plan = getDefaultPlan();
-    const ms = db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0;
-    if (ms) plan.income[0].amount = ms;
-    document.getElementById('goal-horizon').value = 24;
     renderAll();
     updatePVABars();
     updateMonthUI(key);
@@ -1962,8 +2144,8 @@ function applyPlanToRestOfYear() {
             income: plan.income.map(x => ({...x})),
             needs: plan.needs.map(x => ({...x})),
             wants: plan.wants.map(x => ({...x})),
+            investments: (plan.investments||[]).map(x => ({...x})),
             goalHorizon: parseInt(document.getElementById('goal-horizon').value, 10) || 24
-
         };
         count++;
     }
@@ -2149,8 +2331,19 @@ function escapeHtml(str) {
 }
 
 function getActualForItem(type, itemName) {
-    if (!itemName) return 0;
-    // Try last mapping log first
+    if (!itemName || viewOffset > 0) return 0;
+    if (type === 'fixedExpenses') return 0;
+
+    if (type === 'investments') {
+        const d = getViewDate(); let m = d.getMonth(), y = d.getFullYear();
+        if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+        return (db.investments || []).filter(i => {
+            const id = new Date(i.date);
+            return id.getMonth() === m && id.getFullYear() === y &&
+                   i.type && i.type.toLowerCase() === (itemName||'').toLowerCase();
+        }).reduce((s, i) => s + i.amount, 0);
+    }
+
     if (window.__lastMappingLog && window.__lastMappingLog.length > 0) {
         const mappedFrom = window.__lastMappingLog
             .filter(ml => ml.to === itemName && ml.type === type)
@@ -2165,9 +2358,10 @@ function getActualForItem(type, itemName) {
                 .reduce((s, e) => s + (e.amount || 0), 0);
         }
     }
-    // Fallback to global needs/wants totals
+
     if (type === 'needs') return Math.round(actualNeedsFromSpend);
-    return Math.round(actualWantsFromSpend);
+    if (type === 'wants') return Math.round(actualWantsFromSpend);
+    return 0;
 }
 
 function showSpendBreakdown(type) {
