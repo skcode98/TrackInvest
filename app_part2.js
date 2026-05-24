@@ -17,19 +17,19 @@ function saveInvestment() {
         tags: (document.getElementById('inv-tags')?.value || '').replace(/#/g, ''),
         subCat: document.getElementById('inv-subcat')?.value || '',
         broker: document.getElementById('inv-broker')?.value || '',
-        growth: parseFloat(document.getElementById('inv-growth')?.value) || null,
+        growth: (function(v){return v===''||v==null?null:parseFloat(v)})(document.getElementById('inv-growth')?.value),
         acc: document.getElementById('inv-account')?.value || '',
         matDate: document.getElementById('inv-maturity-simple')?.value || '',
-        intRate: parseFloat(document.getElementById('inv-interest')?.value) || null,
-        initialPayment: parseFloat(document.getElementById('inv-initial-payment')?.value) || null,
+        intRate: (function(v){return v===''||v==null?null:parseFloat(v)})(document.getElementById('inv-interest')?.value),
+        initialPayment: (function(v){return v===''||v==null?null:parseFloat(v)})(document.getElementById('inv-initial-payment')?.value),
         isTemplate: document.getElementById('inv-template')?.checked || false,
         isRecurring: document.getElementById('inv-recurring')?.checked || false,
-        units: parseFloat(document.getElementById('inv-units-hidden')?.value) || null,
+        units: (function(v){return v===''||v==null?null:parseFloat(v)})(document.getElementById('inv-units-hidden')?.value),
         mfCode: document.getElementById('inv-mf-code-hidden')?.value || null,
         isMonthlyContrib: document.getElementById('inv-is-monthly')?.checked || false,
         payoutType: document.getElementById('inv-payout')?.value || '',
         investMode: document.getElementById('inv-mode')?.value || '',
-        sipDay: parseInt(document.getElementById('inv-sip-day')?.value, 10) || null
+        sipDay: (function(v){return v===''||v==null?null:parseInt(v,10)})(document.getElementById('inv-sip-day')?.value)
     };
 
     // Add input field animations
@@ -263,8 +263,8 @@ function saveInvestment() {
     };
 
     if (matDate) newEntry.maturityDate = matDate;
-    if (intRate) newEntry.interestRate = intRate;
-    if (units) newEntry.units = units;
+    if (intRate != null) newEntry.interestRate = intRate;
+    if (units != null) newEntry.units = units;
     if (mfCode) newEntry.mfCode = mfCode;
 
     if (!editInvId && initialPayment > 0) {
@@ -834,8 +834,16 @@ function openCategoryDetails(type) {
     });
 
     let totalTaxBase = stcgTotal + ltcgTotal;
-    if (totalTaxBase > 0) { document.getElementById('tax-lt-fill').style.width = (ltcgTotal / totalTaxBase * 100) + '%'; document.getElementById('tax-st-fill').style.width = (stcgTotal / totalTaxBase * 100) + '%'; document.getElementById('tax-lt-label').innerText = `LTCG (>1Y): ${formatMoney(ltcgTotal)}`; document.getElementById('tax-st-label').innerText = `STCG (<1Y): ${formatMoney(stcgTotal)}`; }
-    else { document.getElementById('tax-lt-fill').style.width = '0%'; document.getElementById('tax-st-fill').style.width = '0%'; }
+    ['tax-lt-fill','tax-st-fill','tax-lt-label','tax-st-label'].forEach(id => { if (!document.getElementById(id)) return; });
+    if (totalTaxBase > 0) {
+        const ltFill = document.getElementById('tax-lt-fill'); if (ltFill) ltFill.style.width = (ltcgTotal / totalTaxBase * 100) + '%';
+        const stFill = document.getElementById('tax-st-fill'); if (stFill) stFill.style.width = (stcgTotal / totalTaxBase * 100) + '%';
+        const ltLabel = document.getElementById('tax-lt-label'); if (ltLabel) ltLabel.innerText = `LTCG (>1Y): ${formatMoney(ltcgTotal)}`;
+        const stLabel = document.getElementById('tax-st-label'); if (stLabel) stLabel.innerText = `STCG (<1Y): ${formatMoney(stcgTotal)}`;
+    } else {
+        const ltFill = document.getElementById('tax-lt-fill'); if (ltFill) ltFill.style.width = '0%';
+        const stFill = document.getElementById('tax-st-fill'); if (stFill) stFill.style.width = '0%';
+    }
 
     let assetHtml = "";
     Object.keys(assets).sort((a, b) => assets[b] - assets[a]).forEach(k => {
@@ -918,14 +926,15 @@ function updateCalculatedAgeDisplay() {
 
 function saveProfileSettings() {
     haptic(40);
-    db.userProfile.salary = parseFloat(document.getElementById('settings-salary').value) || 0;
-    db.userProfile.regime = document.getElementById('settings-regime').value;
-    db.userProfile.monthlyExpense = parseFloat(document.getElementById('settings-expenses').value) || 0;
-    db.fyStartMonth = parseInt(document.getElementById('settings-fy-start').value, 10) || 3;
-    db.currency = document.getElementById('settings-currency').value || '₹';
-    db.displayCurrency = document.getElementById('settings-display-currency')?.value || 'INR';
-    db.currencySymbol = document.getElementById('settings-currency').value || '₹';
-    db.userProfile.dob = document.getElementById('profile-dob')?.value || '';
+    const getVal = id => document.getElementById(id)?.value;
+    db.userProfile.salary = parseFloat(getVal('settings-salary')) || 0;
+    db.userProfile.regime = getVal('settings-regime') || 'new';
+    db.userProfile.monthlyExpense = parseFloat(getVal('settings-expenses')) || 0;
+    db.fyStartMonth = parseInt(getVal('settings-fy-start'), 10) || 3;
+    db.currency = getVal('settings-currency') || '₹';
+    db.displayCurrency = getVal('settings-display-currency') || 'INR';
+    db.currencySymbol = getVal('settings-currency') || '₹';
+    db.userProfile.dob = getVal('profile-dob') || '';
     
     // NEW: Save Planner visibility
     const plannerEl = document.getElementById('settings-enable-planner');
@@ -1524,7 +1533,7 @@ function unlockApp() {
     let pin = document.getElementById('pin-input-auth').value;
 
     // Validate PIN format
-    if (!pin || pin.length > 4 || !/^\d{1,4}$/.test(pin)) {
+    if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
         updateLockScreenMessage('Enter a valid 4-digit PIN');
         haptic([50, 50]);
         return;
@@ -2147,10 +2156,12 @@ function toggleChatHistory() {
 window.toggleChatHistory = toggleChatHistory;
 
 function loadHubChatSession(idx) {
+    if (!db.chatSessions || idx < 0 || idx >= db.chatSessions.length) return;
     saveChatSession();
     window.activeChatSession = JSON.parse(JSON.stringify(db.chatSessions[idx]));
     renderHubChatMessages();
-    document.getElementById('ai-hub-history-panel').style.display = 'none';
+    const panel = document.getElementById('ai-hub-history-panel');
+    if (panel) panel.style.display = 'none';
     haptic(30);
 }
 window.loadHubChatSession = loadHubChatSession;
@@ -2259,7 +2270,7 @@ async function sendAIChatInHub() {
     try {
         const response = await callAIApiWithHistory(history);
 
-        msgContainer.removeChild(typing);
+        if (typing.parentNode) typing.parentNode.removeChild(typing);
         activeChatSession.messages.push({ role: 'assistant', content: response });
 
         if (activeChatSession.title === "New Conversation") {
@@ -2269,7 +2280,7 @@ async function sendAIChatInHub() {
         renderHubChatMessages();
         saveChatSession();
     } catch (e) {
-        msgContainer.removeChild(typing);
+        if (typing.parentNode) typing.parentNode.removeChild(typing);
         showSnackbar("AI thinking failed. Check API keys.", "error");
     }
 }

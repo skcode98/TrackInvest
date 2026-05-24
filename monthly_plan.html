@@ -629,8 +629,8 @@
 
     <div id="snackbar" class="snackbar"></div>
     <div style="text-align:center;padding:8px 16px 16px;font-size:10px;color:var(--md-outline);opacity:0.4;user-select:none;"
-        onclick="navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')" class="version-badge"></div>
-    <script>document.querySelector('.version-badge').textContent=APP_VERSION;</script>
+        onclick="if(typeof APP_VERSION!=='undefined'){navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')}" class="version-badge"></div>
+    <script>var vb=document.querySelector('.version-badge');if(vb&&typeof APP_VERSION!=='undefined')vb.textContent=APP_VERSION;</script>
 
     <!-- YEARLY OVERVIEW MODAL -->
     <div class="yearly-overlay" id="yearly-overlay" onclick="if(event.target===this)closeYearlyOverview()">
@@ -813,6 +813,7 @@ function loadPlanForMonth(key) {
             const ms = db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0;
             if (ms) plan.income[0].amount = ms;
             if (db.userProfile?.monthlyExpense) plan.needs[0].amount = db.userProfile.monthlyExpense;
+            saveCurrentPlanSilent();
         }
     }
 }
@@ -962,7 +963,7 @@ function extractSIPsAndGoals() {
         if (goal.linkedCategory && db.investments) {
             linkedSaved = db.investments
                 .filter(i => i.type === goal.linkedCategory)
-                .reduce((s, i) => s + i.amount, 0);
+                .reduce((s, i) => s + (i.amount||0), 0);
         }
         const totalSaved = saved + linkedSaved;
         const diff = target - totalSaved;
@@ -1025,7 +1026,7 @@ function extractSIPsAndGoals() {
 }
 
 function updateTotalInvestDisplay(actualTotal) {
-    const plannedManual = (plan.investments||[]).reduce((s, i) => s + i.amount, 0);
+    const plannedManual = (plan.investments||[]).reduce((s, i) => s + (i.amount||0), 0);
     const total = actualTotal != null
         ? actualTotal
         : (plannedManual + extractedSIPTotal + extractedGoalTotal);
@@ -1099,7 +1100,7 @@ function loadActuals() {
             const id = new Date(i.date);
             return id.getMonth() === m && id.getFullYear() === y;
         })
-        .reduce((s, i) => s + i.amount, 0);
+        .reduce((s, i) => s + (i.amount||0), 0);
 
     const investLabel = isFuture ? `₹${Math.round(actualInvest).toLocaleString('en-IN')} (curr month)` : '₹' + Math.round(actualInvest).toLocaleString('en-IN');
     document.getElementById('m-actual-invest').textContent = investLabel;
@@ -1412,7 +1413,7 @@ function renderActualInvestBreakdown() {
     });
     if (actualEntries.length === 0) { container.innerHTML = ''; return; }
 
-    const total = actualEntries.reduce((s, i) => s + i.amount, 0);
+    const total = actualEntries.reduce((s, i) => s + (i.amount||0), 0);
     let html = `<div style="font-size:11px;font-weight:600;color:var(--md-outline);margin-bottom:6px;display:flex;justify-content:space-between;">
         <span><span class="material-symbols-rounded" style="font-size:12px;vertical-align:middle;">account_balance</span> Actual Investments</span>
         <span>₹${Math.round(total).toLocaleString('en-IN')}</span>
@@ -2033,7 +2034,7 @@ function showYearlyOverview(year) {
         // Actual from ledger
         const actual = (db.investments || [])
             .filter(inv => { const id = new Date(inv.date); return id.getMonth() === m && id.getFullYear() === cy; })
-            .reduce((s, inv) => s + inv.amount, 0);
+            .reduce((s, inv) => s + (inv.amount||0), 0);
 
         // Spend from tracker
         const spendEntries = (db.spendTracker && db.spendTracker.entries || []).filter(e => {
@@ -2044,15 +2045,14 @@ function showYearlyOverview(year) {
 
         // Plan
         const savedPlan = db.monthlyPlans && db.monthlyPlans[key];
+        const planInvestAmt = savedPlan ? (savedPlan.investments||[]).reduce((s, x) => s + (x.amount||0), 0) : 0;
         const plannedInvest = savedPlan
-            ? (db.recurring || []).reduce((s, r) => s + (parseFloat(r.amount)||0), 0)
+            ? planInvestAmt + (db.recurring || []).reduce((s, r) => s + (parseFloat(r.amount)||0), 0)
             : 0;
         const plannedNeeds = savedPlan ? (savedPlan.needs||[]).reduce((s, x) => s + (x.amount||0), 0) : 0;
 
         // Targets from plan
-        const targetInvest = savedPlan
-            ? (db.recurring || []).reduce((s, r) => s + (parseFloat(r.amount)||0), 0)
-            : 0;
+        const targetInvest = plannedInvest;
 
         const monthLabel = d.toLocaleString('default', { month: 'short' });
 
@@ -2193,7 +2193,7 @@ function renderMonthAnalysis() {
         // Investment actuals from ledger
         const actual = (db.investments || [])
             .filter(inv => { const id = new Date(inv.date); return id.getMonth() === m && id.getFullYear() === y; })
-            .reduce((s, inv) => s + inv.amount, 0);
+            .reduce((s, inv) => s + (inv.amount||0), 0);
 
         // Spend tracker actuals for needs/wants
         const spendEntries = (db.spendTracker && db.spendTracker.entries || []).filter(e => {
@@ -2207,8 +2207,9 @@ function renderMonthAnalysis() {
         const wantsFromSpend = spendTotal - needsFromSpend;
 
         const savedPlan = db.monthlyPlans && db.monthlyPlans[key];
+        const planInvestAmt = savedPlan ? (savedPlan.investments||[]).reduce((s, x) => s + (x.amount||0), 0) : 0;
         const sipTotal = (db.recurring || []).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
-        const totalPlanned = sipTotal;
+        const totalPlanned = planInvestAmt + sipTotal;
 
         const barPct = totalPlanned > 0 ? Math.min(100, Math.round((actual / totalPlanned) * 100)) : 0;
 
@@ -2238,7 +2239,7 @@ function _isNeedsCategory(cat) {
 // AI TIP
 // ──────────────────────────────────────────────────────────────
 async function triggerAITip() {
-    if (!db.geminiKey && !db.groqKey) {
+    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) {
         snack('Add an API key in Settings for AI tips.', 'key'); return;
     }
     const tipCard  = document.getElementById('ai-tip-card');
@@ -2305,7 +2306,7 @@ function getActualForItem(type, itemName) {
             const id = new Date(i.date);
             return id.getMonth() === m && id.getFullYear() === y &&
                    i.type && i.type.toLowerCase() === (itemName||'').toLowerCase();
-        }).reduce((s, i) => s + i.amount, 0);
+        }).reduce((s, i) => s + (i.amount||0), 0);
     }
 
     if (window.__lastMappingLog && window.__lastMappingLog.length > 0) {
@@ -2388,7 +2389,8 @@ function showRowDetail(type, index) {
             const cat = (e.category || '').toLowerCase();
             const comment = (e.comment || '').toLowerCase();
             // Direct match: entry category or comment contains item name or vice versa
-            if (cat.includes(itemName) || itemName.includes(cat)) return true;
+            if (cat && cat.includes(itemName)) return true;
+            if (cat && itemName.includes(cat)) return true;
             if (comment.includes(itemName) || itemName.includes(comment)) return true;
             // Check needs/wants classification matches this item's type
             const cls = classifySpendCategory(cat);
@@ -2442,7 +2444,7 @@ function showInvestBreakdown() {
         const id = new Date(i.date); return id.getMonth() === m && id.getFullYear() === y;
     });
     if (entries.length === 0) { snack('No investment entries for this month.', 'info'); return; }
-    let total = entries.reduce((s, i) => s + i.amount, 0);
+    let total = entries.reduce((s, i) => s + (i.amount||0), 0);
     let html = entries.map(i => {
         let meta = (db.categories || {})[i.type] || { icon: 'savings', color: '#8D6E63' };
         return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
@@ -2526,7 +2528,7 @@ async function unifiedAutoSync() {
         <button class="btn-secondary" style="flex:1;padding:10px;font-size:13px;" onclick="document.getElementById('breakdown-overlay').style.display='none';document.querySelector('[onclick*=\\'unifiedAutoSync\\']')?.scrollIntoView({behavior:'smooth'});">
             <span class="material-symbols-rounded" style="font-size:14px;">check</span> Done
         </button>
-        <button class="btn-secondary" style="flex:1;padding:10px;font-size:13px;" onclick="savePlanner();document.getElementById('breakdown-overlay').style.display='none';snack('Plan saved!','check_circle')">
+        <button class="btn-secondary" style="flex:1;padding:10px;font-size:13px;" onclick="savePlanner();document.getElementById('breakdown-overlay').style.display='none'">
             <span class="material-symbols-rounded" style="font-size:14px;">save</span> Save & Close
         </button>
     </div>`;

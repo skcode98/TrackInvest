@@ -6,6 +6,7 @@
     --md-primary: #415F91;
     --md-primary-rgb: 65, 95, 145;
     --md-tertiary: #705573;
+    --md-on-tertiary: #FFFFFF;
     --md-tertiary-container: #F6DAFA;
     --md-on-tertiary-container: #2A0D31;
     --md-on-primary: #FFFFFF;
@@ -50,6 +51,7 @@
     :root {
         --md-primary: #AAC7FF;
         --md-tertiary: #DBBCE1;
+        --md-on-tertiary: #3E2844;
         --md-tertiary-container: #3E2844;
         --md-on-tertiary-container: #F6DAFA;
         --md-on-primary: #0A305F;
@@ -73,6 +75,15 @@
         --md-on-error: #690005;
         --md-error-container: #93000A;
         --md-on-error-container: #FFDAD6;
+        --md-primary-rgb: 170, 199, 255;
+        --md-success: #6DD86A;
+        --md-success-container: #004A17;
+        --md-on-success-container: #AEEFB0;
+        --md-fire: #FF9A76;
+        --md-fire-container: #762C00;
+        --md-on-fire-container: #FFDBCE;
+        --md-warning: #FFBA6D;
+        --md-warning-container: #533F00;
     }
 }
 

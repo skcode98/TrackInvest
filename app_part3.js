@@ -1,11 +1,14 @@
 async function generateAITags() {
     haptic(40);
-    if (!db.geminiKey && !db.groqKey) return showSnackbar("Please add API Key in Settings.", "key");
-    let note = document.getElementById('inv-note').value; if (!note) return showSnackbar("Enter an Asset Note first.", "edit");
-    // Cap note text to prevent oversized prompts / token limit errors
+    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return showSnackbar("Please add API Key in Settings.", "key");
+    let noteEl = document.getElementById('inv-note');
+    if (!noteEl) return;
+    let note = noteEl.value; if (!note) return showSnackbar("Enter an Asset Note first.", "edit");
     let noteBody = note.slice(0, 200);
-    let tagInput = document.getElementById('inv-tags'); tagInput.value = "Generating...";
-    let prompt = `Provide exactly 3 comma‑separated short tags (no hashtags) for a financial asset of type '${window.currentInvType || 'Unknown'}' with note '${noteBody}'. Examples: tax, equity, longterm.`;
+    let tagInput = document.getElementById('inv-tags');
+    if (!tagInput) return;
+    tagInput.value = "Generating...";
+    let prompt = `Provide exactly 3 comma‑separated short tags for a financial asset of type '${window.currentInvType || 'Unknown'}' with note '${noteBody}'. Examples: tax, equity, longterm.`;
     try { let tags = await callAIApi(prompt, "You return comma-separated lists of tags only."); tagInput.value = tags; haptic([30, 50]); } catch (e) { tagInput.value = ""; showSnackbar("AI Tag generation failed.", "error"); }
 }
 
@@ -247,10 +250,25 @@ function updatePortfolioCalculations() {
     }
 
     let taxValEl = document.getElementById('tax-val');
-    if (taxValEl) { taxValEl.innerText = `${formatMoney(tax80cTotal)} / 1.5L`; document.getElementById('tax-fill').style.width = Math.min(100, (tax80cTotal / 150000) * 100) + '%'; let taxAlert = document.getElementById('tax-rollover-alert'); if (taxAlert) { taxAlert.style.display = tax80cTotal >= 150000 ? 'block' : 'none'; } }
+    if (taxValEl) {
+        taxValEl.innerText = `${formatMoney(tax80cTotal)} / 1.5L`;
+        const taxFill = document.getElementById('tax-fill');
+        if (taxFill) taxFill.style.width = Math.min(100, (tax80cTotal / 150000) * 100) + '%';
+        let taxAlert = document.getElementById('tax-rollover-alert');
+        if (taxAlert) taxAlert.style.display = tax80cTotal >= 150000 ? 'block' : 'none';
+    }
 
     let matSection = document.getElementById('maturity-section');
-    if (matSection) { if (maturities.length > 0) { maturities.sort((a, b) => a.days - b.days); document.getElementById('maturity-list').innerHTML = maturities.map(m => `<div class="maturity-card md-card" style="margin-bottom:0; flex-shrink:0; padding:12px; min-width:120px;" onclick="openInvestSheet('${escapeHtml(m.id)}')"><div class="mat-title" style="font-size:14px; font-weight:500;">${escapeHtml(m.note || m.type)}</div><div class="mat-days" style="color:var(--md-primary); font-size:22px; margin-top:4px;">${m.days} <span style="font-size:12px;">Days</span></div></div>`).join(''); matSection.style.display = 'block'; } else { matSection.style.display = 'none'; } }
+    if (matSection) {
+        const matList = document.getElementById('maturity-list');
+        if (maturities.length > 0 && matList) {
+            maturities.sort((a, b) => a.days - b.days);
+            matList.innerHTML = maturities.map(m => `<div class="maturity-card md-card" style="margin-bottom:0; flex-shrink:0; padding:12px; min-width:120px;" onclick="openInvestSheet('${escapeHtml(m.id)}')"><div class="mat-title" style="font-size:14px; font-weight:500;">${escapeHtml(m.note || m.type)}</div><div class="mat-days" style="color:var(--md-primary); font-size:22px; margin-top:4px;">${m.days} <span style="font-size:12px;">Days</span></div></div>`).join('');
+            matSection.style.display = 'block';
+        } else {
+            matSection.style.display = 'none';
+        }
+    }
 
     let allocBar = document.getElementById('alloc-bar');
     if (allocBar) {
@@ -387,7 +405,8 @@ function updatePortfolioCalculations() {
         }
 
         allocBar.innerHTML = allocHtml;
-        document.getElementById('alloc-legend').innerHTML = legendHtml;
+        const allocLegend = document.getElementById('alloc-legend');
+        if (allocLegend) allocLegend.innerHTML = legendHtml;
         let rebSec = document.getElementById('rebalance-section');
         if (rebSec) {
             if (hasRebalanceTargets && rebalanceHtml !== "") {
@@ -713,7 +732,7 @@ window.getUnreadNotificationCount = getUnreadNotificationCount;
 function renderNotificationBadge() {
     const badge = document.getElementById('notif-badge');
     const btn = document.getElementById('notif-bell-btn');
-    if (!badge) return;
+    if (!badge || !btn) return;
     const count = getUnreadNotificationCount();
     if (count > 0) {
         badge.style.display = 'block';
@@ -1115,7 +1134,7 @@ async function generatePDFWealthReport() {
             }
         });
 
-        let tax80c = (db.tax80cTotal || 0);
+        let tax80c = (window.currentTax80c || 0);
         let tax80cPerc = Math.min(100, (tax80c / 150000) * 100);
         let goalsHtml = '';
         (db.goals || []).slice(0, 5).forEach(g => {

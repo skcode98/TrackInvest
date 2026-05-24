@@ -891,7 +891,7 @@ function copyNetWorth() {
 function exportToCSV() {
     haptic(30);
     let rows = [['Date', 'Type', 'Amount', 'Account', 'Note', 'Tags']];
-    db.investments.sort((a, b) => parseDate(b.date) - parseDate(a.date)).forEach(inv => {
+    [...db.investments].sort((a, b) => parseDate(b.date) - parseDate(a.date)).forEach(inv => {
         rows.push([inv.date, inv.type, inv.amount, inv.account || '', inv.note || '', inv.tags || '']);
     });
     let csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -900,6 +900,7 @@ function exportToCSV() {
     a.href = URL.createObjectURL(blob);
     a.download = `InvestPro_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+    URL.revokeObjectURL(a.href);
     showSnackbar('CSV exported!', 'download');
 }
 
@@ -1965,35 +1966,60 @@ function calculateStrictTax(tax80c = null) {
     let deduction80c = tax80c !== null ? tax80c : (typeof currentTax80c !== 'undefined' ? currentTax80c : 0);
 
     if (regime === 'new') {
-        // New Regime FY 2024-25 (Standard Deduction 75k + Reburse ₹12L + Surcharge above 15L)
-        // Slabs are applied top-down marginally — each band only taxes the amount
-        // that *actually falls* in that band, not the full remaining income.
+        // New Regime FY 2024-25 (Standard Deduction 75k + Rebate up to ₹12L + Surcharge above 50L)
         let taxable = Math.max(0, sal - 75000);
-        if (taxable <= 1200000) return { liability: 0, str: "Tax Free (Rebate Limit)" };
-
-        let remaining = taxable - 1200000; // Everything above ₹12L is taxable
-        if (remaining > 300000) {
-            tax += 300000 * 0.20;  // 12-15L band: full 3L @ 20%
-            remaining -= 300000;
-        } else {
-            tax += remaining * 0.20;
-            remaining = 0;
+        let taxBeforeRebate = 0;
+        // Progressive slabs
+        // 0-3L: 0%
+        if (taxable > 300000) {
+            let slab = Math.min(taxable - 300000, 300000);
+            taxBeforeRebate += slab * 0.05;
         }
-        if (remaining > 0) tax += remaining * 0.30; // >15L @ 30%; remaining = taxable - 15L
+        // 6-9L: 10%
+        if (taxable > 600000) {
+            let slab = Math.min(taxable - 600000, 300000);
+            taxBeforeRebate += slab * 0.10;
+        }
+        // 9-12L: 15%
+        if (taxable > 900000) {
+            let slab = Math.min(taxable - 900000, 300000);
+            taxBeforeRebate += slab * 0.15;
+        }
+        // 12-15L: 20%
+        if (taxable > 1200000) {
+            let slab = Math.min(taxable - 1200000, 300000);
+            taxBeforeRebate += slab * 0.20;
+        }
+        // >15L: 30%
+        if (taxable > 1500000) {
+            taxBeforeRebate += (taxable - 1500000) * 0.30;
+        }
+        // Section 87A rebate: if total income (after standard deduction) <= 12L, tax is nil
+        if (taxable <= 1200000) return { liability: 0, str: "Tax Free (Rebate Limit)" };
+        // Rebate is limited to tax amount, so if income exceeds 12L, marginal relief may apply
+        // For simplicity, no marginal relief — standard progressive calculation
+        tax = taxBeforeRebate;
     } else {
         // Old Regime (Standard Deduction 50k + 80C up to 1.5L + Rebate 87A up to ₹5L)
         let taxable = Math.max(0, sal - 50000 - Math.min(deduction80c, 150000));
-        if (taxable <= 500000) return { liability: 0, str: "Tax Free (Rebate 87A)" };
-
-        let remaining = taxable - 500000; // Everything above ₹5L is taxable
-        if (remaining > 500000) {
-            tax += 500000 * 0.20; // 5-10L band: full 5L @ 20%
-            remaining -= 500000;
-        } else {
-            tax += remaining * 0.20;
-            remaining = 0;
+        // 0-2.5L: nil
+        // 2.5-5L: 5%
+        let taxBeforeRebate = 0;
+        if (taxable > 250000) {
+            let slab = Math.min(taxable - 250000, 250000);
+            taxBeforeRebate += slab * 0.05;
         }
-        if (remaining > 0) tax += remaining * 0.30; // >10L @ 30%; remaining = taxable - 10L
+        // 5-10L: 20%
+        if (taxable > 500000) {
+            let slab = Math.min(taxable - 500000, 500000);
+            taxBeforeRebate += slab * 0.20;
+        }
+        // >10L: 30%
+        if (taxable > 1000000) {
+            taxBeforeRebate += (taxable - 1000000) * 0.30;
+        }
+        if (taxable <= 500000) return { liability: 0, str: "Tax Free (Rebate 87A)" };
+        tax = taxBeforeRebate;
     }
 
     tax = tax * 1.04; // 4% Health & Education Cess
@@ -2383,7 +2409,7 @@ function renderHeatmap() {
             let d = new Date(e.date);
             if (d.getMonth() === month && d.getFullYear() === year) {
                 let dStr = getLocalYYYYMMDD(d);
-                spendMap[dStr] = (spendMap[dStr] || 0) + e.amount;
+                spendMap[dStr] = (spendMap[dStr] || 0) + (e.amount||0);
             }
         });
     }
@@ -2736,12 +2762,17 @@ function calculateDynamicTotal() {
 }
 
 function reverseCalculateUnits() {
-    let amt = parseFloat(document.getElementById('inv-amt').value) || 0;
-    let price = parseFloat(document.getElementById('inv-price').value) || 0;
+    let amtEl = document.getElementById('inv-amt');
+    let priceEl = document.getElementById('inv-price');
+    if (!amtEl || !priceEl) return;
+    let amt = parseFloat(amtEl.value) || 0;
+    let price = parseFloat(priceEl.value) || 0;
     if (amt > 0 && price > 0) {
         let units = amt / price;
-        document.getElementById('inv-qty').value = units.toFixed(4);
-        document.getElementById('inv-units-hidden').value = units;
+        let qtyEl = document.getElementById('inv-qty');
+        if (qtyEl) qtyEl.value = units.toFixed(4);
+        let hiddenEl = document.getElementById('inv-units-hidden');
+        if (hiddenEl) hiddenEl.value = units;
     }
 }
 
@@ -2802,6 +2833,7 @@ async function fetchLiveNAV(code) {
 
     // Show loading on price field
     let priceInput = document.getElementById('inv-price');
+    if (!priceInput) return;
     let originalPrice = priceInput.value;
     priceInput.value = 'Loading...';
     priceInput.disabled = true;

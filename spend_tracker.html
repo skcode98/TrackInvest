@@ -298,7 +298,7 @@
         try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; } catch(e){}
         const STORAGE_KEY = 'appHubInvestDb';
         function loadDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; } }
-        function saveDB() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {} } catch(e) { showSnackbar('Storage failed','error'); } }
+        function saveDB() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {} } catch(e) { console.error('Storage failed', e); } }
         function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
         let db = loadDB();
         if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
@@ -327,7 +327,6 @@
             'needs': ['Food & Dining','Groceries','Bills & Utilities','Rent','Health & Medical','Transport'],
             'wants': ['Entertainment','Shopping','Travel'],
             'investments': ['Investment'],
-            'customInvestments': ['Investment'],
             'income': ['Income']
         };
 
@@ -778,7 +777,8 @@
 
             const ctx2=document.getElementById('dailyTrendChart').getContext('2d'); if(dailyTrendChart)dailyTrendChart.destroy();
             const days=Object.keys(daily).sort();
-            dailyTrendChart=new Chart(ctx2,{type:'bar',data:{labels:days,datasets:[{data:days.map(d=>daily[d]),backgroundColor:'var(--md-primary)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}}},y:{beginAtZero:true,ticks:{font:{size:9}}}}}});
+            const mdPrimary = getComputedStyle(document.documentElement).getPropertyValue('--md-primary').trim() || '#415F91';
+            dailyTrendChart=new Chart(ctx2,{type:'bar',data:{labels:days,datasets:[{data:days.map(d=>daily[d]),backgroundColor:mdPrimary,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}}},y:{beginAtZero:true,ticks:{font:{size:9}}}}}});
         }
 
         // ── SANKEY ──
