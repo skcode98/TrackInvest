@@ -2396,7 +2396,7 @@ function renderHeatmap() {
         let nextD = new Date(rec.nextRun);
         if (nextD.getMonth() === month && nextD.getFullYear() === year) {
             let dStr = getLocalYYYYMMDD(nextD);
-            if (activeAccountFilter === 'All' || rec.account === activeAccountFilter) {
+            if (window.activeAccountFilter === 'All' || rec.account === window.activeAccountFilter) {
                 futureMap[dStr] = (futureMap[dStr] || 0) + rec.amount;
             }
         }
@@ -2461,7 +2461,7 @@ function renderHeatmap() {
             hasData = true;
             tooltip = `Spent: ${fmtAmt(spdAmt)}`;
         } else if (futAmt > 0) {
-            cls += ' active-future';
+            cls += ' ' + intensityClass('active-future', futAmt);
             hasData = true;
             tooltip = `SIP: ${fmtAmt(futAmt)}`;
         }
@@ -2481,12 +2481,14 @@ function renderHeatmap() {
         { cls: 'active-spend-mid', label: ' ' },
         { cls: 'active-spend-light', label: ' ' },
         { cls: 'active-future', label: 'SIP' },
+        { cls: 'active-future-mid', label: ' ' },
+        { cls: 'active-future-light', label: ' ' },
     ];
 
     html += `<div class="heatmap-legends">`;
     html += `<div><div class="dot" style="background:var(--md-primary);"></div> Invest <div class="row"><div class="labs"><span>₹500</span><span>₹5K</span></div></div></div>`;
     html += `<div><div class="dot" style="background:var(--md-tertiary);"></div> Spend</div>`;
-    html += `<div><div class="dot" style="background:#D96200;"></div> SIP</div>`;
+    html += `<div><div class="dot" style="background:#D96200;"></div> SIP <div class="row"><div class="labs"><span>₹500</span><span>₹5K</span></div></div></div>`;
     html += `</div>`;
 
     heatmapGrid.innerHTML = html;

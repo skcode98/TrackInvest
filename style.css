@@ -1586,12 +1586,6 @@ input[type=range]::-webkit-slider-runnable-track {
     cursor: pointer;
 }
 
-.heatmap-cell-cal.active-future {
-    background: #D96200;
-    color: #fff;
-    cursor: pointer;
-}
-
 .heatmap-cell-cal.today-border {
     border: 2px solid var(--md-primary);
 }
@@ -1604,6 +1598,8 @@ input[type=range]::-webkit-slider-runnable-track {
 .heatmap-cell-cal.active-spend-mid { background: color-mix(in srgb, var(--md-tertiary) 55%, var(--md-surface-container-highest)); color: var(--md-on-tertiary); cursor: pointer; }
 .heatmap-cell-cal.active-spend { background: var(--md-tertiary); color: var(--md-on-tertiary); cursor: pointer; font-weight:600; }
 
+.heatmap-cell-cal.active-future-light { background: color-mix(in srgb, #D96200 25%, var(--md-surface-container-highest)); color: #D96200; cursor: pointer; }
+.heatmap-cell-cal.active-future-mid { background: color-mix(in srgb, #D96200 55%, var(--md-surface-container-highest)); color: #fff; cursor: pointer; }
 .heatmap-cell-cal.active-future { background: #D96200; color: #fff; cursor: pointer; font-weight:600; }
 
 .heatmap-legends { display:flex; gap:16px; margin-top:8px; font-size:10px; justify-content:center; color:var(--md-on-surface-variant); flex-wrap:wrap; }
