@@ -903,7 +903,6 @@ function extractSIPsAndGoals() {
 
     // Add actual badge next to SIP planned total (filtered to recurring types)
     const sipTypes = [...new Set((db.recurring || []).map(r => r.type))];
-    const sipActualTotal = showActual && sipTypes.length > 0 ? investActualForMonth() : 0;
     const sipParent = document.getElementById('extracted-sips')?.parentElement;
     if (sipParent) {
         let existing = sipParent.querySelector('.actual-badge');
@@ -1655,12 +1654,17 @@ function autoFillWants() {
 // RECALCULATE
 // ──────────────────────────────────────────────────────────────
 function recalc() {
-    const income      = plan.income.reduce((s, i) => s + i.amount, 0);
-    let totalNeeds  = plan.needs.reduce((s, i) => s + i.amount, 0);
-    let totalWants  = plan.wants.reduce((s, i) => s + i.amount, 0);
-    const useActual = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
+    const income       = plan.income.reduce((s, i) => s + i.amount, 0);
+    let totalNeeds   = plan.needs.reduce((s, i) => s + i.amount, 0);
+    let totalWants   = plan.wants.reduce((s, i) => s + i.amount, 0);
+    const useActual  = viewOffset <= 0 && (actualInvest > 0 || actualSpendTotal > 0);
     const plannedInvest = extractedSIPTotal + extractedGoalTotal;
-    const totalInvest = useActual ? actualInvest : plannedInvest;
+    const totalInvest   = useActual ? actualInvest : plannedInvest;
+
+    // Preserve planned values for hero badges (before overwrite)
+    const heroPlannedNeeds   = totalNeeds;
+    const heroPlannedWants   = totalWants;
+    const heroPlannedInvest  = plannedInvest;
 
     if (viewOffset <= 0 && actualSpendTotal > 0) {
         totalNeeds = Math.round(actualNeedsFromSpend);
@@ -1699,9 +1703,12 @@ function recalc() {
     balEl.textContent = (balance >= 0 ? '₹' : '-₹') +
         Math.abs(Math.round(balance)).toLocaleString('en-IN');
 
-    const plannedTotal = totalNeeds + totalWants + totalInvest;
+    // Planned = always from plan inputs (never actual)
+    const plannedTotal = heroPlannedNeeds + heroPlannedWants + heroPlannedInvest;
     pnEl.textContent = '₹' + (income > 0 ? Math.round(plannedTotal) : 0).toLocaleString('en-IN');
-    if (viewOffset <= 0 && (actualSpendTotal > 0 || actualInvest > 0)) {
+    // Actual = live data (spend + invest)
+    const hasActualData = viewOffset <= 0 && (actualSpendTotal > 0 || actualInvest > 0);
+    if (hasActualData) {
         const actualTotal = actualSpendTotal + actualInvest;
         acEl.textContent = '₹' + Math.round(actualTotal).toLocaleString('en-IN');
     } else {
@@ -2143,7 +2150,6 @@ function escapeHtml(str) {
 
 function getActualForItem(type, itemName) {
     if (!itemName) return 0;
-    const itemLower = itemName.toLowerCase();
     // Try last mapping log first
     if (window.__lastMappingLog && window.__lastMappingLog.length > 0) {
         const mappedFrom = window.__lastMappingLog

@@ -1714,7 +1714,7 @@ function performTabSwitch(tabId, fromPopState = false) {
 
     renderAll();
     if (tabId === 'portfolio') renderDonutChart(currentTypeTotals, currentTotalNW);
-    if (tabId === 'dashboard') renderRollingChart();
+    if (tabId === 'dashboard') { renderNWChart(); renderRollingChart(); }
     if (tabId !== 'portfolio') {
         const catChartCanvas = document.getElementById('categoryHistoryChart');
         if (catChartCanvas && categoryChartInstance) {
