@@ -184,7 +184,18 @@
             <span style="font-weight:600;font-size:17px;" id="spend-sheet-title">Add Expense</span>
         </div>
         <div class="input-container"><label>Amount (₹)</label><input type="number" id="spend-amt-input" class="md-input" placeholder="0.00" inputmode="decimal"></div>
-        <div class="input-container"><label>Description</label><input type="text" id="spend-comment-input" class="md-input" placeholder="What for?" list="comment-suggestions"></div>
+        <div class="input-container"><label>Description
+            <button class="ai-button-inline" id="ai-cat-suggest-btn"
+                style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;font-size:11px;vertical-align:middle;margin-left:4px;display:none;"
+                onclick="aiSuggestCategory()" title="AI suggest category"><span class="material-symbols-rounded" style="font-size:14px;">auto_awesome</span></button>
+        </label>
+        <input type="text" id="spend-comment-input" class="md-input" placeholder="What for?" list="comment-suggestions" oninput="onSpendCommentInput(this)"></div>
+        <div class="input-container"><label>Category</label>
+            <select id="spend-category-select" class="md-input">
+                <option value="Uncategorized">Auto-detect</option>
+                ${Object.keys(CAT_COLORS).map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+        </div>
         <div class="input-container"><label>Date</label><input type="date" id="spend-date-input" class="md-input"></div>
         <div style="display:flex;gap:12px;margin-top:20px;">
             <button class="btn-secondary" id="spend-del-btn" style="display:none;color:var(--md-error);border-color:var(--md-error);flex:0.4;" onclick="deleteSpendEntry()"><span class="material-symbols-rounded">delete</span> Delete</button>
@@ -382,12 +393,14 @@
                 const e = db.spendTracker.entries.find(x => x.id === spendEditId);
                 if (e) { e.amount = amt; e.comment = sanitized; e.date = date.toISOString(); }
             } else {
+                const catEl = document.getElementById('spend-category-select');
+                const cat = catEl?.value || 'Uncategorized';
                 db.spendTracker.entries.push({
                     id: Date.now() + '_q' + Math.random().toString(36).slice(2,6),
                     amount: amt,
                     comment: sanitized,
                     date: date.toISOString(),
-                    category: 'Uncategorized'
+                    category: cat
                 });
             }
             saveDB();
@@ -755,13 +768,38 @@
             Swal.fire({title:'Categorize '+entries.length+' items',html:h,showCancelButton:true,confirmButtonText:'Save',preConfirm:()=>{entries.forEach((e,i)=>{const s=document.getElementById('mc-'+i); if(s) e.category=s.value;}); saveDB(); renderAll();}});
         }
 
+        // ── AI CATEGORY SUGGESTION ──
+        function onSpendCommentInput(el) {
+            const btn = document.getElementById('ai-cat-suggest-btn');
+            if (btn) btn.style.display = el.value.trim().length > 2 ? 'inline' : 'none';
+        }
+
+        async function aiSuggestCategory() {
+            const comment = document.getElementById('spend-comment-input')?.value.trim();
+            if (!comment || comment.length < 3) return;
+            if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return showSnackbar("Add API key in Settings","key");
+            const btn = document.getElementById('ai-cat-suggest-btn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;animation:spin 1s linear infinite;">autorenew</span>'; }
+            try {
+                const cats = Object.keys(CAT_COLORS).join(', ');
+                const r = await callAI(`Expense: "${comment.slice(0,100)}". Categories: ${cats}. Which category fits best? Return category name only, no explanation.`, 'spend_categorize_2');
+                const cat = r.trim().replace(/["'.]/g, '');
+                if (CAT_COLORS[cat]) {
+                    const catSel = document.getElementById('spend-category-select');
+                    if (catSel) catSel.value = cat;
+                    showSnackbar(`Suggested: ${cat}`, 'auto_awesome');
+                }
+            } catch(e) { showSnackbar("AI suggest failed", "error"); }
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">auto_awesome</span>'; }
+        }
+
         async function runAIInsights() {
             const entries=getMonthEntries();
             if(entries.length===0){Swal.fire('Info','No data this month','info');return;}
             const btn=document.getElementById('ai-insights-btn'); btn.disabled=true; btn.innerHTML='<span class="material-symbols-rounded ai-loading-icon">autorenew</span> Analyzing...';
-            const byCat={}; entries.forEach(e=>{const c=e.category||'Uncategorized';if(!byCat[c])byCat[c]=0;byCat[c]+=e.amount;});
+            const byCat={}; const byDay={}; entries.forEach(e=>{const c=e.category||'Uncategorized';if(!byCat[c])byCat[c]=0;byCat[c]+=e.amount;const d=new Date(e.date);const day=d.getDay();const dayName=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day];if(!byDay[dayName])byDay[dayName]=0;byDay[dayName]+=e.amount;});
             const total=entries.reduce((s,e)=>s+e.amount,0); const days=Math.min(new Date().getDate(), new Date(currentYear,currentMonth+1,0).getDate());
-            const prompt = `Monthly spending analysis. 3-5 insights as simple HTML paragraphs with <strong> for numbers. No markdown, no codeblocks.\n\nTotal: ₹${total}\nTxns: ${entries.length}\nCategories: ${JSON.stringify(byCat)}\nAvg/day: ₹${Math.round(total/days)}`;
+            const prompt = `Monthly spending analysis. Include a note about weekday vs weekend patterns. 3-5 insights as simple HTML paragraphs with <strong> for numbers. No markdown, no codeblocks.\n\nTotal: ₹${total}\nTxns: ${entries.length}\nCategories: ${JSON.stringify(byCat)}\nWeekday totals: ${JSON.stringify(byDay)}\nAvg/day: ₹${Math.round(total/days)}`;
             try { const r=await callAI(prompt,'spend_insight_2'); const o=document.getElementById('ai-insights-output'); o.innerHTML=DOMPurify.sanitize(r,{ALLOWED_TAGS:['p','b','i','strong','em','br','ul','ol','li'],ALLOWED_ATTR:[]}); o.style.display='block'; } catch(e) { Swal.fire('Error','AI failed. Check API keys.','error'); }
             btn.disabled=false; btn.innerHTML='<span class="material-symbols-rounded">insights</span> Insights';
         }

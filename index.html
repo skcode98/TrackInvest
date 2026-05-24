@@ -577,7 +577,12 @@
 
             <div class="input-row">
                 <div class="input-container" style="flex:2"><label>Asset Note / Name</label><input type="text"
-                        id="inv-note" class="md-input" placeholder="e.g. Nifty 50"></div>
+                        id="inv-note" class="md-input" placeholder="e.g. Nifty 50">
+                        <button class="ai-button-inline"
+                            style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;margin-left:4px;"
+                            onclick="aiSuggestInvestment()" title="AI Suggest: fill category, tags, price from name"><span
+                                class="material-symbols-rounded">auto_fix_high</span></button>
+                    </div>
                 <div class="input-container" style="flex:1"><label>Tags</label>
                     <div style="display:flex;align-items:center;">
                         <input type="text" id="inv-tags" class="md-input" placeholder="#Tax">

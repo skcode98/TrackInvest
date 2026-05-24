@@ -12,6 +12,29 @@ async function generateAITags() {
     try { let tags = await callAIApi(prompt, "You return comma-separated lists of tags only."); tagInput.value = tags; haptic([30, 50]); } catch (e) { tagInput.value = ""; showSnackbar("AI Tag generation failed.", "error"); }
 }
 
+async function aiSuggestInvestment() {
+    haptic(40);
+    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return showSnackbar("Please add API Key in Settings.", "key");
+    const noteEl = document.getElementById('inv-note');
+    const typeEl = document.getElementById('inv-type-display');
+    const note = noteEl?.value?.trim();
+    if (!note) return showSnackbar("Enter an Asset Note/Name first.", "edit");
+    const type = window.currentInvType || 'Unknown';
+    const categories = Object.keys(db.categories || {}).join(', ');
+    const btn = document.querySelector('[onclick="aiSuggestInvestment()"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;animation:spin 1s linear infinite;">autorenew</span>'; }
+    try {
+        const r = await callAIApi(`Investment type: ${type}. Asset note: "${note.slice(0,200)}". Available categories: ${categories}. Suggest: 1) subcategory 2) best matching category from the list 3) 3 tags 4) estimated price if known. Return JSON only: {"subcat":"...","category":"...","tags":"tag1,tag2,tag3","estPrice":0}.`, 'You return only valid JSON. No markdown.');
+        const d = JSON.parse(r.replace(/```json|```/gi,'').trim());
+        if (d.subcat) { const el = document.getElementById('inv-subcat'); if (el) el.value = d.subcat; }
+        if (d.category && db.categories?.[d.category]) { const el = document.getElementById('invest-type-select'); if (el) { el.value = d.category; el.dispatchEvent(new Event('change')); } }
+        if (d.tags) { const el = document.getElementById('inv-tags'); if (el) el.value = d.tags; }
+        if (d.estPrice > 0) { const el = document.getElementById('inv-price'); if (el && !el.value) el.value = d.estPrice.toFixed(2); }
+        showSnackbar("AI suggestions applied!", "auto_awesome");
+    } catch (e) { showSnackbar("AI suggest failed. Try manual entry.", "error"); }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>'; }
+}
+
 // ==========================================
 function processRecurring() {
     let today = new Date(); let updated = false; let processedCount = 0;
@@ -417,6 +440,35 @@ function updatePortfolioCalculations() {
                     <div class="rebalance-list">${rebalanceHtml}</div>
                 </div>`;
                 rebSec.style.display = 'block';
+                // AI rebalancing insight (only if not cached today)
+                if (hasRebalanceTargets && totalShortfall > 0 && window.__aiEnabled !== false) {
+                    const rebCacheKey = 'reb_' + new Date().toDateString();
+                    if (!window.__rebCache) window.__rebCache = {};
+                    if (!window.__rebCache[rebCacheKey]) {
+                        const catData = Object.keys(shortfalls).map(t => {
+                            const cur = typeTotals[t] || 0;
+                            const tgt = db.allocTargets[t] || 0;
+                            return { category: t, currentPct: totalMarketValue > 0 ? ((cur/totalMarketValue)*100).toFixed(0) : 0, targetPct: tgt, shortfall: Math.round(shortfalls[t]) };
+                        });
+                        const overData = Object.keys(overAllocated).map(t => ({ category: t, excess: Math.round(overAllocated[t]) }));
+                        window.__rebCache[rebCacheKey] = { catData, overData };
+                        (async () => {
+                            try {
+                                const r = await callAIApi(`Portfolio rebalancing needed. Under-allocated: ${JSON.stringify(catData)}. Over-allocated: ${JSON.stringify(overData)}. Monthly projection: ₹${db.projectionNextMonth || 0}. Suggest 1-2 specific actions in plain English, focusing on which category to reduce and which to increase. Keep to 2 sentences.`, 'You are a portfolio rebalancing advisor. Be specific and actionable.');
+                                if (r) {
+                                    const aiRebSec = document.getElementById('rebalance-section');
+                                    if (aiRebSec) {
+                                        const aiCard = document.createElement('div');
+                                        aiCard.className = 'rebalance-card';
+                                        aiCard.style.cssText = 'background:var(--md-tertiary-container);border:1px solid var(--md-outline-variant);border-radius:16px;padding:16px;margin-top:8px;';
+                                        aiCard.innerHTML = `<div style="display:flex;align-items:center;gap:6px;font-weight:500;font-size:13px;margin-bottom:4px;"><span class="material-symbols-rounded" style="font-size:16px;color:var(--md-on-tertiary-container);">auto_awesome</span> AI Advice</div><div style="font-size:12px;color:var(--md-on-tertiary-container);">${DOMPurify.sanitize(r.replace(/\*{1,2}/g,''))}</div>`;
+                                        aiRebSec.appendChild(aiCard);
+                                    }
+                                }
+                            } catch (e) {}
+                        })();
+                    }
+                }
             } else {
                 rebSec.style.display = 'none';
             }
@@ -846,8 +898,56 @@ function generateScheduledNotifications() {
             });
         }
     }
+
+    // AI anomaly detection (weekly, on Mondays)
+    if (prefs.anomalyAlerts !== false && new Date().getDay() === 1) {
+        detectSpendAnomaliesAI();
+    }
+
+    // Monthly financial letter (1st of month)
+    if (prefs.monthlyLetter !== false && new Date().getDate() === 1) {
+        generateMonthlyLetterAI();
+    }
 }
 window.generateScheduledNotifications = generateScheduledNotifications;
+
+async function detectSpendAnomaliesAI() {
+    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return;
+    if (!db.spendTracker?.entries) return;
+    const now = new Date();
+    const curM = now.getMonth(), curY = now.getFullYear();
+    const entries = db.spendTracker.entries;
+    const curMonth = entries.filter(e => { const d = new Date(e.date); return d.getMonth() === curM && d.getFullYear() === curY; });
+    if (curMonth.length < 3) return;
+    const byCat = {};
+    curMonth.forEach(e => { const c = e.category || 'Uncategorized'; if (!byCat[c]) byCat[c] = { total: 0, count: 0 }; byCat[c].total += e.amount; byCat[c].count++; });
+    const catSummary = Object.keys(byCat).map(c => ({ cat: c, total: byCat[c].total, count: byCat[c].count, avg: Math.round(byCat[c].total / byCat[c].count) }));
+    try {
+        const r = await callAIApi(JSON.stringify(catSummary) + ' — Above is my current month spending by category. Identify any anomalies: categories unusually high, unusual frequency, or anything that looks off. Respond as 1-2 short sentences. No markdown.', 'You are a personal finance anomaly detector. Be concise.');
+        if (r) addInAppNotification('Spending Anomaly Detected', r.replace(/<[^>]*>/g, ''), 'alert', 'warning');
+    } catch (e) {}
+}
+
+async function generateMonthlyLetterAI() {
+    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return;
+    const monthKey = new Date().toISOString().slice(0, 7);
+    if (db._monthlyLetterCache?.[monthKey]) return;
+    const now = new Date();
+    const m = now.getMonth(), y = now.getFullYear();
+    const invTotal = (db.investments || []).filter(i => { const d = new Date(i.date); return d.getMonth() === m && d.getFullYear() === y; }).reduce((s, i) => s + (i.amount||0), 0);
+    const spendTotal = (db.spendTracker?.entries || []).filter(e => { const d = new Date(e.date); return d.getMonth() === m && d.getFullYear() === y; }).reduce((s, e) => s + (e.amount||0), 0);
+    const income = db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0;
+    const nw = currentTotalNW || 0;
+    const goals = (db.goals || []).map(g => ({ name: g.name, pct: g.target > 0 ? Math.round((g.saved||0)/g.target*100) : 0 }));
+    try {
+        const r = await callAIApi(`Monthly summary for ${now.toLocaleString('default',{month:'long'})} ${y}: Invested ₹${invTotal}, Spent ₹${spendTotal}, Income ₹${income}, Net Worth ₹${nw}. Goals: ${JSON.stringify(goals)}. Write 2-3 sentence encouraging financial summary with one actionable tip. No markdown.`, 'You are a friendly personal finance coach. Be concise and encouraging.');
+        if (r) {
+            if (!db._monthlyLetterCache) db._monthlyLetterCache = {};
+            db._monthlyLetterCache[monthKey] = r.replace(/<[^>]*>/g, '');
+            addInAppNotification('Monthly Financial Letter', db._monthlyLetterCache[monthKey], 'summary', 'auto_awesome');
+        }
+    } catch (e) {}
+}
 
 function calculatePortfolioHealth() {
     let score = 100;

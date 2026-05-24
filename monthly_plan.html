@@ -411,6 +411,10 @@
                 </span>
                 <span id="hero-comparison" style="display:none;align-items:center;gap:4px;background:rgba(0,0,0,0.07);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;">
                 </span>
+                <button class="icon-btn" onclick="askAIAboutPage()" title="Ask AI about this month"
+                    style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;font-size:16px;margin-left:4px;">
+                    <span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>
+                </button>
             </div>
         </div>
 
@@ -813,6 +817,25 @@ function loadPlanForMonth(key) {
             const ms = db.userProfile?.salary ? Math.round(db.userProfile.salary / 12) : 0;
             if (ms) plan.income[0].amount = ms;
             if (db.userProfile?.monthlyExpense) plan.needs[0].amount = db.userProfile.monthlyExpense;
+            // AI budget suggestion based on last 3 months actual spending
+            if ((db.geminiKey || db.groqKey || db.openrouterKey || db.cerebrasKey || db.githubKey) && db.spendTracker?.entries) {
+                const now = new Date(); const avg = { needs: 0, wants: 0 }; let count = 0;
+                for (let i = 1; i <= 3; i++) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const m = d.getMonth(), y = d.getFullYear();
+                    const monthSpend = db.spendTracker.entries.filter(e => { const ed = new Date(e.date); return ed.getMonth() === m && ed.getFullYear() === y; });
+                    if (monthSpend.length > 0) {
+                        monthSpend.forEach(e => { const c = (e.category||'').toLowerCase(); ['rent','emi','mortgage','grocery','groceries','house','housing','utility','utilities','electricity','internet','gas','water','mobile','phone','bills','fuel','transport','bus','train','commute','school','tuition','health','doctor','medicine','medical','food'].some(k => c.includes(k)) ? avg.needs += e.amount : avg.wants += e.amount; });
+                        count++;
+                    }
+                }
+                if (count > 0 && ms > 0) {
+                    const avgNeeds = Math.round(avg.needs / count);
+                    const avgWants = Math.round(avg.wants / count);
+                    if (avgNeeds > 0) plan.needs[0].amount = avgNeeds;
+                    if (avgWants > 0) { if (plan.wants.length > 0) plan.wants[0].amount = avgWants; else plan.wants.push({ name: 'Lifestyle', amount: avgWants, autoMatched: true }); }
+                }
+            }
             saveCurrentPlanSilent();
         }
     }
@@ -2226,6 +2249,38 @@ function renderMonthAnalysis() {
         </div>`;
     }
     container.innerHTML = html;
+
+    // AI cross-month trend insight
+    const trendKey = 'trend_' + getMonthKey(new Date());
+    if (!window.__trendCache) window.__trendCache = {};
+    if (!window.__trendCache[trendKey] && (db.geminiKey || db.groqKey || db.openrouterKey || db.cerebrasKey || db.githubKey)) {
+        const months = [];
+        for (let i = 2; i >= 0; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const m = d.getMonth(), y = d.getFullYear();
+            const inv = (db.investments || []).filter(inv => { const id = new Date(inv.date); return id.getMonth() === m && id.getFullYear() === y; }).reduce((s, x) => s + (x.amount||0), 0);
+            const spend = (db.spendTracker?.entries || []).filter(e => { const ed = new Date(e.date); return ed.getMonth() === m && ed.getFullYear() === y; }).reduce((s, e) => s + (e.amount||0), 0);
+            months.push({ month: d.toLocaleString('default',{month:'short'}), invested: inv, spent: spend });
+        }
+        window.__trendCache[trendKey] = 'pending';
+        (async () => {
+            try {
+                const r = await callAI(`Compare these 3 months: ${JSON.stringify(months)}. Identify one notable trend (increasing, decreasing, or sudden change) in investment or spending. One sentence only. No markdown.`, 'You are a financial trend analyst. Be concise.');
+                if (r) {
+                    window.__trendCache[trendKey] = r;
+                    const trendDiv = document.createElement('div');
+                    trendDiv.style.cssText = 'margin-top:12px;padding:10px 14px;background:var(--md-primary-container);border-radius:14px;font-size:12px;color:var(--md-on-primary-container);display:flex;align-items:center;gap:8px;';
+                    trendDiv.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">trending_up</span> ' + DOMPurify.sanitize(r.replace(/\*{1,2}/g,''),{ALLOWED_TAGS:[],ALLOWED_ATTR:[]});
+                    container.appendChild(trendDiv);
+                }
+            } catch (e) { window.__trendCache[trendKey] = ''; }
+        })();
+    } else if (window.__trendCache[trendKey] && window.__trendCache[trendKey] !== 'pending') {
+        const trendDiv = document.createElement('div');
+        trendDiv.style.cssText = 'margin-top:12px;padding:10px 14px;background:var(--md-primary-container);border-radius:14px;font-size:12px;color:var(--md-on-primary-container);display:flex;align-items:center;gap:8px;';
+        trendDiv.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">trending_up</span> ' + DOMPurify.sanitize(window.__trendCache[trendKey].replace(/\*{1,2}/g,''),{ALLOWED_TAGS:[],ALLOWED_ATTR:[]});
+        container.appendChild(trendDiv);
+    }
 }
 
 function _isNeedsCategory(cat) {
@@ -2238,6 +2293,21 @@ function _isNeedsCategory(cat) {
 // ──────────────────────────────────────────────────────────────
 // AI TIP
 // ──────────────────────────────────────────────────────────────
+function askAIAboutPage() {
+    const d = getViewDate();
+    const label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const income = plan.income.reduce((s, x) => s + (x.amount||0), 0);
+    const needs = plan.needs.reduce((s, x) => s + (x.amount||0), 0);
+    const wants = plan.wants.reduce((s, x) => s + (x.amount||0), 0);
+    const inv = plan.investments.reduce((s, x) => s + (x.amount||0), 0);
+    const savings = income - needs - wants - inv;
+    const msg = encodeURIComponent(`Analyze my ${label} budget: Income ₹${income}, Needs ₹${needs}, Wants ₹${wants}, Investments ₹${inv}, Remaining ₹${savings}. What's one actionable insight?`);
+    window.open(`index.html#ai-hub`, '_blank');
+    setTimeout(() => {
+        try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'ai-chat', message: decodeURIComponent(msg) }); } catch(e) {}
+    }, 500);
+}
+
 async function triggerAITip() {
     if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) {
         snack('Add an API key in Settings for AI tips.', 'key'); return;
