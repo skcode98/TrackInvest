@@ -863,13 +863,65 @@ window.onload = function () {
 // ──────────────────────────────────────────────────────────────
 // EXTRACT LIVE DATA
 // ──────────────────────────────────────────────────────────────
+function investActualForMonth(typeFilter) {
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+    return (db.investments || []).filter(i => {
+        if (typeFilter && i.type !== typeFilter) return false;
+        const id = new Date(i.date);
+        return id.getMonth() === m && id.getFullYear() === y;
+    }).reduce((s, i) => s + (i.amount || 0), 0);
+}
+
 function extractSIPsAndGoals() {
     extractedSIPTotal = (db.recurring || []).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
     const sipCount = (db.recurring || []).length;
+    const showActual = viewOffset <= 0;
+
+    // SIPs with actual for each recurring type
+    let sipActualHTML = '';
+    if (sipCount > 0 && showActual) {
+        (db.recurring || []).forEach(r => {
+            const actual = investActualForMonth(r.type);
+            if (actual > 0) {
+                sipActualHTML += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--md-tertiary);">
+                    <span>${escapeHtml(r.note || r.type)}</span>
+                    <span>₹${Math.round(actual).toLocaleString('en-IN')}</span>
+                </div>`;
+            }
+        });
+    }
+    const sipEl = document.getElementById('sip-sub-text');
+    if (sipEl) {
+        sipEl.innerHTML = sipCount > 0
+            ? `${sipCount} active SIP${sipCount > 1 ? 's' : ''}${sipActualHTML ? '<br>' + sipActualHTML : ''}`
+            : 'No recurring SIPs set';
+    }
     document.getElementById('extracted-sips').textContent =
         Math.round(extractedSIPTotal).toLocaleString('en-IN');
-    document.getElementById('sip-sub-text').textContent =
-        sipCount > 0 ? `${sipCount} active SIP${sipCount > 1 ? 's' : ''}` : 'No recurring SIPs set';
+
+    // Add actual badge next to SIP planned total (filtered to recurring types)
+    const sipTypes = [...new Set((db.recurring || []).map(r => r.type))];
+    const sipActualTotal = showActual && sipTypes.length > 0 ? investActualForMonth() : 0;
+    const sipParent = document.getElementById('extracted-sips')?.parentElement;
+    if (sipParent) {
+        let existing = sipParent.querySelector('.actual-badge');
+        if (!existing) {
+            existing = document.createElement('span');
+            existing.className = 'actual-badge';
+            existing.style.cssText = 'display:block;font-size:11px;font-weight:400;color:var(--md-tertiary);margin-top:2px;';
+            sipParent.appendChild(existing);
+        }
+        // Filter actual investments to only those matching recurring SIP types
+        const actualFiltered = (db.investments || []).filter(i => {
+            if (!sipTypes.includes(i.type)) return false;
+            const d = getViewDate(); let m = d.getMonth(), y = d.getFullYear();
+            if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+            const id = new Date(i.date); return id.getMonth() === m && id.getFullYear() === y;
+        }).reduce((s, i) => s + (i.amount || 0), 0);
+        existing.textContent = actualFiltered > 0 ? `Actual: ₹${Math.round(actualFiltered).toLocaleString('en-IN')}` : '';
+    }
 
     extractedGoalTotal = 0;
     const horizon = Math.max(1, parseInt(document.getElementById('goal-horizon').value) || 24);
@@ -893,18 +945,51 @@ function extractSIPsAndGoals() {
             const el = document.createElement('div');
             el.className = 'goal-sub-item';
             const pct = Math.min(100, Math.round((totalSaved / target) * 100));
+
+            // Actual investment for this goal's linked category this month
+            let goalActual = 0;
+            if (goal.linkedCategory && showActual) {
+                goalActual = investActualForMonth(goal.linkedCategory);
+            }
+            const actualHTML = goalActual > 0
+                ? `<span style="font-size:11px;font-weight:500;color:var(--md-tertiary);text-align:right;">A: ₹${Math.round(goalActual).toLocaleString('en-IN')}</span>`
+                : '';
+
             el.innerHTML = `
                 <div>
                     <span style="font-weight:500;">${escapeHtml(goal.name)}</span>
                     <span style="font-size:10px; color:var(--md-outline); margin-left:6px;">${pct}% saved</span>
                 </div>
-                <span style="font-weight:700; color:var(--md-secondary);">₹${monthly.toLocaleString('en-IN')}/mo</span>`;
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
+                    <span style="font-weight:700; color:var(--md-secondary);">₹${monthly.toLocaleString('en-IN')}/mo</span>
+                    ${actualHTML}
+                </div>`;
             container.appendChild(el);
         }
     });
 
     if ((db.goals || []).length === 0) {
         container.innerHTML = '<div class="empty-hint">No goals set — add them in the main app.</div>';
+    }
+
+    // Goal total actual badge (filtered to goal-linked categories)
+    const goalTypes = [...new Set((db.goals || []).filter(g => g.linkedCategory).map(g => g.linkedCategory))];
+    const goalParent = document.getElementById('extracted-goals')?.parentElement;
+    if (goalParent) {
+        let existing = goalParent.querySelector('.actual-badge');
+        if (!existing) {
+            existing = document.createElement('span');
+            existing.className = 'actual-badge';
+            existing.style.cssText = 'display:block;font-size:11px;font-weight:400;color:var(--md-tertiary);margin-top:2px;';
+            goalParent.appendChild(existing);
+        }
+        const actualFiltered = showActual && goalTypes.length > 0 ? (db.investments || []).filter(i => {
+            if (!goalTypes.includes(i.type)) return false;
+            const d = getViewDate(); let m = d.getMonth(), y = d.getFullYear();
+            if (viewOffset > 0) { const now = new Date(); m = now.getMonth(); y = now.getFullYear(); }
+            const id = new Date(i.date); return id.getMonth() === m && id.getFullYear() === y;
+        }).reduce((s, i) => s + (i.amount || 0), 0) : 0;
+        existing.textContent = actualFiltered > 0 ? `Actual: ₹${Math.round(actualFiltered).toLocaleString('en-IN')}` : '';
     }
 
     document.getElementById('extracted-goals').textContent =

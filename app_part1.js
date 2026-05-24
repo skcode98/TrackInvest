@@ -569,7 +569,7 @@ Chart.defaults.plugins.tooltip.titleFont = { size: 13, weight: 'bold' };
 Chart.defaults.plugins.tooltip.padding = 10;
 Chart.defaults.plugins.tooltip.cornerRadius = 8;
 Chart.defaults.plugins.tooltip.callbacks.label = function (c) { return '₹' + Number(c.raw).toLocaleString('en-IN'); };
-Chart.defaults.animation = { duration: 1500, easing: 'easeOutQuart' };
+Chart.defaults.animation = { duration: 200, easing: 'easeOutQuart' };
 
 // Utility: Debounce function
 function debounce(func, wait) {
@@ -589,8 +589,8 @@ function debounce(func, wait) {
 function haptic(ms = 30) {
     try {
         if (typeof navigator === 'undefined' || !navigator.vibrate) return;
-// Chrome on Android requires minimum ~40ms for perceptible feedback
-    const duration = Array.isArray(ms) ? ms : Math.max(ms, 40);
+// Light tactile feedback — keep duration short to avoid jank
+    const duration = Array.isArray(ms) ? ms : Math.max(ms, 20);
     navigator.vibrate(duration);
 } catch (e) { /* vibrate unavailable */ }
 }
@@ -1192,27 +1192,37 @@ function _decryptKey(enc, pin) {
     return out;
 }
 
+let _saveDataPending = false;
+let _dataGen = 0;
+window.markDataDirty = function() { _dataGen++; window._dataGen = _dataGen; };
 function saveData() {
-    db.lastUpdated = Date.now();
-
-    const sanitizedDb = sanitizeDatabaseObject(db);
-
-    // Encrypt API keys at rest if PIN is set (on clone only, don't mutate db)
-    if (db.appPin) {
-        sanitizedDb._ek = _encryptKey(db.geminiKey || '', db.appPin) + '|' + _encryptKey(db.groqKey || '', db.appPin) + '|' + _encryptKey(db.openrouterKey || '', db.appPin) + '|' + _encryptKey(db.cerebrasKey || '', db.appPin) + '|' + _encryptKey(db.githubKey || '', db.appPin);
-        delete sanitizedDb.geminiKey; delete sanitizedDb.groqKey; delete sanitizedDb.openrouterKey; delete sanitizedDb.cerebrasKey; delete sanitizedDb.githubKey;
-    }
-
-    // Save data first using cross-browser compatible function
-    if (!safeLocalStorageSet('appHubInvestDb', sanitizedDb)) {
-        handleStorageError(new Error('localStorage access denied'));
-        return;
-    }
-
-    // Defer non-critical work (quota check, cross-tab sync) to next frame to avoid jank
+    window.markDataDirty();
+    if (_saveDataPending) return;
+    _saveDataPending = true;
+    // Coalesce rapid successive saves into one
     requestAnimationFrame(() => {
-        checkStorageQuota(sanitizedDb);
-        broadcastToTabs();
+        _saveDataPending = false;
+        db.lastUpdated = Date.now();
+
+        const sanitizedDb = sanitizeDatabaseObject(db);
+
+        // Encrypt API keys at rest if PIN is set (on clone only, don't mutate db)
+        if (db.appPin) {
+            sanitizedDb._ek = _encryptKey(db.geminiKey || '', db.appPin) + '|' + _encryptKey(db.groqKey || '', db.appPin) + '|' + _encryptKey(db.openrouterKey || '', db.appPin) + '|' + _encryptKey(db.cerebrasKey || '', db.appPin) + '|' + _encryptKey(db.githubKey || '', db.appPin);
+            delete sanitizedDb.geminiKey; delete sanitizedDb.groqKey; delete sanitizedDb.openrouterKey; delete sanitizedDb.cerebrasKey; delete sanitizedDb.githubKey;
+        }
+
+        // Save data first using cross-browser compatible function
+        if (!safeLocalStorageSet('appHubInvestDb', sanitizedDb)) {
+            handleStorageError(new Error('localStorage access denied'));
+            return;
+        }
+
+        // Defer non-critical work (quota check, cross-tab sync) to next frame to avoid jank
+        requestAnimationFrame(() => {
+            checkStorageQuota(sanitizedDb);
+            broadcastToTabs();
+        });
     });
 }
 

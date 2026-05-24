@@ -524,6 +524,8 @@ function updatePortfolioCalculations() {
 
 // Master render entry point — debounced + rAF to prevent jank on rapid calls
 let _renderAllPending = false;
+let _lastRenderGen = -1;
+
 function renderAll() {
     if (_renderAllPending) return;
     _renderAllPending = true;
@@ -531,7 +533,12 @@ function renderAll() {
         _renderAllPending = false;
         if (typeof updateAccountFilter === 'function') updateAccountFilter();
 
-        if (typeof updatePortfolioCalculations === 'function') updatePortfolioCalculations();
+        // Skip full portfolio calc if data hasn't changed (e.g. tab switch with no new data)
+        const curGen = window._dataGen !== undefined ? window._dataGen : 0;
+        if (curGen !== _lastRenderGen || typeof updatePortfolioCalculations !== 'function') {
+            if (typeof updatePortfolioCalculations === 'function') updatePortfolioCalculations();
+            _lastRenderGen = curGen;
+        }
         updateDashboardEntryCards();
         renderNotificationBadge();
         checkSpendAlerts();
