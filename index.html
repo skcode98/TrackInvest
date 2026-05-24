@@ -402,21 +402,21 @@
             </div>
 
             <!-- Filter chips row -->
-            <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;">
-                <button class="sort-chip active" id="sort-date" onclick="setLedgerSort('date',this)"><span
-                        class="material-symbols-rounded" style="font-size:14px;">calendar_today</span> Date</button>
-                <button class="sort-chip" id="sort-amount" onclick="setLedgerSort('amount',this)"><span
-                        class="material-symbols-rounded" style="font-size:14px;">attach_money</span> Amount</button>
-                <button class="sort-chip" id="sort-type" onclick="setLedgerSort('type',this)"><span
-                        class="material-symbols-rounded" style="font-size:14px;">category</span> Type</button>
+            <div id="ledger-filter-container" style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;align-items:center;padding-bottom:4px;-webkit-overflow-scrolling:touch;">
+                <button class="sort-chip active" id="sort-date" onclick="setLedgerSort('date',this)" title="Sort by Date"><span
+                        class="material-symbols-rounded" style="font-size:14px;">calendar_today</span><span class="chip-label"> Date</span></button>
+                <button class="sort-chip" id="sort-amount" onclick="setLedgerSort('amount',this)" title="Sort by Amount"><span
+                        class="material-symbols-rounded" style="font-size:14px;">attach_money</span><span class="chip-label"> Amount</span></button>
+                <button class="sort-chip" id="sort-type" onclick="setLedgerSort('type',this)" title="Sort by Type"><span
+                        class="material-symbols-rounded" style="font-size:14px;">category</span><span class="chip-label"> Type</span></button>
                 <button class="sort-chip" id="sort-asc" onclick="toggleLedgerOrder(this)" title="Toggle order"><span
                         class="material-symbols-rounded" style="font-size:14px;"
                         id="sort-order-icon">arrow_downward</span></button>
-                <span style="width:1px;height:24px;background:var(--md-outline-variant);margin:auto 4px;"></span>
-                <input type="date" id="ledger-date-from" class="date-filter-input" onchange="renderHistory()" title="From">
-                <span style="color:var(--md-outline);font-size:12px;">—</span>
-                <input type="date" id="ledger-date-to" class="date-filter-input" onchange="renderHistory()" title="To">
-                <button class="sort-chip" onclick="clearLedgerDates()" title="Clear dates"><span
+                <span style="width:1px;height:24px;background:var(--md-outline-variant);margin:auto 4px;flex-shrink:0;" class="filter-separator"></span>
+                <input type="date" id="ledger-date-from" class="date-filter-input" onchange="renderHistory()" title="From date" aria-label="From date" placeholder="From">
+                <span style="color:var(--md-outline);font-size:12px;flex-shrink:0;display:none;" class="filter-separator">—</span>
+                <input type="date" id="ledger-date-to" class="date-filter-input" onchange="renderHistory()" title="To date" aria-label="To date" placeholder="To">
+                <button class="sort-chip" onclick="clearLedgerDates()" title="Clear date filters"><span
                         class="material-symbols-rounded" style="font-size:14px;">clear</span></button>
             </div>
 

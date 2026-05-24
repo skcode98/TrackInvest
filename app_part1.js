@@ -922,6 +922,36 @@ function clearLedgerDates() {
     renderHistory();
 }
 
+// ── ENHANCE DATE INPUT MOBILE UX ────────────────────────
+function initLedgerDateInputs() {
+    const dateFromEl = document.getElementById('ledger-date-from');
+    const dateToEl = document.getElementById('ledger-date-to');
+    
+    if (!dateFromEl || !dateToEl) return;
+    
+    const updateDateDisplay = (input) => {
+        if (input.value) {
+            const date = new Date(input.value);
+            const formatted = date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+            input.title = `${input.id === 'ledger-date-from' ? 'From' : 'To'}: ${formatted}`;
+        } else {
+            input.title = input.id === 'ledger-date-from' ? 'From date' : 'To date';
+        }
+    };
+    
+    dateFromEl.addEventListener('change', () => updateDateDisplay(dateFromEl));
+    dateToEl.addEventListener('change', () => updateDateDisplay(dateToEl));
+    
+    // Initialize on load
+    updateDateDisplay(dateFromEl);
+    updateDateDisplay(dateToEl);
+}
+
+// Call on page load
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initLedgerDateInputs, 100);
+});
+
 // ── RECURRING SIP MANAGER ───────────────────────
 function renderRecurringSheet() {
     let total = db.recurring.reduce((s, r) => s + r.amount, 0);

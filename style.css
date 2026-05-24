@@ -421,6 +421,94 @@ body.lock-scroll {
     cursor: pointer;
 }
 
+/* ── LEDGER MOBILE RESPONSIVE ── */
+@media (max-width: 600px) {
+    /* Hide text labels in sort chips on mobile, show only icons */
+    .sort-chip .chip-label {
+        display: none;
+    }
+    
+    .sort-chip {
+        padding: 8px 10px;
+        gap: 0;
+    }
+    
+    .sort-chip .material-symbols-rounded {
+        font-size: 16px !important;
+        margin: 0;
+    }
+    
+    /* Make date inputs compact but functional */
+    .date-filter-input {
+        padding: 8px;
+        width: auto;
+        min-width: 48px;
+        flex-shrink: 0;
+        font-size: 12px;
+        background: var(--md-surface-container-high);
+        color: var(--md-on-surface);
+        font-weight: 500;
+        position: relative;
+    }
+    
+    .date-filter-input::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        filter: invert(1) opacity(0.6);
+        margin: 0;
+        width: 18px;
+        height: 18px;
+    }
+    
+    .date-filter-input:has(:valid)::-webkit-calendar-picker-indicator {
+        filter: invert(0) opacity(1);
+    }
+    
+    .date-filter-input[value]::-webkit-calendar-picker-indicator {
+        filter: invert(0) opacity(1);
+    }
+    
+    /* Show visual indicator for date selection */
+    .date-filter-input:focus {
+        outline: 2px solid var(--md-primary);
+        outline-offset: -1px;
+        background: var(--md-primary-container);
+    }
+    
+    /* Improve filter row layout on mobile */
+    #ledger-filter-container {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 10px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        align-items: center;
+        padding-bottom: 4px;
+        padding-right: 4px;
+    }
+    
+    #ledger-filter-container::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .filter-separator {
+        display: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra tight on very small screens */
+    .sort-chip {
+        padding: 6px 8px;
+    }
+    
+    .date-filter-input {
+        padding: 6px 8px;
+        min-width: 44px;
+    }
+}
+
 /* ── RECURRING SIP MANAGER ── */
 .sip-item {
     display: flex;
