@@ -1303,20 +1303,53 @@ function makeRow(item, index, type) {
 }
 
 // ──────────────────────────────────────────────────────────────
+// COMMON UTILITIES
+// ──────────────────────────────────────────────────────────────
+function getMonthEntries(date = getViewDate()) {
+    const m = date.getMonth(), y = date.getFullYear();
+    return (db.spendTracker?.entries || []).filter(e => {
+        const ed = new Date(e.date);
+        return ed.getMonth() === m && ed.getFullYear() === y;
+    });
+}
+
+function validateAmount(val, fieldName = 'Amount') {
+    const num = parseFloat(val);
+    if (isNaN(num)) return { valid: false, error: `${fieldName} must be a number` };
+    if (num < 0) return { valid: false, error: `${fieldName} cannot be negative` };
+    return { valid: true, value: num };
+}
+
+// ──────────────────────────────────────────────────────────────
 // EDIT HANDLERS
 // ──────────────────────────────────────────────────────────────
 function updateAmount(type, index, el) {
-    const val = parseFloat(el.value);
-    plan[type][index].amount = (val < 0 ? 0 : val) || 0;
+    const validation = validateAmount(el.value, 'Amount');
+    if (!validation.valid) {
+        el.style.borderColor = 'var(--md-error)';
+        setTimeout(() => el.style.borderColor = '', 1500);
+        snack(validation.error, 'warning');
+        el.value = plan[type][index].amount || 0;
+        return;
+    }
+    plan[type][index].amount = validation.value;
+    el.style.borderColor = '';
     recalc();
     markDirty();
 }
 
 function updateName(type, index, val) {
-    if (val.trim()) {
-        if (type === 'income') plan.income[index].name = val.trim();
-        else plan[type][index].name = val.trim();
+    const trimmed = val.trim();
+    if (!trimmed) {
+        snack('Category name cannot be empty', 'warning');
+        return;
     }
+    if (trimmed.length > 50) {
+        snack('Category name too long (max 50 chars)', 'warning');
+        return;
+    }
+    if (type === 'income') plan.income[index].name = trimmed;
+    else plan[type][index].name = trimmed;
     markDirty();
 }
 
@@ -1336,14 +1369,29 @@ function addRow(type) {
 }
 
 function removeRow(type, index) {
-    if (type === 'investments') {
-        plan.investments.splice(index, 1);
-    } else {
-        plan[type].splice(index, 1);
-    }
-    renderSection(type);
-    recalc();
-    markDirty();
+    const itemName = type === 'investments' ? plan.investments[index]?.name : plan[type][index]?.name;
+    const section = type.charAt(0).toUpperCase() + type.slice(1);
+    
+    Swal.fire({
+        title: `Delete ${itemName}?`,
+        text: `Remove this ${type} category?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--md-error)',
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Keep'
+    }).then(result => {
+        if (!result.isConfirmed) return;
+        if (type === 'investments') {
+            plan.investments.splice(index, 1);
+        } else {
+            plan[type].splice(index, 1);
+        }
+        renderSection(type);
+        recalc();
+        markDirty();
+        snack(`${itemName} deleted`, 'delete');
+    });
 }
 
 function addIncomeRow() {
@@ -1357,16 +1405,38 @@ function addIncomeRow() {
 }
 
 function removeIncomeRow(index) {
-    if (plan.income.length <= 1) { snack('Need at least one income source.', 'info'); return; }
-    plan.income.splice(index, 1);
-    renderIncomeSection();
-    recalc();
-    markDirty();
+    if (plan.income.length <= 1) { snack('Keep at least one income source', 'info'); return; }
+    
+    const itemName = plan.income[index]?.name || 'Income';
+    Swal.fire({
+        title: `Delete ${itemName}?`,
+        text: 'Remove this income source?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--md-error)',
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Keep'
+    }).then(result => {
+        if (!result.isConfirmed) return;
+        plan.income.splice(index, 1);
+        renderIncomeSection();
+        recalc();
+        markDirty();
+        snack(`${itemName} deleted`, 'delete');
+    });
 }
 
 function updateIncomeAmount(index, el) {
-    const val = parseFloat(el.value);
-    plan.income[index].amount = (val < 0 ? 0 : val) || 0;
+    const validation = validateAmount(el.value, 'Income');
+    if (!validation.valid) {
+        el.style.borderColor = 'var(--md-error)';
+        setTimeout(() => el.style.borderColor = '', 1500);
+        snack(validation.error, 'warning');
+        el.value = plan.income[index].amount || 0;
+        return;
+    }
+    plan.income[index].amount = validation.value;
+    el.style.borderColor = '';
     recalc();
     markDirty();
 }
@@ -1497,9 +1567,27 @@ function renderPVA(elId, planned, actual, show) {
 // SAVE
 // ──────────────────────────────────────────────────────────────
 let _saveInProgress = false;
+let _currentMonthKey = null;
+
+function validatePlan() {
+    const errors = [];
+    if (!plan.income || plan.income.length === 0) errors.push('Add at least one income source');
+    if (plan.income.some(i => !i.name?.trim() || i.amount <= 0)) errors.push('Income: all sources need name and amount > 0');
+    if (plan.needs.some(i => !i.name?.trim())) errors.push('Needs: all categories need a name');
+    if (plan.wants.some(i => !i.name?.trim())) errors.push('Wants: all categories need a name');
+    return errors;
+}
 
 function savePlanner(silent = false) {
     if (_saveInProgress) return;
+    
+    // Validate plan before saving
+    const errors = validatePlan();
+    if (errors.length > 0) {
+        snack(errors[0], 'warning');
+        return;
+    }
+    
     _saveInProgress = true;
     try {
         const key = getMonthKey(getViewDate());
@@ -1512,25 +1600,46 @@ function savePlanner(silent = false) {
         };
         if (!db.userProfile) db.userProfile = {};
         db.userProfile.monthlyExpense = plan.needs.reduce((s, i) => s + i.amount, 0);
+        
         let existing;
-        try { existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); } catch (e) { snack('Save failed: storage corrupted','error'); _saveInProgress = false; return; }
+        try { 
+            existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}'); 
+        } catch (e) { 
+            snack('Storage corrupted — try clearing app data', 'error'); 
+            _saveInProgress = false; 
+            return; 
+        }
+        
         if (!existing.monthlyPlans) existing.monthlyPlans = {};
         existing.monthlyPlans[key] = JSON.parse(JSON.stringify(db.monthlyPlans[key]));
         if (db.userProfile) existing.userProfile = existing.userProfile || {};
         if (db.userProfile) existing.userProfile.monthlyExpense = db.userProfile.monthlyExpense;
+        
         try {
-            localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
+            const serialized = JSON.stringify(existing);
+            if (serialized.length > 5242880) {
+                snack('Storage full — delete old data', 'error');
+                _saveInProgress = false;
+                return;
+            }
+            localStorage.setItem('appHubInvestDb', serialized);
         } catch (e) {
-            try { localStorage.removeItem('backup_invest_db'); } catch(ee) {}
-            localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
+            if (e.name === 'QuotaExceededError') {
+                snack('Storage quota exceeded — clear old data', 'error');
+            } else {
+                snack('Save failed: ' + e.message, 'error');
+            }
+            _saveInProgress = false;
+            return;
         }
+        
         try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {}
         updateMonthUI(key);
         clearDirty();
-        if (!silent) snack('Plan saved!', 'check_circle');
+        if (!silent) snack('✓ Saved', 'check_circle');
     } catch (e) {
         console.error('Save failed:', e);
-        snack('Save failed — ' + (e.message || 'unknown error'), 'error');
+        snack('Save error: ' + (e.message || 'unknown'), 'error');
     } finally {
         _saveInProgress = false;
     }
