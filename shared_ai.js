@@ -41,6 +41,12 @@ async function getErrorMessage(response) {
 async function callAIProvider(keys, promptText, systemPrompt, messages) {
     if (window.__aiEnabled === false) throw new Error('AI features disabled in Settings');
     if (!keys || typeof keys !== 'object') throw new Error('Invalid keys object');
+    const decodedKeys = {};
+    for (const k of ['geminiKey', 'groqKey', 'openrouterKey', 'cerebrasKey', 'githubKey']) {
+        decodedKeys[k] = _decodeKey(keys[k] || '');
+    }
+    keys = decodedKeys;
+
     const active = {};
     for (const k of ['geminiKey', 'groqKey', 'openrouterKey', 'cerebrasKey', 'githubKey']) {
         active[k] = !!(keys[k] && keys[k].trim().length > 0);

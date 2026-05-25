@@ -66,6 +66,13 @@ if (!db.groqKey) db.groqKey = '';
 if (!db.openrouterKey) db.openrouterKey = '';
 if (!db.cerebrasKey) db.cerebrasKey = '';
 if (!db.githubKey) db.githubKey = '';
+
+if (db.geminiKey) db.geminiKey = _decodeKey(db.geminiKey);
+if (db.groqKey) db.groqKey = _decodeKey(db.groqKey);
+if (db.openrouterKey) db.openrouterKey = _decodeKey(db.openrouterKey);
+if (db.cerebrasKey) db.cerebrasKey = _decodeKey(db.cerebrasKey);
+if (db.githubKey) db.githubKey = _decodeKey(db.githubKey);
+
 // Decrypt encrypted API keys if present
 if (db._ek && db.appPin) {
     const parts = db._ek.split('|');
@@ -1194,6 +1201,22 @@ function _decryptKey(enc, pin) {
     for (let i = 0; i < raw.length; i++) out += String.fromCharCode(raw.charCodeAt(i) ^ pin.charCodeAt(i % pin.length));
     return out;
 }
+function _encodeKey(plain) {
+    if (!plain) return '';
+    return 'BK:' + btoa(plain);
+}
+function _decodeKey(enc) {
+    if (!enc || typeof enc !== 'string') return '';
+    if (enc.startsWith('EX:')) {
+        return typeof window._decryptKey === 'function' ? window._decryptKey(enc, db.appPin) : enc;
+    }
+    if (!enc.startsWith('BK:')) return enc;
+    try {
+        return atob(enc.slice(3));
+    } catch (e) {
+        return enc;
+    }
+}
 
 let _saveDataPending = false;
 let _dataGen = 0;
@@ -1209,10 +1232,16 @@ function saveData() {
 
         const sanitizedDb = sanitizeDatabaseObject(db);
 
-        // Encrypt API keys at rest if PIN is set (on clone only, don't mutate db)
+        // Encode API keys at rest. If PIN is set, encrypt them with the app PIN.
         if (db.appPin) {
             sanitizedDb._ek = _encryptKey(db.geminiKey || '', db.appPin) + '|' + _encryptKey(db.groqKey || '', db.appPin) + '|' + _encryptKey(db.openrouterKey || '', db.appPin) + '|' + _encryptKey(db.cerebrasKey || '', db.appPin) + '|' + _encryptKey(db.githubKey || '', db.appPin);
             delete sanitizedDb.geminiKey; delete sanitizedDb.groqKey; delete sanitizedDb.openrouterKey; delete sanitizedDb.cerebrasKey; delete sanitizedDb.githubKey;
+        } else {
+            sanitizedDb.geminiKey = _encodeKey(db.geminiKey || '');
+            sanitizedDb.groqKey = _encodeKey(db.groqKey || '');
+            sanitizedDb.openrouterKey = _encodeKey(db.openrouterKey || '');
+            sanitizedDb.cerebrasKey = _encodeKey(db.cerebrasKey || '');
+            sanitizedDb.githubKey = _encodeKey(db.githubKey || '');
         }
 
         // Save data first using cross-browser compatible function

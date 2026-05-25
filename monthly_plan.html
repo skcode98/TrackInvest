@@ -434,7 +434,9 @@
             <div class="card-title">
                 <span class="material-symbols-rounded" style="color:var(--cat-invest);">account_balance</span>
                 Investments
-                <span class="card-badge"><span class="material-symbols-rounded" style="font-size:12px;">database</span> Live Data</span>
+                <button class="card-badge" onclick="populateInvestmentsFromActuals()" title="Load investments from current month data" style="background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);margin-left:auto;cursor:pointer;border:none;font-family:inherit;">
+                    <span class="material-symbols-rounded" style="font-size:12px;">add_box</span> Load
+                </button>
             </div>
             <div id="invest-pva" class="pva-bar" style="display:none;"></div>
             <div id="investment-rows"></div>
@@ -452,6 +454,9 @@
             <div class="card-title">
                 <span class="material-symbols-rounded" style="color:var(--cat-needs);">gavel</span>
                 Needs
+                <button class="card-badge" onclick="populateNeedsFromActuals()" title="Load needs from current month spend data" style="background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);margin-left:auto;cursor:pointer;border:none;font-family:inherit;">
+                    <span class="material-symbols-rounded" style="font-size:12px;">add_box</span> Load
+                </button>
             </div>
             <div id="needs-pva" class="pva-bar" style="display:none;"></div>
             <div id="needs-container"></div>
@@ -469,6 +474,9 @@
             <div class="card-title">
                 <span class="material-symbols-rounded" style="color:var(--cat-wants);">celebration</span>
                 Wants & Lifestyle
+                <button class="card-badge" onclick="populateWantsFromActuals()" title="Load wants from current month spend data" style="background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);margin-left:auto;cursor:pointer;border:none;font-family:inherit;">
+                    <span class="material-symbols-rounded" style="font-size:12px;">add_box</span> Load
+                </button>
             </div>
             <div id="wants-pva" class="pva-bar" style="display:none;"></div>
             <div id="wants-container"></div>
@@ -635,9 +643,22 @@ async function aiClassifySpend(entries) {
     const toClassify = uncat.length > 0 ? entries : unclassified;
     if (toClassify.length === 0) return {};
     const data = toClassify.map(e => ({ id: e.id, comment: e.comment || '', amount: e.amount, category: e.category || '' }));
+    
+    // Build context about user's custom needs/wants categories if available
+    const customNeeds = plan.needs && plan.needs.length > 0 ? plan.needs.map(n => n.name).join(', ') : '';
+    const customWants = plan.wants && plan.wants.length > 0 ? plan.wants.map(w => w.name).join(', ') : '';
+    
+    let customContext = '';
+    if (customNeeds || customWants) {
+        customContext = '\nUser has custom categories:\n';
+        if (customNeeds) customContext += `Needs: ${customNeeds}\n`;
+        if (customWants) customContext += `Wants: ${customWants}\n`;
+        customContext += 'Use these to guide classification when applicable.';
+    }
+    
     const prompt = `You are a financial classifier. For each expense, classify as "needs" or "wants".
 Needs = essential living expenses (rent, groceries, utilities, transport, health, education, insurance, bills, emi).
-Wants = discretionary spending (dining, shopping, entertainment, travel, hobbies, subscriptions, gifts).
+Wants = discretionary spending (dining, shopping, entertainment, travel, hobbies, subscriptions, gifts).${customContext}
 Return ONLY JSON: {"classifications":[{"id":"...","class":"needs|wants"}]}. No markdown.\n\n${JSON.stringify(data)}`;
     try {
         const raw = await callAI(prompt, 'You are a strict needs vs wants classifier.');
@@ -862,6 +883,297 @@ function classifySpendCategory(category) {
     const c = String(category).toLowerCase();
     const needsKeywords = ['rent','emi','mortgage','grocery','groceries','house','housing','utility','utilities','electricity','internet','gas','water','mobile','phone','bills','fuel','transport','bus','train','commute','school','tuition','health','doctor','medicine','medical','food & dining','food'];
     return needsKeywords.some(k => c.includes(k)) ? 'needs' : 'wants';
+}
+
+function populateInvestmentsFromActuals() {
+    if (viewOffset > 0) { snack('Can only populate current month', 'info'); return; }
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    
+    const monthInvests = (db.investments || [])
+        .filter(i => {
+            const id = new Date(i.date);
+            return id.getMonth() === m && id.getFullYear() === y;
+        });
+    
+    if (monthInvests.length === 0) { snack('No investments found for this month', 'info'); return; }
+    
+    // Use user-created investment categories, or default to type grouping
+    const userInvestCats = plan.investments.map(i => i.name.toLowerCase());
+    const grouped = {};
+    
+    monthInvests.forEach(i => {
+        const type = i.type || 'Other';
+        const typeLower = type.toLowerCase();
+        
+        // Try to match with user-created category
+        let matched = false;
+        for (const userCat of userInvestCats) {
+            if (typeLower.includes(userCat) || userCat.includes(typeLower)) {
+                if (!grouped[userCat]) grouped[userCat] = 0;
+                grouped[userCat] += (i.amount || 0);
+                matched = true;
+                break;
+            }
+        }
+        
+        // If no match, group by type
+        if (!matched) {
+            if (!grouped[type]) grouped[type] = 0;
+            grouped[type] += (i.amount || 0);
+        }
+    });
+    
+    plan.investments = Object.entries(grouped).map(([name, amount]) => ({ 
+        name: name.charAt(0).toUpperCase() + name.slice(1), 
+        amount: Math.round(amount) 
+    }));
+    renderSection('investments');
+    recalc();
+    markDirty();
+    snack(`Populated ${plan.investments.length} investment categories`, 'check_circle');
+}
+
+function populateNeedsFromActuals() {
+    if (viewOffset > 0) { snack('Can only populate current month', 'info'); return; }
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    
+    const entries = (db.spendTracker && db.spendTracker.entries) || [];
+    const monthEntries = entries.filter(e => {
+        const ed = new Date(e.date);
+        return ed.getMonth() === m && ed.getFullYear() === y;
+    });
+    
+    const needsEntries = monthEntries.filter(e => {
+        let cls;
+        if (_aiClassificationCache && _aiClassificationCache[e.id]) {
+            cls = _aiClassificationCache[e.id];
+        } else {
+            cls = classifySpendCategory(e.category || '');
+        }
+        return cls === 'needs';
+    });
+    
+    if (needsEntries.length === 0) { snack('No needs expenses found for this month', 'info'); return; }
+    
+    // Use user-created needs categories to allocate spend
+    const userNeedsCats = plan.needs.map(n => n.name.toLowerCase());
+    const grouped = {};
+    
+    needsEntries.forEach(e => {
+        const cat = (e.category || 'Other').toLowerCase();
+        
+        // Try to match with user-created needs category
+        let matched = false;
+        for (const userCat of userNeedsCats) {
+            if (cat.includes(userCat) || userCat.includes(cat) || areNeedsCategoriesSimilar(cat, userCat)) {
+                if (!grouped[userCat]) grouped[userCat] = 0;
+                grouped[userCat] += (e.amount || 0);
+                matched = true;
+                break;
+            }
+        }
+        
+        // If no match, group by spend category
+        if (!matched) {
+            if (!grouped[cat]) grouped[cat] = 0;
+            grouped[cat] += (e.amount || 0);
+        }
+    });
+    
+    plan.needs = Object.entries(grouped).map(([name, amount]) => ({ 
+        name: name.charAt(0).toUpperCase() + name.slice(1), 
+        amount: Math.round(amount) 
+    }));
+    renderSection('needs');
+    recalc();
+    markDirty();
+    snack(`Populated ${plan.needs.length} needs categories`, 'check_circle');
+}
+
+function populateWantsFromActuals() {
+    if (viewOffset > 0) { snack('Can only populate current month', 'info'); return; }
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    
+    const entries = (db.spendTracker && db.spendTracker.entries) || [];
+    const monthEntries = entries.filter(e => {
+        const ed = new Date(e.date);
+        return ed.getMonth() === m && ed.getFullYear() === y;
+    });
+    
+    const wantsEntries = monthEntries.filter(e => {
+        let cls;
+        if (_aiClassificationCache && _aiClassificationCache[e.id]) {
+            cls = _aiClassificationCache[e.id];
+        } else {
+            cls = classifySpendCategory(e.category || '');
+        }
+        return cls === 'wants';
+    });
+    
+    if (wantsEntries.length === 0) { snack('No wants expenses found for this month', 'info'); return; }
+    
+    // Use user-created wants categories to allocate spend
+    const userWantsCats = plan.wants.map(w => w.name.toLowerCase());
+    const grouped = {};
+    
+    wantsEntries.forEach(e => {
+        const cat = (e.category || 'Other').toLowerCase();
+        
+        // Try to match with user-created wants category
+        let matched = false;
+        for (const userCat of userWantsCats) {
+            if (cat.includes(userCat) || userCat.includes(cat) || areWantsCategoriesSimilar(cat, userCat)) {
+                if (!grouped[userCat]) grouped[userCat] = 0;
+                grouped[userCat] += (e.amount || 0);
+                matched = true;
+                break;
+            }
+        }
+        
+        // If no match, group by spend category
+        if (!matched) {
+            if (!grouped[cat]) grouped[cat] = 0;
+            grouped[cat] += (e.amount || 0);
+        }
+    });
+    
+    plan.wants = Object.entries(grouped).map(([name, amount]) => ({ 
+        name: name.charAt(0).toUpperCase() + name.slice(1), 
+        amount: Math.round(amount) 
+    }));
+    renderSection('wants');
+    recalc();
+    markDirty();
+    snack(`Populated ${plan.wants.length} wants categories`, 'check_circle');
+}
+
+function areNeedsCategoriesSimilar(spendCat, userCat) {
+    const needsAliases = {
+        'rent': ['rent', 'housing', 'apartment', 'home'],
+        'grocery': ['grocery', 'groceries', 'food', 'food & dining', 'food and dining'],
+        'bills': ['bills', 'utilities', 'electricity', 'water', 'gas', 'internet', 'mobile', 'phone'],
+        'transport': ['transport', 'travel', 'fuel', 'bus', 'train', 'commute', 'car', 'auto', 'taxi'],
+        'health': ['health', 'medical', 'doctor', 'medicine', 'hospital', 'pharma', 'clinic'],
+        'education': ['education', 'tuition', 'school', 'college', 'course', 'learning']
+    };
+    
+    for (const [key, aliases] of Object.entries(needsAliases)) {
+        const keyMatches = aliases.some(a => spendCat.includes(a) || a.includes(spendCat));
+        const userMatches = aliases.some(a => userCat.includes(a));
+        if (keyMatches && userMatches) return true;
+    }
+    return false;
+}
+
+function areWantsCategoriesSimilar(spendCat, userCat) {
+    const wantsAliases = {
+        'dining': ['dining', 'restaurant', 'food & dining', 'cafe', 'coffee'],
+        'shopping': ['shopping', 'retail', 'shop', 'store', 'purchase'],
+        'entertainment': ['entertainment', 'movie', 'cinema', 'music', 'game', 'hobby'],
+        'travel': ['travel', 'vacation', 'trip', 'holiday', 'tour'],
+        'subscription': ['subscription', 'subscriptions', 'membership', 'netflix', 'spotify']
+    };
+    
+    for (const [key, aliases] of Object.entries(wantsAliases)) {
+        const keyMatches = aliases.some(a => spendCat.includes(a) || a.includes(spendCat));
+        const userMatches = aliases.some(a => userCat.includes(a));
+        if (keyMatches && userMatches) return true;
+    }
+    return false;
+}
+
+async function aiAllocateToCategories() {
+    if (viewOffset > 0) { snack('Can only allocate current month', 'info'); return; }
+    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) {
+        snack('Add an API key in Settings to use AI.', 'key'); return;
+    }
+    
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    
+    const entries = (db.spendTracker && db.spendTracker.entries) || [];
+    const monthEntries = entries.filter(e => {
+        const ed = new Date(e.date);
+        return ed.getMonth() === m && ed.getFullYear() === y;
+    });
+    
+    if (monthEntries.length === 0) { snack('No spend entries for this month', 'info'); return; }
+    
+    // Get custom needs and wants categories
+    const userNeeds = plan.needs.map(n => n.name);
+    const userWants = plan.wants.map(w => w.name);
+    
+    if (userNeeds.length === 0 && userWants.length === 0) { 
+        snack('Add custom needs/wants categories first', 'info'); 
+        return; 
+    }
+    
+    const categoriesToAllocate = [...userNeeds, ...userWants].join(', ');
+    const spendData = monthEntries.map(e => ({
+        id: e.id,
+        comment: e.comment || '',
+        category: e.category || '',
+        amount: e.amount
+    }));
+    
+    const prompt = `Allocate each spend entry to ONE of these user categories: ${categoriesToAllocate}.
+Match based on the spend category and comment. If unsure, pick the closest match.
+Return ONLY JSON: {"allocations":[{"id":"...","category":"..."}]}. No markdown.\n\n${JSON.stringify(spendData)}`;
+    
+    try {
+        const btn = document.getElementById('ai-classify-btn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
+        
+        const raw = await callAI(prompt, 'You are a financial allocator assigning spend to user categories.');
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch (e) {
+            const m = raw.match(/\{[\s\S]*\}/);
+            if (m) parsed = JSON.parse(m[0]);
+        }
+        
+        if (parsed && Array.isArray(parsed.allocations)) {
+            const allocated = {};
+            parsed.allocations.forEach(a => {
+                if (a.id && a.category) {
+                    if (!allocated[a.category]) allocated[a.category] = 0;
+                    const entry = monthEntries.find(e => e.id === a.id);
+                    if (entry) allocated[a.category] += (entry.amount || 0);
+                }
+            });
+            
+            // Update plan with allocations
+            const needsUpdate = {};
+            const wantsUpdate = {};
+            
+            userNeeds.forEach(cat => { needsUpdate[cat] = 0; });
+            userWants.forEach(cat => { wantsUpdate[cat] = 0; });
+            
+            Object.entries(allocated).forEach(([cat, amount]) => {
+                if (userNeeds.includes(cat)) {
+                    needsUpdate[cat] = Math.round(amount);
+                } else if (userWants.includes(cat)) {
+                    wantsUpdate[cat] = Math.round(amount);
+                }
+            });
+            
+            plan.needs = Object.entries(needsUpdate).map(([name, amount]) => ({ name, amount }));
+            plan.wants = Object.entries(wantsUpdate).map(([name, amount]) => ({ name, amount }));
+            
+            renderSection('needs');
+            renderSection('wants');
+            recalc();
+            markDirty();
+            snack('✓ AI allocation complete', 'auto_awesome');
+        }
+        
+        if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
+    } catch (e) {
+        console.warn('AI allocation failed:', e);
+        snack('AI allocation failed: ' + e.message, 'error');
+    }
 }
 
 function getActualForItem(type, itemName) {
