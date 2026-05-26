@@ -589,6 +589,41 @@ function getDefaultInvestments() {
     return Object.keys(cats).map(type => ({ name: type, amount: 0 }));
 }
 
+function restoreApiKeysInDb(database) {
+    if (!database || typeof database !== 'object') return;
+    const keyNames = ['geminiKey', 'groqKey', 'openrouterKey', 'cerebrasKey', 'githubKey'];
+    keyNames.forEach(name => {
+        if (database[name]) {
+            database[name] = _decodeKey(database[name], database.appPin || '');
+        }
+    });
+    if (database._ek && database.appPin) {
+        const parts = String(database._ek).split('|');
+        keyNames.forEach((name, idx) => {
+            if (!database[name] && parts[idx]) {
+                database[name] = _decryptKey(parts[idx], database.appPin) || '';
+            }
+        });
+        delete database._ek;
+    }
+}
+
+function prepareDbForStorage(database) {
+    if (!database || typeof database !== 'object') return {};
+    const copy = JSON.parse(JSON.stringify(database));
+    const keyNames = ['geminiKey', 'groqKey', 'openrouterKey', 'cerebrasKey', 'githubKey'];
+    if (copy.appPin) {
+        copy._ek = keyNames.map(name => _encryptKey(copy[name] || '', copy.appPin)).join('|');
+        keyNames.forEach(name => delete copy[name]);
+    } else {
+        keyNames.forEach(name => {
+            copy[name] = _encodeKey(copy[name] || '');
+        });
+        delete copy._ek;
+    }
+    return copy;
+}
+
 function getMonthKey(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
@@ -800,9 +835,11 @@ function saveCurrentPlanSilent() {
     try {
         const raw = localStorage.getItem('appHubInvestDb') || '{}';
         const stored = JSON.parse(raw);
+        restoreApiKeysInDb(stored);
         if (!stored.monthlyPlans) stored.monthlyPlans = {};
         stored.monthlyPlans[key] = JSON.parse(JSON.stringify(db.monthlyPlans[key]));
-        localStorage.setItem('appHubInvestDb', JSON.stringify(stored));
+        const encoded = prepareDbForStorage(stored);
+        localStorage.setItem('appHubInvestDb', JSON.stringify(encoded));
     } catch(e) { console.warn('Silent save failed:', e); }
 }
 
@@ -813,7 +850,10 @@ window.onload = async function () {
     updateMonthLabel();
     try {
         const raw = localStorage.getItem('appHubInvestDb');
-        if (raw) db = JSON.parse(raw);
+        if (raw) {
+            db = JSON.parse(raw);
+            restoreApiKeysInDb(db);
+        }
     } catch (e) { console.warn('DB read failed', e); }
     window.__aiEnabled = db.aiEnabled !== false;
     window.__webEnabled = db.webEnabled !== false;
@@ -1614,9 +1654,15 @@ function savePlanner(silent = false) {
         existing.monthlyPlans[key] = JSON.parse(JSON.stringify(db.monthlyPlans[key]));
         if (db.userProfile) existing.userProfile = existing.userProfile || {};
         if (db.userProfile) existing.userProfile.monthlyExpense = db.userProfile.monthlyExpense;
-        
+        existing.geminiKey = db.geminiKey;
+        existing.groqKey = db.groqKey;
+        existing.openrouterKey = db.openrouterKey;
+        existing.cerebrasKey = db.cerebrasKey;
+        existing.githubKey = db.githubKey;
+        restoreApiKeysInDb(existing);
+        const encoded = prepareDbForStorage(existing);
         try {
-            const serialized = JSON.stringify(existing);
+            const serialized = JSON.stringify(encoded);
             if (serialized.length > 5242880) {
                 snack('Storage full — delete old data', 'error');
                 _saveInProgress = false;
@@ -1650,7 +1696,13 @@ function savePlanner(silent = false) {
 // ──────────────────────────────────────────────────────────────
 function resetPlanner() {
     Swal.fire({title:'Reset this month?',text:'This clears the budget for the current month only.',showCancelButton:true,confirmButtonColor:'var(--md-error)',confirmButtonText:'Reset',cancelButtonText:'Cancel'}).then(r=>{if(!r.isConfirmed) return;
-    try { const raw = localStorage.getItem('appHubInvestDb'); if (raw) db = JSON.parse(raw); } catch(e) {}
+    try {
+        const raw = localStorage.getItem('appHubInvestDb');
+        if (raw) {
+            db = JSON.parse(raw);
+            restoreApiKeysInDb(db);
+        }
+    } catch(e) {}
     const key = getMonthKey(getViewDate());
     if (db.monthlyPlans) delete db.monthlyPlans[key];
     plan = getDefaultPlan();
@@ -1958,7 +2010,10 @@ try {
         if (e.data && e.data.type === 'sync-data') {
             try {
                 const raw = localStorage.getItem('appHubInvestDb');
-                if (raw) db = JSON.parse(raw);
+                if (raw) {
+                    db = JSON.parse(raw);
+                    restoreApiKeysInDb(db);
+                }
             } catch (ex) { console.error('Failed to parse DB from sync:', ex); }
             if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
             const key = getMonthKey(getViewDate());

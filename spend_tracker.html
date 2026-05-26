@@ -307,8 +307,25 @@
         // Cross-tab sync listener
         try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; } catch(e){}
         const STORAGE_KEY = 'appHubInvestDb';
-        function loadDB() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; } }
-        function saveDB() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {} } catch(e) { console.error('Storage failed', e); } }
+        function loadDB() {
+            try {
+                const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+                restoreApiKeysInDb(stored);
+                return stored;
+            } catch(e) {
+                console.warn('Failed to load DB:', e);
+                return {};
+            }
+        }
+        function saveDB() {
+            try {
+                const encoded = prepareDbForStorage(db);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(encoded));
+                try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { investments: (db.investments||[]).length } }); } catch(e) {}
+            } catch(e) {
+                console.error('Storage failed', e);
+            }
+        }
         function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
         let db = loadDB();
         if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };

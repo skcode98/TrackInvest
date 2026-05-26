@@ -26,6 +26,93 @@ function sanitizeInput(input) {
     return _sanitize(input).trim();
 }
 
+function _encryptKey(plain, pin) {
+    if (!plain) return '';
+    if (!pin) return _encodeKey(plain);
+    let out = '';
+    for (let i = 0; i < plain.length; i++) {
+        out += String.fromCharCode(plain.charCodeAt(i) ^ pin.charCodeAt(i % pin.length));
+    }
+    return 'EX:' + btoa(out);
+}
+
+function _decryptKey(enc, pin) {
+    if (!enc) return '';
+    if (enc.startsWith('EX:')) {
+        if (!pin) return enc;
+        let raw;
+        try {
+            raw = atob(enc.slice(3));
+        } catch (e) {
+            return enc;
+        }
+        let out = '';
+        for (let i = 0; i < raw.length; i++) {
+            out += String.fromCharCode(raw.charCodeAt(i) ^ pin.charCodeAt(i % pin.length));
+        }
+        return out;
+    }
+    if (enc.startsWith('BK:')) {
+        try {
+            return atob(enc.slice(3));
+        } catch (e) {
+            return enc;
+        }
+    }
+    return enc;
+}
+
+function _encodeKey(plain) {
+    if (!plain) return '';
+    return 'BK:' + btoa(plain);
+}
+
+function _decodeKey(enc, pin) {
+    if (!enc || typeof enc !== 'string') return '';
+    if (enc.startsWith('EX:')) {
+        return _decryptKey(enc, pin || (typeof db !== 'undefined' ? db.appPin : ''));
+    }
+    if (enc.startsWith('BK:')) {
+        try { return atob(enc.slice(3)); } catch (e) { return enc; }
+    }
+    return enc;
+}
+
+function restoreApiKeysInDb(database) {
+    if (!database || typeof database !== 'object') return;
+    const keyNames = ['geminiKey', 'groqKey', 'openrouterKey', 'cerebrasKey', 'githubKey'];
+    keyNames.forEach(name => {
+        if (database[name]) {
+            database[name] = _decodeKey(database[name], database.appPin || '');
+        }
+    });
+    if (database._ek && database.appPin) {
+        const parts = String(database._ek).split('|');
+        keyNames.forEach((name, idx) => {
+            if (!database[name] && parts[idx]) {
+                database[name] = _decryptKey(parts[idx], database.appPin) || '';
+            }
+        });
+        delete database._ek;
+    }
+}
+
+function prepareDbForStorage(database) {
+    if (!database || typeof database !== 'object') return {};
+    const copy = JSON.parse(JSON.stringify(database));
+    const keyNames = ['geminiKey', 'groqKey', 'openrouterKey', 'cerebrasKey', 'githubKey'];
+    if (copy.appPin) {
+        copy._ek = keyNames.map(name => _encryptKey(copy[name] || '', copy.appPin)).join('|');
+        keyNames.forEach(name => delete copy[name]);
+    } else {
+        keyNames.forEach(name => {
+            copy[name] = _encodeKey(copy[name] || '');
+        });
+        delete copy._ek;
+    }
+    return copy;
+}
+
 async function getErrorMessage(response) {
     try {
         const text = await response.text();
