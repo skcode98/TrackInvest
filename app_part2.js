@@ -1178,7 +1178,10 @@ function renderSettingsSections() {
 
             let safeColor = escapeHtml(cat?.color || '#ccc');
             let safeIcon = escapeHtml(cat?.icon || 'help');
-            let delBtn = isDefault ? '<span style="font-size:10px;color:var(--md-outline);">Default</span>' : `<span class="material-symbols-rounded" style="color:var(--md-error);font-size:16px;cursor:pointer;" onclick="deleteCategory(this.dataset.val)" data-val="${escapeHtml(c)}">delete</span>`;
+            let delBtn = `<span style="display:flex;align-items:center;gap:8px;">
+                    ${isDefault ? '<span style="font-size:10px;color:var(--md-outline);">Default</span>' : ''}
+                    <span class="material-symbols-rounded" style="color:var(--md-error);font-size:16px;cursor:pointer;" onclick="deleteCategory(this.dataset.val)" data-val="${escapeHtml(c)}" title="Delete category">delete</span>
+                </span>`;
 
             catHtml += `
         <div style="padding:12px;background:var(--md-surface-container-highest);border-radius:12px;margin-bottom:8px;">
@@ -1276,19 +1279,35 @@ function addCustomCategory() {
     openSettings();
     showSnackbar(`Added Category: ${name} with ${template} template`);
 }
+function getFallbackCategory(excludeName) {
+    const available = Object.keys(db.categories || {}).filter(c => c !== excludeName);
+    return available.length > 0 ? available[0] : null;
+}
+
 function deleteCategory(name) {
     haptic(40);
+    if (!db.categories || Object.keys(db.categories).length <= 1) {
+        showSnackbar("At least one investment category must remain.", "warning");
+        return;
+    }
+
+    const fallback = getFallbackCategory(name);
     Swal.fire({
         title: `Delete '${name}'?`,
-        text: "This will permanently remove the category. All existing investments in this category will be moved to 'Cash'. This action cannot be undone.",
+        text: `This will permanently remove the category. All existing investments in this category will be moved to '${fallback}'. This action cannot be undone.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--md-error)',
         confirmButtonText: 'Yes, delete it'
     }).then(r => {
         if (r.isConfirmed) {
-            db.investments.forEach(i => { if (i.type === name) i.type = 'Cash'; });
+            if (fallback) {
+                db.investments.forEach(i => { if (i.type === name) i.type = fallback; });
+                if (window.currentInvType === name) window.currentInvType = fallback;
+                if (window.activeCategory === name) window.activeCategory = fallback;
+            }
             delete db.categories[name];
+            if (db.categoryDetails && db.categoryDetails[name]) delete db.categoryDetails[name];
             saveData();
             initUI();
             renderSettingsSections();
