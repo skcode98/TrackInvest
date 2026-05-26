@@ -434,9 +434,6 @@
             <div class="card-title">
                 <span class="material-symbols-rounded" style="color:var(--cat-invest);">account_balance</span>
                 Investments
-                <button class="card-badge" onclick="populateInvestmentsFromActuals()" title="Load investments from current month data" style="background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);margin-left:auto;cursor:pointer;border:none;font-family:inherit;">
-                    <span class="material-symbols-rounded" style="font-size:12px;">add_box</span> Load
-                </button>
             </div>
             <div id="invest-pva" class="pva-bar" style="display:none;"></div>
             <div id="investment-rows"></div>
@@ -454,9 +451,6 @@
             <div class="card-title">
                 <span class="material-symbols-rounded" style="color:var(--cat-needs);">gavel</span>
                 Needs
-                <button class="card-badge" onclick="populateNeedsFromActuals()" title="Load needs from current month spend data" style="background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);margin-left:auto;cursor:pointer;border:none;font-family:inherit;">
-                    <span class="material-symbols-rounded" style="font-size:12px;">add_box</span> Load
-                </button>
             </div>
             <div id="needs-pva" class="pva-bar" style="display:none;"></div>
             <div id="needs-container"></div>
@@ -474,9 +468,6 @@
             <div class="card-title">
                 <span class="material-symbols-rounded" style="color:var(--cat-wants);">celebration</span>
                 Wants & Lifestyle
-                <button class="card-badge" onclick="populateWantsFromActuals()" title="Load wants from current month spend data" style="background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);margin-left:auto;cursor:pointer;border:none;font-family:inherit;">
-                    <span class="material-symbols-rounded" style="font-size:12px;">add_box</span> Load
-                </button>
             </div>
             <div id="wants-pva" class="pva-bar" style="display:none;"></div>
             <div id="wants-container"></div>
@@ -526,7 +517,7 @@
             <button class="btn-icon-sq" onclick="exportPlanPDF()" title="Export PDF">
                 <span class="material-symbols-rounded">picture_as_pdf</span>
             </button>
-            <button class="btn-icon-sq" id="ai-classify-btn" onclick="runAIClassify()" title="AI classify spend as Needs/Wants">
+            <button class="btn-icon-sq" id="ai-classify-btn" onclick="aiAllocateToCategories()" title="AI allocate this month’s spend to your custom categories">
                 <span class="material-symbols-rounded">auto_awesome</span>
             </button>
             <button class="btn-icon-sq" onclick="aiGenerateTip()" title="AI Financial Tip">
@@ -670,65 +661,6 @@ function callAI(prompt, system) {
     return callAIProvider({ geminiKey: db.geminiKey, groqKey: db.groqKey, openrouterKey: db.openrouterKey, cerebrasKey: db.cerebrasKey, githubKey: db.githubKey }, prompt, system);
 }
 
-async function aiClassifySpend(entries) {
-    if (!entries || entries.length === 0) return {};
-    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return {};
-    const uncat = entries.filter(e => (e.category||'') !== 'Uncategorized');
-    const unclassified = entries.filter(e => !e.category || e.category === 'Uncategorized');
-    const toClassify = uncat.length > 0 ? entries : unclassified;
-    if (toClassify.length === 0) return {};
-    const data = toClassify.map(e => ({ id: e.id, comment: e.comment || '', amount: e.amount, category: e.category || '' }));
-    
-    // Build context about user's custom needs/wants categories if available
-    const customNeeds = plan.needs && plan.needs.length > 0 ? plan.needs.map(n => n.name).join(', ') : '';
-    const customWants = plan.wants && plan.wants.length > 0 ? plan.wants.map(w => w.name).join(', ') : '';
-    
-    let customContext = '';
-    if (customNeeds || customWants) {
-        customContext = '\nUser has custom categories:\n';
-        if (customNeeds) customContext += `Needs: ${customNeeds}\n`;
-        if (customWants) customContext += `Wants: ${customWants}\n`;
-        customContext += 'Use these to guide classification when applicable.';
-    }
-    
-    const prompt = `You are a financial classifier. For each expense, classify as "needs" or "wants".
-Needs = essential living expenses (rent, groceries, utilities, transport, health, education, insurance, bills, emi).
-Wants = discretionary spending (dining, shopping, entertainment, travel, hobbies, subscriptions, gifts).${customContext}
-Return ONLY JSON: {"classifications":[{"id":"...","class":"needs|wants"}]}. No markdown.\n\n${JSON.stringify(data)}`;
-    try {
-        const raw = await callAI(prompt, 'You are a strict needs vs wants classifier.');
-        let parsed;
-        try { parsed = JSON.parse(raw); } catch (e) {
-            const m = raw.match(/\{[\s\S]*\}/);
-            if (m) parsed = JSON.parse(m[0]);
-            else throw new Error('Invalid AI response');
-        }
-        if (parsed && Array.isArray(parsed.classifications)) {
-            const map = {};
-            parsed.classifications.forEach(c => {
-                if (c.id && (c.class === 'needs' || c.class === 'wants')) map[c.id] = c.class;
-            });
-            return map;
-        }
-    } catch (e) { console.warn('AI classification failed:', e); }
-    return {};
-}
-
-async function runAIClassify() {
-    const d = getViewDate();
-    let m = d.getMonth(), y = d.getFullYear();
-    if (viewOffset > 0) { snack('AI classification only works for past/current months.', 'info'); return; }
-    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) {
-        snack('Add an API key in Settings to use AI.', 'key'); return;
-    }
-    const btn = document.getElementById('ai-classify-btn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;animation:spin 1s linear infinite;">autorenew</span>'; }
-    _aiClassificationCache = null;
-    await loadActuals();
-    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span>'; }
-    recalc();
-    snack('✓ AI classification complete', 'auto_awesome');
-}
 
 async function aiGenerateTip() {
     if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) {
@@ -900,11 +832,7 @@ async function loadActuals() {
         return ed.getMonth() === m && ed.getFullYear() === y;
     });
 
-    // AI classification
-    if (!_aiClassificationCache) {
-        _aiClassificationCache = await aiClassifySpend(monthEntries);
-    }
-
+    // Use existing spend categories and any prior AI classification cache.
     monthEntries.forEach(e => {
         let cls;
         if (_aiClassificationCache && _aiClassificationCache[e.id]) {
@@ -920,9 +848,173 @@ async function loadActuals() {
 
 function classifySpendCategory(category) {
     if (!category) return 'wants';
-    const c = String(category).toLowerCase();
+    const c = String(category).toLowerCase().trim();
+    const normalized = name => String(name || '').toLowerCase().trim();
+    if (plan.needs.some(n => {
+        const name = normalized(n.name);
+        return name && (c === name || c.includes(name) || name.includes(c));
+    })) return 'needs';
+    if (plan.wants.some(w => {
+        const name = normalized(w.name);
+        return name && (c === name || c.includes(name) || name.includes(c));
+    })) return 'wants';
     const needsKeywords = ['rent','emi','mortgage','grocery','groceries','house','housing','utility','utilities','electricity','internet','gas','water','mobile','phone','bills','fuel','transport','bus','train','commute','school','tuition','health','doctor','medicine','medical','food & dining','food'];
     return needsKeywords.some(k => c.includes(k)) ? 'needs' : 'wants';
+}
+
+async function aiAllocateToCategories() {
+    if (viewOffset > 0) { snack('Can only allocate current month', 'info'); return; }
+    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) {
+        snack('Add an API key in Settings to use AI.', 'key'); return;
+    }
+
+    const d = getViewDate();
+    let m = d.getMonth(), y = d.getFullYear();
+    const entries = (db.spendTracker && db.spendTracker.entries) || [];
+    const monthEntries = entries.filter(e => {
+        const ed = new Date(e.date);
+        return ed.getMonth() === m && ed.getFullYear() === y;
+    });
+    if (monthEntries.length === 0) { snack('No spend entries for this month', 'info'); return; }
+
+    const userNeeds = plan.needs.map(n => n.name);
+    const userWants = plan.wants.map(w => w.name);
+    if (userNeeds.length === 0 && userWants.length === 0) {
+        snack('Add custom needs/wants categories first', 'info');
+        return;
+    }
+
+    const allCategories = [];
+    if (userNeeds.length) allCategories.push('Needs: ' + userNeeds.join(', '));
+    if (userWants.length) allCategories.push('Wants: ' + userWants.join(', '));
+
+    const spendData = monthEntries.map(e => ({
+        id: e.id,
+        amount: e.amount,
+        category: e.category || '',
+        comment: e.comment || ''
+    }));
+
+    const prompt = `You are a personal finance assistant. Allocate each spend entry to one of these user categories:
+${allCategories.join('\n')}
+
+Use the spend category and comment to pick the best match. If the entry does not clearly match any one category, choose the closest existing one.
+Return ONLY JSON with the shape: {"allocations":[{"id":"...","category":"..."}]}. No markdown.
+
+${JSON.stringify(spendData)}`;
+
+    const btn = document.getElementById('ai-classify-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
+
+    try {
+        const raw = await callAI(prompt, 'You are a financial allocator assigning spend to custom budget categories.');
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch (e) {
+            const m = raw.match(/\{[\s\S]*\}/);
+            if (m) parsed = JSON.parse(m[0]);
+        }
+        if (!parsed || !Array.isArray(parsed.allocations)) {
+            throw new Error('Invalid AI response');
+        }
+
+        const allocationMap = {};
+        const categoryTotals = {};
+        parsed.allocations.forEach(a => {
+            if (a.id && a.category) {
+                const categoryName = String(a.category).trim();
+                allocationMap[a.id] = categoryName;
+                categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + ((monthEntries.find(e => e.id === a.id) || {}).amount || 0);
+            }
+        });
+
+        const allocationEntries = monthEntries.map(e => {
+            return {
+                id: e.id,
+                comment: e.comment || e.category || 'Entry',
+                amount: e.amount || 0,
+                category: allocationMap[e.id] || e.category || 'Uncategorized'
+            };
+        });
+
+        showAllocationPreview(allocationEntries, categoryTotals, () => {
+            applyClassificationResult(allocationMap);
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
+        }, () => {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
+        });
+    } catch (e) {
+        console.warn('AI allocation failed:', e);
+        snack('AI allocation failed: ' + (e.message || 'unknown'), 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
+    }
+}
+
+function showAllocationPreview(entries, totals, onApply, onCancel) {
+    let overlay = document.getElementById('allocation-preview-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'allocation-preview-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.style.display = 'none'; };
+        document.body.appendChild(overlay);
+    }
+
+    const rows = entries.map(e => `
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
+                <div style="max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    <strong>${escapeHtml(e.category)}</strong> · ${escapeHtml(e.comment)}
+                </div>
+                <div style="font-weight:600;">₹${Math.round(e.amount).toLocaleString('en-IN')}</div>
+            </div>`).join('');
+
+    const totalRows = Object.entries(totals).map(([name, amount]) => `
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
+                <div>${escapeHtml(name)}</div>
+                <div style="font-weight:700;">₹${Math.round(amount).toLocaleString('en-IN')}</div>
+            </div>`).join('');
+
+    overlay.innerHTML = `<div style="background:var(--md-surface);border-radius:20px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,0.3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="font-size:18px;font-weight:600;">Preview AI allocation</div>
+            <button onclick="document.getElementById('allocation-preview-overlay').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:24px;color:var(--md-outline);">&times;</button>
+        </div>
+        <div style="margin-bottom:16px;color:var(--md-outline);font-size:13px;">This preview shows how current spend entries would be mapped to your custom budget categories. Confirm to apply only to actual entries, leaving planned amounts unchanged.</div>
+        <div style="margin-bottom:16px;font-weight:700;">Category totals</div>
+        ${totalRows}
+        <div style="margin-top:18px;font-weight:700;border-top:1px solid var(--md-outline-variant);padding-top:14px;">Detailed mapping</div>
+        ${rows}
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+            <button onclick="document.getElementById('allocation-preview-overlay').style.display='none';(${onCancel.toString()})();" style="background:transparent;border:1px solid var(--md-outline);border-radius:12px;padding:10px 14px;cursor:pointer;">Cancel</button>
+            <button onclick="document.getElementById('allocation-preview-overlay').style.display='none';(${onApply.toString()})();" style="background:var(--md-primary);color:#fff;border:none;border-radius:12px;padding:10px 14px;cursor:pointer;">Apply allocation</button>
+        </div>
+    </div>`;
+    overlay.style.display = 'flex';
+}
+
+function applyClassificationResult(allocationMap) {
+    const entries = (db.spendTracker && db.spendTracker.entries) || [];
+    entries.forEach(entry => {
+        const newCategory = allocationMap[entry.id];
+        if (newCategory && entry.category !== newCategory) {
+            entry.category = newCategory;
+        }
+    });
+    // keep classification cache aligned with custom categories
+    _aiClassificationCache = {};
+    entries.forEach(entry => {
+        const cat = String(entry.category || '').toLowerCase().trim();
+        if (!cat) return;
+        if (plan.needs.some(n => n.name.toLowerCase().trim() === cat || cat.includes(n.name.toLowerCase().trim()))) {
+            _aiClassificationCache[entry.id] = 'needs';
+        } else if (plan.wants.some(w => w.name.toLowerCase().trim() === cat || cat.includes(w.name.toLowerCase().trim()))) {
+            _aiClassificationCache[entry.id] = 'wants';
+        }
+    });
+    loadActuals().then(() => {
+        renderAll();
+        markDirty();
+        snack('✓ Actual spend allocation applied', 'check_circle');
+    });
 }
 
 function populateInvestmentsFromActuals() {
@@ -1123,97 +1215,6 @@ function areWantsCategoriesSimilar(spendCat, userCat) {
         if (keyMatches && userMatches) return true;
     }
     return false;
-}
-
-async function aiAllocateToCategories() {
-    if (viewOffset > 0) { snack('Can only allocate current month', 'info'); return; }
-    if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) {
-        snack('Add an API key in Settings to use AI.', 'key'); return;
-    }
-    
-    const d = getViewDate();
-    let m = d.getMonth(), y = d.getFullYear();
-    
-    const entries = (db.spendTracker && db.spendTracker.entries) || [];
-    const monthEntries = entries.filter(e => {
-        const ed = new Date(e.date);
-        return ed.getMonth() === m && ed.getFullYear() === y;
-    });
-    
-    if (monthEntries.length === 0) { snack('No spend entries for this month', 'info'); return; }
-    
-    // Get custom needs and wants categories
-    const userNeeds = plan.needs.map(n => n.name);
-    const userWants = plan.wants.map(w => w.name);
-    
-    if (userNeeds.length === 0 && userWants.length === 0) { 
-        snack('Add custom needs/wants categories first', 'info'); 
-        return; 
-    }
-    
-    const categoriesToAllocate = [...userNeeds, ...userWants].join(', ');
-    const spendData = monthEntries.map(e => ({
-        id: e.id,
-        comment: e.comment || '',
-        category: e.category || '',
-        amount: e.amount
-    }));
-    
-    const prompt = `Allocate each spend entry to ONE of these user categories: ${categoriesToAllocate}.
-Match based on the spend category and comment. If unsure, pick the closest match.
-Return ONLY JSON: {"allocations":[{"id":"...","category":"..."}]}. No markdown.\n\n${JSON.stringify(spendData)}`;
-    
-    try {
-        const btn = document.getElementById('ai-classify-btn');
-        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
-        
-        const raw = await callAI(prompt, 'You are a financial allocator assigning spend to user categories.');
-        let parsed;
-        try { parsed = JSON.parse(raw); } catch (e) {
-            const m = raw.match(/\{[\s\S]*\}/);
-            if (m) parsed = JSON.parse(m[0]);
-        }
-        
-        if (parsed && Array.isArray(parsed.allocations)) {
-            const allocated = {};
-            parsed.allocations.forEach(a => {
-                if (a.id && a.category) {
-                    if (!allocated[a.category]) allocated[a.category] = 0;
-                    const entry = monthEntries.find(e => e.id === a.id);
-                    if (entry) allocated[a.category] += (entry.amount || 0);
-                }
-            });
-            
-            // Update plan with allocations
-            const needsUpdate = {};
-            const wantsUpdate = {};
-            
-            userNeeds.forEach(cat => { needsUpdate[cat] = 0; });
-            userWants.forEach(cat => { wantsUpdate[cat] = 0; });
-            
-            Object.entries(allocated).forEach(([cat, amount]) => {
-                if (userNeeds.includes(cat)) {
-                    needsUpdate[cat] = Math.round(amount);
-                } else if (userWants.includes(cat)) {
-                    wantsUpdate[cat] = Math.round(amount);
-                }
-            });
-            
-            plan.needs = Object.entries(needsUpdate).map(([name, amount]) => ({ name, amount }));
-            plan.wants = Object.entries(wantsUpdate).map(([name, amount]) => ({ name, amount }));
-            
-            renderSection('needs');
-            renderSection('wants');
-            recalc();
-            markDirty();
-            snack('✓ AI allocation complete', 'auto_awesome');
-        }
-        
-        if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
-    } catch (e) {
-        console.warn('AI allocation failed:', e);
-        snack('AI allocation failed: ' + e.message, 'error');
-    }
 }
 
 function getActualForItem(type, itemName) {

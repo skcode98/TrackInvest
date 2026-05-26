@@ -1152,8 +1152,8 @@ function checkSpendAlerts() {
 
     let monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
     let budget = db.monthlyPlans?.[monthKey] || {};
-    let needsBudget = budget.needs || 0;
-    let wantsBudget = budget.wants || 0;
+    let needsBudget = resolveBudgetValue(budget.needs);
+    let wantsBudget = resolveBudgetValue(budget.wants);
     let monthlyTotalBudget = needsBudget + wantsBudget;
     let dailyBudget = monthlyTotalBudget > 0 ? monthlyTotalBudget / 30 : 0;
     let weeklyBudget = dailyBudget * 7;
@@ -1170,13 +1170,20 @@ function checkSpendAlerts() {
     }
 }
 
+function resolveBudgetValue(value) {
+    if (Array.isArray(value)) {
+        return value.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    }
+    return Number(value) || 0;
+}
+
 function updateDashboardEntryCards() {
     let plannerEntry = document.getElementById('monthly-planner-entry');
     if (plannerEntry) {
         let monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
         let mp = db.monthlyPlans?.[monthKey] || {};
-        let needs = mp.needs || 0;
-        let wants = mp.wants || 0;
+        let needs = resolveBudgetValue(mp.needs);
+        let wants = resolveBudgetValue(mp.wants);
         let totalBudget = needs + wants;
         let totalInv = (db.investments || []).reduce((s, i) => s + i.amount, 0);
         let budgetStatusEl = plannerEntry.querySelector('.budget-status');
@@ -1197,7 +1204,8 @@ function updateDashboardEntryCards() {
 
         let descEl = spendEntry.querySelector('div[style*="font-size:13px"]');
         if (descEl) {
-            let monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'); let budget = (db.monthlyPlans?.[monthKey]?.needs || 0) + (db.monthlyPlans?.[monthKey]?.wants || 0);
+            let monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+            let budget = resolveBudgetValue(db.monthlyPlans?.[monthKey]?.needs) + resolveBudgetValue(db.monthlyPlans?.[monthKey]?.wants);
             let budgetText = budget > 0 ? ` of ₹${fmtNum(budget)}` : '';
             descEl.innerHTML = `This month: ₹${fmtNum(monthTotal)}${budgetText} · ${monthEntries.length} entries`;
         }
