@@ -931,26 +931,44 @@ function saveProfileSettings() {
     db.userProfile.regime = getVal('settings-regime') || 'new';
     db.userProfile.monthlyExpense = parseFloat(getVal('settings-expenses')) || 0;
     db.fyStartMonth = parseInt(getVal('settings-fy-start'), 10) || 3;
-    db.currency = getVal('settings-currency') || '₹';
+    db.currency = getVal('settings-display-currency') || 'INR';
     db.displayCurrency = getVal('settings-display-currency') || 'INR';
     db.currencySymbol = getVal('settings-currency') || '₹';
     db.userProfile.dob = getVal('profile-dob') || '';
+    db.userProfile.creditScore = parseInt(getVal('settings-credit-score'), 10) || null;
+    db.userProfile.riskTolerance = getVal('settings-risk') || 'moderate';
+    db.userProfile.dependents = parseInt(getVal('settings-dependents'), 10) || 0;
+    db.userProfile.primaryGoal = getVal('settings-primary-goal') || '';
     
-    // NEW: Save Planner visibility
+    // Toggles are saved instantly via saveToggleState, but as a fallback:
     const plannerEl = document.getElementById('settings-enable-planner');
     if(plannerEl) db.enableMonthlyPlanner = plannerEl.checked;
-
-    // NEW: Save Spend Tracker visibility
     const spendEl = document.getElementById('settings-enable-spend-tracker');
     if(spendEl) db.enableSpendTracker = spendEl.checked;
-
-    // Master toggles
     const aiToggle = document.getElementById('settings-ai-toggle');
     if (aiToggle) { db.aiEnabled = aiToggle.checked; window.__aiEnabled = db.aiEnabled; }
     const webToggle = document.getElementById('settings-web-toggle');
     if (webToggle) { db.webEnabled = webToggle.checked; window.__webEnabled = db.webEnabled; }
 
     saveData(); renderAll(); showSnackbar("Profile & Preferences Updated", "check_circle");
+}
+
+function saveToggleState(type, isChecked) {
+    haptic(20);
+    if (type === 'planner') {
+        db.enableMonthlyPlanner = isChecked;
+    } else if (type === 'spend') {
+        db.enableSpendTracker = isChecked;
+    } else if (type === 'ai') {
+        db.aiEnabled = isChecked;
+        window.__aiEnabled = isChecked;
+    } else if (type === 'web') {
+        db.webEnabled = isChecked;
+        window.__webEnabled = isChecked;
+    }
+    saveData();
+    // Render silently or show brief toast if requested
+    // showSnackbar("Preference saved"); 
 }
 
 function openMonthDetails(offset) {
@@ -974,65 +992,46 @@ function openMonthDetails(offset) {
 function openSettings() {
     haptic(30);
     closeOverlays();
-
-    const settingsData = {
-        profile: {
-            salary: db.userProfile.salary || 0,
-            regime: db.userProfile.regime || 'new',
-            expenses: db.userProfile.monthlyExpense || 0,
-            fyStart: db.fyStartMonth || 3,
-            currency: db.currency || '₹',
-            displayCurrency: db.displayCurrency || 'INR'
-        },
-        security: {
-            pin: db.appPin || '',
-            useBiometric: db.useBiometric || false
-        },
-        ai: {
-            geminiKey: db.geminiKey || '',
-            groqKey: db.groqKey || '',
-            openrouterKey: db.openrouterKey || '',
-            cerebrasKey: db.cerebrasKey || '',
-            githubKey: db.githubKey || ''
-        }
-    };
     loadUserProfileSettings();
-    // Populate form fields
-    const salaryEl = document.getElementById('settings-salary');
-    const regimeEl = document.getElementById('settings-regime');
-    const expensesEl = document.getElementById('settings-expenses');
-    const fyStartEl = document.getElementById('settings-fy-start');
-    const currencyEl = document.getElementById('settings-currency');
-    const displayCurrencyEl = document.getElementById('settings-display-currency');
-    const pinEl = document.getElementById('settings-pin');
-    const geminiEl = document.getElementById('gemini-api-key');
-    const groqEl = document.getElementById('groq-api-key');
-    const openrouterEl = document.getElementById('openrouter-api-key');
-    const cerebrasEl = document.getElementById('cerebras-api-key');
-    const githubEl = document.getElementById('github-api-key');
-    const biometricEl = document.getElementById('use-biometric-toggle');
-    const plannerEl = document.getElementById('settings-enable-planner'); // NEW
-    if (salaryEl) salaryEl.value = settingsData.profile.salary;
-    if (regimeEl) regimeEl.value = settingsData.profile.regime;
-    if (expensesEl) expensesEl.value = settingsData.profile.expenses;
-    if (fyStartEl) fyStartEl.value = settingsData.profile.fyStart;
-    if (currencyEl) currencyEl.value = settingsData.profile.currency;
-    if (displayCurrencyEl) displayCurrencyEl.value = settingsData.profile.displayCurrency;
-    if (pinEl) pinEl.value = settingsData.security.pin;
-    if (geminiEl) geminiEl.value = settingsData.ai.geminiKey;
-    if (groqEl) groqEl.value = settingsData.ai.groqKey;
-    if (openrouterEl) openrouterEl.value = settingsData.ai.openrouterKey;
-    if (cerebrasEl) cerebrasEl.value = settingsData.ai.cerebrasKey;
-    if (githubEl) githubEl.value = settingsData.ai.githubKey;
-    if (biometricEl) biometricEl.checked = settingsData.security.useBiometric;
-    if (plannerEl) plannerEl.checked = db.enableMonthlyPlanner; // NEW
-    const spendEl = document.getElementById('settings-enable-spend-tracker');
-    if (spendEl) spendEl.checked = db.enableSpendTracker;
-    // Master toggles
-    const aiToggle = document.getElementById('settings-ai-toggle');
-    if (aiToggle) aiToggle.checked = db.aiEnabled !== false;
-    const webToggle = document.getElementById('settings-web-toggle');
-    if (webToggle) webToggle.checked = db.webEnabled !== false;
+
+    // Map DOM IDs to their values (optimized without 20 if-checks)
+    const formValues = {
+        'settings-salary': db.userProfile.salary || 0,
+        'settings-regime': db.userProfile.regime || 'new',
+        'settings-expenses': db.userProfile.monthlyExpense || 0,
+        'settings-fy-start': db.fyStartMonth || 3,
+        'settings-currency': db.currencySymbol || '₹',
+        'settings-display-currency': db.displayCurrency || 'INR',
+        'settings-pin': db.appPin || '',
+        'gemini-api-key': db.geminiKey || '',
+        'groq-api-key': db.groqKey || '',
+        'openrouter-api-key': db.openrouterKey || '',
+        'cerebras-api-key': db.cerebrasKey || '',
+        'github-api-key': db.githubKey || '',
+        'profile-dob': db.userProfile.dob || '',
+        'settings-credit-score': db.userProfile.creditScore || '',
+        'settings-risk': db.userProfile.riskTolerance || 'moderate',
+        'settings-dependents': db.userProfile.dependents || 0,
+        'settings-primary-goal': db.userProfile.primaryGoal || ''
+    };
+
+    for (const [id, value] of Object.entries(formValues)) {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    }
+
+    const toggles = {
+        'use-biometric-toggle': db.useBiometric || false,
+        'settings-enable-planner': db.enableMonthlyPlanner !== false,
+        'settings-enable-spend-tracker': db.enableSpendTracker !== false,
+        'settings-ai-toggle': db.aiEnabled !== false,
+        'settings-web-toggle': db.webEnabled !== false
+    };
+
+    for (const [id, checked] of Object.entries(toggles)) {
+        const el = document.getElementById(id);
+        if (el) el.checked = checked;
+    }
 
     // Refresh manage sections
     renderSettingsSections();
@@ -1232,6 +1231,7 @@ function changeAccountFilter(val) {
 window.changeAccountFilter = changeAccountFilter;
 window.toggleNotificationMaster = toggleNotificationMaster;
 window.loadNotificationPrefs = loadNotificationPrefs;
+window.saveToggleState = saveToggleState;
 
 function updateCategorySetting(cat, key, val) {
     if (!db.categories[cat]) return;
@@ -1251,7 +1251,10 @@ function addCustomCategory() {
     const template = document.getElementById('new-cat-template').value;
     if (!name) return;
 
-    const color = ['#6750A4', '#B3261E', '#D96200', '#0288D1', '#388E3C'][Object.keys(db.categories).length % 5];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    const colors = ['#6750A4', '#B3261E', '#D96200', '#0288D1', '#388E3C', '#006874', '#9C27B0'];
+    const color = colors[Math.abs(hash) % colors.length];
 
     // Add to categories
     db.categories[name] = {
@@ -1279,11 +1282,6 @@ function addCustomCategory() {
     openSettings();
     showSnackbar(`Added Category: ${name} with ${template} template`);
 }
-function getFallbackCategory(excludeName) {
-    const available = Object.keys(db.categories || {}).filter(c => c !== excludeName);
-    return available.length > 0 ? available[0] : null;
-}
-
 function deleteCategory(name) {
     haptic(40);
     if (!db.categories || Object.keys(db.categories).length <= 1) {
@@ -1291,21 +1289,32 @@ function deleteCategory(name) {
         return;
     }
 
-    const fallback = getFallbackCategory(name);
+    const available = Object.keys(db.categories).filter(c => c !== name);
+    let options = {};
+    available.forEach(c => options[c] = c);
+
     Swal.fire({
         title: `Delete '${name}'?`,
-        text: `This will permanently remove the category. All existing investments in this category will be moved to '${fallback}'. This action cannot be undone.`,
+        text: `Choose where to move existing investments from this category. This action cannot be undone.`,
         icon: 'warning',
+        input: 'select',
+        inputOptions: options,
+        inputPlaceholder: 'Select fallback category',
         showCancelButton: true,
         confirmButtonColor: 'var(--md-error)',
-        confirmButtonText: 'Yes, delete it'
+        confirmButtonText: 'Yes, delete and move',
+        inputValidator: (value) => {
+            return new Promise((resolve) => {
+                if (value) { resolve() }
+                else { resolve('You need to select a fallback category') }
+            })
+        }
     }).then(r => {
-        if (r.isConfirmed) {
-            if (fallback) {
-                db.investments.forEach(i => { if (i.type === name) i.type = fallback; });
-                if (window.currentInvType === name) window.currentInvType = fallback;
-                if (window.activeCategory === name) window.activeCategory = fallback;
-            }
+        if (r.isConfirmed && r.value) {
+            const fallback = r.value;
+            db.investments.forEach(i => { if (i.type === name) i.type = fallback; });
+            if (window.currentInvType === name) window.currentInvType = fallback;
+            if (window.activeCategory === name) window.activeCategory = fallback;
             delete db.categories[name];
             if (db.categoryDetails && db.categoryDetails[name]) delete db.categoryDetails[name];
             saveData();
@@ -1780,6 +1789,7 @@ function restoreData(e) {
             db.navCache = parsed.navCache || {};
             db.spendTracker = parsed.spendTracker || { entries: [], aiCategoryCache: {} };
             db.monthlyPlans = parsed.monthlyPlans || {};
+            db.aiMemory = parsed.aiMemory || {};
 
             if (parsed.categories && Object.keys(parsed.categories).length > 0) { db.categories = parsed.categories; }
             if (!db.settingsTable) db.settingsTable = { lastResetMonth: '' };

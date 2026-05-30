@@ -146,6 +146,36 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
     if (active.cerebrasKey && !isValidCerebrasKey(keys.cerebrasKey)) active.cerebrasKey = false;
     if (active.githubKey && !isValidGitHubKey(keys.githubKey)) active.githubKey = false;
 
+    // Build user financial context and prepend to system prompt for richer AI advice
+    let userProfileContext = '';
+    try {
+        const p = (typeof db !== 'undefined' && db.userProfile) ? db.userProfile : null;
+        if (p) {
+            const ageLine = p.dob ? (() => {
+                const diff = Date.now() - new Date(p.dob).getTime();
+                return `Age: ${Math.abs(new Date(diff).getUTCFullYear() - 1970)} years`;
+            })() : '';
+            const parts = [
+                ageLine,
+                p.creditScore ? `Credit Score: ${p.creditScore}` : '',
+                p.riskTolerance ? `Risk Tolerance: ${p.riskTolerance.charAt(0).toUpperCase() + p.riskTolerance.slice(1)}` : '',
+                (p.dependents !== undefined && p.dependents !== null) ? `Dependents: ${p.dependents}` : '',
+                p.primaryGoal ? `Primary Financial Goal: "${p.primaryGoal}"` : '',
+                p.salary ? `Annual Salary: ${db.currencySymbol || '₹'}${p.salary.toLocaleString('en-IN')}` : '',
+                p.monthlyExpense ? `Monthly Expenses: ${db.currencySymbol || '₹'}${p.monthlyExpense.toLocaleString('en-IN')}` : '',
+                p.regime ? `Tax Regime: ${p.regime === 'new' ? 'New' : 'Old'}` : ''
+            ].filter(Boolean);
+            if (parts.length > 0) {
+                userProfileContext = `[USER FINANCIAL PROFILE]\n${parts.join(' | ')}\n[END PROFILE]\n\n`;
+            }
+        }
+    } catch(e) { /* silently ignore if db not available */ }
+
+    if (userProfileContext) {
+        systemPrompt = userProfileContext + (systemPrompt || '');
+    }
+
+
     const sanitizedPrompt = sanitizeInput(promptText);
     const sanitizedSystem = systemPrompt ? sanitizeInput(systemPrompt) : '';
     const hasMessages = Array.isArray(messages) && messages.length > 0;

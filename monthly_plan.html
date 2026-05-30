@@ -873,69 +873,156 @@ async function aiAllocateToCategories() {
 
     const d = getViewDate();
     let m = d.getMonth(), y = d.getFullYear();
-    const entries = (db.spendTracker && db.spendTracker.entries) || [];
-    const monthEntries = entries.filter(e => {
+    
+    // 1. Gather Spend Entries
+    const spendEntries = ((db.spendTracker && db.spendTracker.entries) || []).filter(e => {
         const ed = new Date(e.date);
         return ed.getMonth() === m && ed.getFullYear() === y;
     });
-    if (monthEntries.length === 0) { snack('No spend entries for this month', 'info'); return; }
+    
+    // 2. Gather Investment Entries
+    const investEntries = (db.investments || []).filter(i => {
+        const id = new Date(i.date);
+        return id.getMonth() === m && id.getFullYear() === y;
+    });
+
+    if (spendEntries.length === 0 && investEntries.length === 0) { 
+        snack('No spend or investment entries for this month', 'info'); 
+        return; 
+    }
 
     const userNeeds = plan.needs.map(n => n.name);
     const userWants = plan.wants.map(w => w.name);
-    if (userNeeds.length === 0 && userWants.length === 0) {
-        snack('Add custom needs/wants categories first', 'info');
+    const userInvests = plan.investments.map(i => i.name);
+    
+    if (userNeeds.length === 0 && userWants.length === 0 && userInvests.length === 0) {
+        snack('Add custom categories first (Needs, Wants, or Investments)', 'info');
         return;
     }
 
     const allCategories = [];
     if (userNeeds.length) allCategories.push('Needs: ' + userNeeds.join(', '));
     if (userWants.length) allCategories.push('Wants: ' + userWants.join(', '));
+    if (userInvests.length) allCategories.push('Investments: ' + userInvests.join(', '));
 
-    const spendData = monthEntries.map(e => ({
+    const spendData = spendEntries.map(e => ({
         id: e.id,
+        type: 'spend',
         amount: e.amount,
-        category: e.category || '',
+        current_category: e.category || '',
         comment: e.comment || ''
     }));
+    
+    const investData = investEntries.map(i => ({
+        id: i.id,
+        type: 'investment',
+        amount: i.amount,
+        current_category: i.type || '',
+        comment: i.note || ''
+    }));
+    
+    const allData = [...spendData, ...investData];
+    
+    if (!db.aiMemory) db.aiMemory = {};
+    const preAllocated = [];
+    const needsAiData = [];
+    
+    allData.forEach(e => {
+        const key = String(e.comment || '').toLowerCase().trim();
+        if (key && db.aiMemory[key]) {
+            const memCat = db.aiMemory[key].category.toLowerCase();
+            const memBucket = db.aiMemory[key].bucket;
+            
+            let isValid = false;
+            if (memBucket === 'needs') isValid = userNeeds.some(n => n.toLowerCase() === memCat || memCat.includes(n.toLowerCase()) || n.toLowerCase().includes(memCat));
+            else if (memBucket === 'wants') isValid = userWants.some(w => w.toLowerCase() === memCat || memCat.includes(w.toLowerCase()) || w.toLowerCase().includes(memCat));
+            else if (memBucket === 'investments') isValid = userInvests.some(i => i.toLowerCase() === memCat || memCat.includes(i.toLowerCase()) || i.toLowerCase().includes(memCat));
 
-    const prompt = `You are a personal finance assistant. Allocate each spend entry to one of these user categories:
+            if (isValid) {
+                preAllocated.push({ id: e.id, category: db.aiMemory[key].category, bucket: db.aiMemory[key].bucket });
+                return;
+            }
+        }
+        needsAiData.push(e);
+    });
+    
+    if (needsAiData.length === 0) {
+        const allocationMap = {};
+        const categoryTotals = { needs: {}, wants: {}, investments: {} };
+        preAllocated.forEach(a => {
+            allocationMap[a.id] = { category: a.category, bucket: a.bucket };
+            const origEntry = allData.find(e => e.id === a.id);
+            if (origEntry && categoryTotals[a.bucket]) {
+                categoryTotals[a.bucket][a.category] = (categoryTotals[a.bucket][a.category] || 0) + origEntry.amount;
+            }
+        });
+        
+        const allocationEntries = allData.map(e => {
+            const alloc = allocationMap[e.id];
+            return {
+                id: e.id, bucket: alloc.bucket, comment: e.comment || e.current_category || 'Entry',
+                amount: e.amount || 0, category: alloc.category
+            };
+        });
+        
+        showAllocationPreview(allocationEntries, categoryTotals, () => {
+            applyClassificationResult(allocationMap);
+        }, () => {});
+        snack('Mapped entirely from memory!', 'check_circle');
+        return;
+    }
+
+    const prompt = `You are a personal finance assistant. Allocate each entry to ONE of the user's custom categories:
 ${allCategories.join('\n')}
 
-Use the spend category and comment to pick the best match. If the entry does not clearly match any one category, choose the closest existing one.
-Return ONLY JSON with the shape: {"allocations":[{"id":"...","category":"..."}]}. No markdown.
+Rules:
+1. For entries with type="spend", map them ONLY to a category from the "Needs" or "Wants" list.
+2. For entries with type="investment", map them ONLY to a category from the "Investments" list.
+3. If an entry does not clearly match, pick the closest existing category in the allowed lists.
 
-${JSON.stringify(spendData)}`;
+Return ONLY JSON with the shape: {"allocations":[{"id":"...","category":"...","bucket":"needs|wants|investments"}]}. No markdown.
+
+Data:
+${JSON.stringify(needsAiData)}`;
 
     const btn = document.getElementById('ai-classify-btn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
 
     try {
-        const raw = await callAI(prompt, 'You are a financial allocator assigning spend to custom budget categories.');
+        const raw = await callAI(prompt, 'You are a financial allocator assigning spend and investments to custom budget categories.');
         let parsed;
         try { parsed = JSON.parse(raw); } catch (e) {
-            const m = raw.match(/\{[\s\S]*\}/);
-            if (m) parsed = JSON.parse(m[0]);
+            const matchStr = raw.match(/\{[\s\S]*\}/);
+            if (matchStr) parsed = JSON.parse(matchStr[0]);
         }
         if (!parsed || !Array.isArray(parsed.allocations)) {
             throw new Error('Invalid AI response');
         }
 
         const allocationMap = {};
-        const categoryTotals = {};
-        parsed.allocations.forEach(a => {
-            if (a.id && a.category) {
+        const categoryTotals = { needs: {}, wants: {}, investments: {} };
+        
+        [...preAllocated, ...parsed.allocations].forEach(a => {
+            if (a.id && a.category && a.bucket) {
                 const categoryName = String(a.category).trim();
-                allocationMap[a.id] = categoryName;
-                categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + ((monthEntries.find(e => e.id === a.id) || {}).amount || 0);
+                const bucket = String(a.bucket).toLowerCase().trim();
+                allocationMap[a.id] = { category: categoryName, bucket: bucket };
+                
+                const origEntry = allData.find(e => e.id === a.id);
+                if (origEntry && categoryTotals[bucket]) {
+                    categoryTotals[bucket][categoryName] = (categoryTotals[bucket][categoryName] || 0) + origEntry.amount;
+                }
             }
         });
 
-        const allocationEntries = monthEntries.map(e => {
+        const allocationEntries = allData.map(e => {
+            const alloc = allocationMap[e.id];
             return {
                 id: e.id,
-                comment: e.comment || e.category || 'Entry',
+                bucket: alloc ? alloc.bucket : (e.type === 'spend' ? 'uncategorized' : 'investments'),
+                comment: e.comment || e.current_category || 'Entry',
                 amount: e.amount || 0,
-                category: allocationMap[e.id] || e.category || 'Uncategorized'
+                category: alloc ? alloc.category : (e.current_category || 'Uncategorized')
             };
         });
 
@@ -962,56 +1049,73 @@ function showAllocationPreview(entries, totals, onApply, onCancel) {
         document.body.appendChild(overlay);
     }
 
-    const rows = entries.map(e => `
+    const renderBucketRows = (bucketEntries) => {
+        if (!bucketEntries || bucketEntries.length === 0) return `<div style="color:var(--md-outline);font-size:13px;padding:4px 0;">No entries</div>`;
+        return bucketEntries.map(e => `
             <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
                 <div style="max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                    <strong>${escapeHtml(e.category)}</strong> · ${escapeHtml(e.comment)}
+                    <strong>${escapeHtml(e.category)}</strong> · <span style="font-size:12px;color:var(--md-outline);">${escapeHtml(e.comment)}</span>
                 </div>
                 <div style="font-weight:600;">₹${Math.round(e.amount).toLocaleString('en-IN')}</div>
             </div>`).join('');
+    };
 
-    const totalRows = Object.entries(totals).map(([name, amount]) => `
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
+    const needsEntries = entries.filter(e => e.bucket === 'needs');
+    const wantsEntries = entries.filter(e => e.bucket === 'wants');
+    const investEntries = entries.filter(e => e.bucket === 'investments');
+
+    const renderTotals = (bucketTotals) => {
+        const keys = Object.keys(bucketTotals || {});
+        if (keys.length === 0) return '';
+        return keys.map(name => `
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;">
                 <div>${escapeHtml(name)}</div>
-                <div style="font-weight:700;">₹${Math.round(amount).toLocaleString('en-IN')}</div>
+                <div style="font-weight:600;">₹${Math.round(bucketTotals[name]).toLocaleString('en-IN')}</div>
             </div>`).join('');
+    };
 
-    const plannedSalary = plan.income.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
-    const investedPlan = plan.investments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
-    const needsBudget = plan.needs.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
-    const wantsBudget = plan.wants.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
-    const totalBudget = needsBudget + wantsBudget;
-    const profileSalary = db.userProfile?.salary ? Math.round(db.userProfile.salary) : null;
-
-    overlay.innerHTML = `<div style="background:var(--md-surface);border-radius:20px;max-width:640px;width:100%;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,0.3);">
+    overlay.innerHTML = `<div style="background:var(--md-surface);border-radius:20px;max-width:700px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,0.3);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-            <div style="font-size:18px;font-weight:600;">Preview AI allocation</div>
+            <div style="font-size:18px;font-weight:600;">Universal AI Allocation Preview</div>
             <button id="allocation-preview-close" style="background:none;border:none;cursor:pointer;font-size:24px;color:var(--md-outline);">&times;</button>
         </div>
-        <div style="margin-bottom:16px;color:var(--md-outline);font-size:13px;">This preview shows how current spend entries would be mapped to your custom budget categories. Confirm to apply only to actual entries, leaving planned amounts unchanged.</div>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:20px;">
-            <div style="background:var(--md-surface-container);border-radius:14px;padding:14px;">
-                <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:6px;">Planned salary</div>
-                <div style="font-size:16px;font-weight:700;">₹${Math.round(plannedSalary).toLocaleString('en-IN')}</div>
-                ${profileSalary ? `<div style="font-size:11px;color:var(--md-outline);margin-top:4px;">Profile salary: ₹${profileSalary.toLocaleString('en-IN')}</div>` : ''}
+        
+        <div style="margin-bottom:20px;color:var(--md-outline);font-size:13px;">
+            Review how your Spend and Investment entries have been mapped to your custom categories. 
+        </div>
+        
+        <div style="display:flex;flex-direction:column;gap:20px;">
+            <!-- INVESTMENTS BUCKET -->
+            <div style="background:var(--md-surface-container);border-radius:14px;padding:16px;">
+                <div style="font-weight:700;color:#415F91;margin-bottom:12px;font-size:15px;">Investments</div>
+                <div style="margin-bottom:12px;">${renderTotals(totals.investments)}</div>
+                <div style="border-top:1px solid var(--md-outline-variant);padding-top:8px;">
+                    ${renderBucketRows(investEntries)}
+                </div>
             </div>
-            <div style="background:var(--md-surface-container);border-radius:14px;padding:14px;">
-                <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:6px;">Monthly budget</div>
-                <div style="font-size:16px;font-weight:700;">₹${Math.round(totalBudget).toLocaleString('en-IN')}</div>
-                <div style="font-size:11px;color:var(--md-outline);margin-top:4px;">Needs ₹${Math.round(needsBudget).toLocaleString('en-IN')} · Wants ₹${Math.round(wantsBudget).toLocaleString('en-IN')}</div>
+            
+            <!-- NEEDS BUCKET -->
+            <div style="background:var(--md-surface-container);border-radius:14px;padding:16px;">
+                <div style="font-weight:700;color:#914141;margin-bottom:12px;font-size:15px;">Needs</div>
+                <div style="margin-bottom:12px;">${renderTotals(totals.needs)}</div>
+                <div style="border-top:1px solid var(--md-outline-variant);padding-top:8px;">
+                    ${renderBucketRows(needsEntries)}
+                </div>
             </div>
-            <div style="grid-column:span 2;background:var(--md-surface-container);border-radius:14px;padding:14px;">
-                <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:6px;">Planned investments</div>
-                <div style="font-size:16px;font-weight:700;">₹${Math.round(investedPlan).toLocaleString('en-IN')}</div>
+            
+            <!-- WANTS BUCKET -->
+            <div style="background:var(--md-surface-container);border-radius:14px;padding:16px;">
+                <div style="font-weight:700;color:#916841;margin-bottom:12px;font-size:15px;">Wants</div>
+                <div style="margin-bottom:12px;">${renderTotals(totals.wants)}</div>
+                <div style="border-top:1px solid var(--md-outline-variant);padding-top:8px;">
+                    ${renderBucketRows(wantsEntries)}
+                </div>
             </div>
         </div>
-        <div style="margin-bottom:16px;font-weight:700;">Category totals</div>
-        ${totalRows}
-        <div style="margin-top:18px;font-weight:700;border-top:1px solid var(--md-outline-variant);padding-top:14px;">Detailed mapping</div>
-        ${rows}
-        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;flex-wrap:wrap;">
-            <button id="allocation-preview-cancel" style="background:transparent;border:1px solid var(--md-outline);border-radius:12px;padding:10px 14px;cursor:pointer;">Cancel</button>
-            <button id="allocation-preview-apply" style="background:var(--md-primary);color:#fff;border:none;border-radius:12px;padding:10px 14px;cursor:pointer;">Apply allocation</button>
+        
+        <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end;flex-wrap:wrap;">
+            <button id="allocation-preview-cancel" style="background:transparent;border:1px solid var(--md-outline);border-radius:12px;padding:10px 16px;cursor:pointer;">Cancel</button>
+            <button id="allocation-preview-apply" style="background:var(--md-primary);color:#fff;border:none;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:600;">Apply Mapping</button>
         </div>
     </div>`;
 
@@ -1022,26 +1126,50 @@ function showAllocationPreview(entries, totals, onApply, onCancel) {
 }
 
 function applyClassificationResult(allocationMap) {
-    const entries = ((db.spendTracker && db.spendTracker.entries) || []);
+    const spendEntries = ((db.spendTracker && db.spendTracker.entries) || []);
+    const investEntries = (db.investments || []);
     
     const validNeeds = plan.needs.map(n => n.name.toLowerCase().trim());
     const validWants = plan.wants.map(w => w.name.toLowerCase().trim());
-    const isValidCategory = (cat) => {
+    const validInvests = plan.investments.map(i => i.name.toLowerCase().trim());
+    
+    const isValidCategory = (cat, allowedList) => {
         const c = String(cat).toLowerCase().trim();
-        return validNeeds.some(n => n === c || n.includes(c) || c.includes(n)) ||
-               validWants.some(w => w === c || w.includes(c) || c.includes(w));
+        return allowedList.some(item => item === c || item.includes(c) || c.includes(item));
     };
 
-    entries.forEach(entry => {
-        const newCategory = allocationMap[entry.id];
-        if (newCategory && entry.category !== newCategory && isValidCategory(newCategory)) {
-            entry.category = newCategory;
+    if (!db.aiMemory) db.aiMemory = {};
+
+    // 1. Update Spend Entries (Needs/Wants)
+    spendEntries.forEach(entry => {
+        const alloc = allocationMap[entry.id];
+        if (alloc) {
+            const allowedList = alloc.bucket === 'needs' ? validNeeds : (alloc.bucket === 'wants' ? validWants : [...validNeeds, ...validWants]);
+            if (alloc.category && entry.category !== alloc.category && isValidCategory(alloc.category, allowedList)) {
+                entry.category = alloc.category;
+                const commentKey = String(entry.comment || '').toLowerCase().trim();
+                if (commentKey) db.aiMemory[commentKey] = { category: alloc.category, bucket: alloc.bucket };
+            }
         }
     });
     
-    // keep classification cache aligned with custom categories
+    // 2. Update Investment Entries
+    let investmentsModified = false;
+    investEntries.forEach(entry => {
+        const alloc = allocationMap[entry.id];
+        if (alloc && alloc.bucket === 'investments') {
+            if (alloc.category && entry.type !== alloc.category && isValidCategory(alloc.category, validInvests)) {
+                entry.type = alloc.category;
+                investmentsModified = true;
+                const noteKey = String(entry.note || '').toLowerCase().trim();
+                if (noteKey) db.aiMemory[noteKey] = { category: alloc.category, bucket: 'investments' };
+            }
+        }
+    });
+    
+    // 3. Update Classification Cache for Spend
     if (!_aiClassificationCache) _aiClassificationCache = {};
-    entries.forEach(entry => {
+    spendEntries.forEach(entry => {
         const cat = String(entry.category || '').toLowerCase().trim();
         if (!cat) return;
         
@@ -1058,21 +1186,29 @@ function applyClassificationResult(allocationMap) {
     if (!db.spendTracker.aiCategoryCache) db.spendTracker.aiCategoryCache = {};
     Object.assign(db.spendTracker.aiCategoryCache, _aiClassificationCache);
     
-    // Save the updated spend tracker entries to localStorage
+    // 4. Save updates to localStorage
     try {
         let existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}');
         if (!existing.spendTracker) existing.spendTracker = { entries: [], aiCategoryCache: {} };
+        
         existing.spendTracker.entries = db.spendTracker.entries.map(x => ({...x}));
         existing.spendTracker.aiCategoryCache = db.spendTracker.aiCategoryCache;
+        
+        if (investmentsModified) {
+            existing.investments = db.investments.map(x => ({...x}));
+        }
+        
+        existing.aiMemory = db.aiMemory;
+        
         localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
     } catch (e) {
-        console.warn('Failed to save spend tracker:', e);
+        console.warn('Failed to save allocations:', e);
     }
     
     loadActuals().then(() => {
         renderAll();
         markDirty();
-        snack('✓ Actual spend allocation applied', 'check_circle');
+        snack('✓ Universal AI allocation applied', 'check_circle');
     });
 }
 

@@ -894,6 +894,25 @@
                             onchange="updateCalculatedAgeDisplay()">
                     </div>
                 </div>
+                
+                <div class="input-row">
+                    <div class="input-container" style="flex:1"><label>Credit Score</label><input type="number"
+                            id="settings-credit-score" class="md-input" placeholder="e.g. 750"></div>
+                    <div class="input-container" style="flex:1"><label>Risk Tolerance</label>
+                        <select id="settings-risk" class="md-input">
+                            <option value="moderate">Moderate</option>
+                            <option value="conservative">Conservative</option>
+                            <option value="aggressive">Aggressive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-container" style="flex:1"><label>Dependents</label><input type="number"
+                            id="settings-dependents" class="md-input" placeholder="e.g. 2"></div>
+                    <div class="input-container" style="flex:2"><label>Primary Financial Goal</label><input type="text"
+                            id="settings-primary-goal" class="md-input" placeholder="e.g. Buy a house in 5 years"></div>
+                </div>
+
                 <div
                     style="font-size:12px;font-weight:600;color:var(--md-primary);margin:20px 0 12px;letter-spacing:0.5px;text-transform:uppercase;">
                     Dashboard Features</div>
@@ -905,7 +924,7 @@
                         <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your
                             salary & cash flow</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-enable-planner"><span
+                    <label class="switch"><input type="checkbox" id="settings-enable-planner" onchange="saveToggleState('planner', this.checked)"><span
                             class="slider"></span></label>
                 </div>
 
@@ -916,7 +935,7 @@
                         <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses,
                             AI categorization & insights</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker"><span
+                    <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker" onchange="saveToggleState('spend', this.checked)"><span
                             class="slider"></span></label>
                 </div>
 
@@ -954,7 +973,7 @@
                         <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">AI chat, reports,
                             auto-categorize, forecasts</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-ai-toggle"><span
+                    <label class="switch"><input type="checkbox" id="settings-ai-toggle" onchange="saveToggleState('ai', this.checked)"><span
                             class="slider"></span></label>
                 </div>
 
@@ -985,7 +1004,7 @@
                         <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Live prices, NAV lookup,
                             exchange rates, gold rates</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-web-toggle"><span
+                    <label class="switch"><input type="checkbox" id="settings-web-toggle" onchange="saveToggleState('web', this.checked)"><span
                             class="slider"></span></label>
                 </div>
 
