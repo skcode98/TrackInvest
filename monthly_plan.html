@@ -723,7 +723,7 @@ async function shiftMonth(delta) {
     updateMonthLabel();
     const key = getMonthKey(getViewDate());
     loadPlanForMonth(key);
-    _aiClassificationCache = {}; // Initialize as empty object instead of null to prevent errors
+    _aiClassificationCache = db.spendTracker?.aiCategoryCache ? {...db.spendTracker.aiCategoryCache} : {};
     await loadActuals();
     renderAll();
     updateMonthUI(key);
@@ -803,6 +803,7 @@ window.onload = async function () {
     }
     const key = getMonthKey(getViewDate());
     loadPlanForMonth(key);
+    _aiClassificationCache = db.spendTracker?.aiCategoryCache ? {...db.spendTracker.aiCategoryCache} : {};
     await loadActuals();
     renderAll();
     updateMonthUI(key);
@@ -1021,31 +1022,48 @@ function showAllocationPreview(entries, totals, onApply, onCancel) {
 }
 
 function applyClassificationResult(allocationMap) {
-    const entries = (db.spendTracker && db.spendTracker.entries) || [];
+    const entries = ((db.spendTracker && db.spendTracker.entries) || []);
+    
+    const validNeeds = plan.needs.map(n => n.name.toLowerCase().trim());
+    const validWants = plan.wants.map(w => w.name.toLowerCase().trim());
+    const isValidCategory = (cat) => {
+        const c = String(cat).toLowerCase().trim();
+        return validNeeds.some(n => n === c || n.includes(c) || c.includes(n)) ||
+               validWants.some(w => w === c || w.includes(c) || c.includes(w));
+    };
+
     entries.forEach(entry => {
         const newCategory = allocationMap[entry.id];
-        if (newCategory && entry.category !== newCategory) {
+        if (newCategory && entry.category !== newCategory && isValidCategory(newCategory)) {
             entry.category = newCategory;
         }
     });
+    
     // keep classification cache aligned with custom categories
-    _aiClassificationCache = {};
+    if (!_aiClassificationCache) _aiClassificationCache = {};
     entries.forEach(entry => {
         const cat = String(entry.category || '').toLowerCase().trim();
         if (!cat) return;
-        if (plan.needs.some(n => n.name.toLowerCase().trim() === cat || cat.includes(n.name.toLowerCase().trim()))) {
+        
+        const isNeed = validNeeds.some(n => n === cat || n.includes(cat) || cat.includes(n));
+        const isWant = validWants.some(w => w === cat || w.includes(cat) || cat.includes(w));
+        
+        if (isNeed) {
             _aiClassificationCache[entry.id] = 'needs';
-        } else if (plan.wants.some(w => w.name.toLowerCase().trim() === cat || cat.includes(w.name.toLowerCase().trim()))) {
+        } else if (isWant) {
             _aiClassificationCache[entry.id] = 'wants';
         }
     });
+    
+    if (!db.spendTracker.aiCategoryCache) db.spendTracker.aiCategoryCache = {};
+    Object.assign(db.spendTracker.aiCategoryCache, _aiClassificationCache);
     
     // Save the updated spend tracker entries to localStorage
     try {
         let existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}');
         if (!existing.spendTracker) existing.spendTracker = { entries: [], aiCategoryCache: {} };
         existing.spendTracker.entries = db.spendTracker.entries.map(x => ({...x}));
-        existing.spendTracker.aiCategoryCache = db.spendTracker.aiCategoryCache || {};
+        existing.spendTracker.aiCategoryCache = db.spendTracker.aiCategoryCache;
         localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
     } catch (e) {
         console.warn('Failed to save spend tracker:', e);
