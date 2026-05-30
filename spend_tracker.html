@@ -741,7 +741,6 @@
                 uncat.forEach(e=>{const x=cats.find(c=>c.comment===e.comment); if(x&&CAT_COLORS[x.category]) suggestions.push({entry:e,suggested:x.category});});
                 if (suggestions.length === 0) { Swal.fire('Info','AI could not categorize any items','info'); btn.disabled=false; btn.innerHTML='<span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize'; return; }
                 const catsList = Object.keys(CAT_COLORS);
-                const opts = catsList.map(c => '<option value="'+c+'">'+c+'</option>').join('');
                 const reviewCats = ['all', ...catsList];
                 let html = '<div style="max-height:55vh;overflow-y:auto;">';
                 let currentFilter = 'all';
@@ -752,9 +751,10 @@
                 });
                 html += '</div>';
                 suggestions.forEach((s, i) => {
+                    const optionsHtml = catsList.map(c => '<option value="'+c+'"' + (c === s.suggested ? ' selected' : '') + '>'+c+'</option>').join('');
                     html += '<div class="review-row" data-cat="' + s.suggested + '" style="display:flex;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px solid var(--md-surface-container-highest);font-size:13px;">'
                         + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + DOMPurify.sanitize(s.entry.comment) + ' — ₹' + s.entry.amount + '</span>'
-                        + '<select id="review-cat-' + i + '" style="padding:4px 6px;border-radius:8px;border:1px solid var(--md-outline);font-size:12px;">' + opts + '</select></div>';
+                        + '<select id="review-cat-' + i + '" style="padding:4px 6px;border-radius:8px;border:1px solid var(--md-outline);font-size:12px;">' + optionsHtml + '</select></div>';
                 });
                 html += '</div>';
                 const result = await Swal.fire({

@@ -723,7 +723,7 @@ async function shiftMonth(delta) {
     updateMonthLabel();
     const key = getMonthKey(getViewDate());
     loadPlanForMonth(key);
-    _aiClassificationCache = null;
+    _aiClassificationCache = {}; // Initialize as empty object instead of null to prevent errors
     await loadActuals();
     renderAll();
     updateMonthUI(key);
@@ -792,6 +792,8 @@ window.onload = async function () {
     if (!Array.isArray(db.investments)) db.investments = [];
     if (!Array.isArray(db.recurring)) db.recurring = [];
     if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
+    if (!Array.isArray(db.spendTracker.entries)) db.spendTracker.entries = [];
+    if (!db.spendTracker.aiCategoryCache) db.spendTracker.aiCategoryCache = {};
     if (db.monthlyPlanConfig && !db.monthlyPlans) {
         db.monthlyPlans = {};
         const today = new Date();
@@ -1037,6 +1039,18 @@ function applyClassificationResult(allocationMap) {
             _aiClassificationCache[entry.id] = 'wants';
         }
     });
+    
+    // Save the updated spend tracker entries to localStorage
+    try {
+        let existing = JSON.parse(localStorage.getItem('appHubInvestDb') || '{}');
+        if (!existing.spendTracker) existing.spendTracker = { entries: [], aiCategoryCache: {} };
+        existing.spendTracker.entries = db.spendTracker.entries.map(x => ({...x}));
+        existing.spendTracker.aiCategoryCache = db.spendTracker.aiCategoryCache || {};
+        localStorage.setItem('appHubInvestDb', JSON.stringify(existing));
+    } catch (e) {
+        console.warn('Failed to save spend tracker:', e);
+    }
+    
     loadActuals().then(() => {
         renderAll();
         markDirty();
@@ -1259,7 +1273,7 @@ function getActualForItem(type, itemName) {
             .reduce((s, i) => s + (i.amount || 0), 0);
     }
 
-    const entries = (db.spendTracker && db.spendTracker.entries || []).filter(e => {
+    const entries = ((db.spendTracker && db.spendTracker.entries) || []).filter(e => {
         const ed = new Date(e.date);
         return ed.getMonth() === m && ed.getFullYear() === y;
     });
@@ -1687,6 +1701,11 @@ function savePlanner(silent = false) {
         existing.openrouterKey = db.openrouterKey;
         existing.cerebrasKey = db.cerebrasKey;
         existing.githubKey = db.githubKey;
+        existing.aiEnabled = db.aiEnabled;
+        existing.webEnabled = db.webEnabled;
+        existing.spendTracker = db.spendTracker || { entries: [], aiCategoryCache: {} };
+        existing.theme = db.theme;
+        existing.privacyMode = db.privacyMode;
         restoreApiKeysInDb(existing);
         const encoded = prepareDbForStorage(existing);
         try {

@@ -1778,6 +1778,8 @@ function restoreData(e) {
             db.chatSessions = parsed.chatSessions || [];
             db.lastBackupPrompt = parsed.lastBackupPrompt || '';
             db.navCache = parsed.navCache || {};
+            db.spendTracker = parsed.spendTracker || { entries: [], aiCategoryCache: {} };
+            db.monthlyPlans = parsed.monthlyPlans || {};
 
             if (parsed.categories && Object.keys(parsed.categories).length > 0) { db.categories = parsed.categories; }
             if (!db.settingsTable) db.settingsTable = { lastResetMonth: '' };
