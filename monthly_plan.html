@@ -991,10 +991,52 @@ ${JSON.stringify(needsAiData)}`;
     try {
         const raw = await callAI(prompt, 'You are a financial allocator assigning spend and investments to custom budget categories.');
         let parsed;
-        try { parsed = JSON.parse(raw); } catch (e) {
-            const matchStr = raw.match(/\{[\s\S]*\}/);
-            if (matchStr) parsed = JSON.parse(matchStr[0]);
+
+        function tryParseAllocationsJSON(text) {
+            try {
+                const p = JSON.parse(text);
+                if (p && Array.isArray(p.allocations)) return p;
+            } catch (e) {}
+
+            const startIdx = text.indexOf('{"allocations"');
+            if (startIdx !== -1) {
+                let depth = 0;
+                for (let i = startIdx; i < text.length; i++) {
+                    if (text[i] === '{') depth++;
+                    else if (text[i] === '}') {
+                        depth--;
+                        if (depth === 0) {
+                            const candidate = text.slice(startIdx, i + 1);
+                            try {
+                                const p = JSON.parse(candidate);
+                                if (p && Array.isArray(p.allocations)) return p;
+                            } catch (e) {}
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const m = text.match(/\{[\s\S]*"allocations"[\s\S]*\}/);
+            if (m) {
+                try {
+                    const p = JSON.parse(m[0]);
+                    if (p && Array.isArray(p.allocations)) return p;
+                } catch (e) {}
+            }
+
+            const arrMatch = text.match(/"allocations"\s*:\s*(\[[\s\S]*?\])/);
+            if (arrMatch) {
+                try {
+                    const arr = JSON.parse(arrMatch[1]);
+                    return { allocations: arr };
+                } catch (e) {}
+            }
+
+            return null;
         }
+
+        parsed = tryParseAllocationsJSON(raw);
         if (!parsed || !Array.isArray(parsed.allocations)) {
             throw new Error('Invalid AI response');
         }
