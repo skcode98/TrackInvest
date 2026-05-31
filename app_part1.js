@@ -2208,6 +2208,8 @@ function initChartInteractivity() {
     container.addEventListener('touchstart', handleMove, { passive: true });
     container.addEventListener('touchmove', handleMove, { passive: true });
     container.addEventListener('touchend', () => { tooltip.style.display = 'none'; point.style.display = 'none'; });
+    container.addEventListener('mousemove', handleMove, { passive: true });
+    container.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; point.style.display = 'none'; });
 }
 
 function getBezierPath(points) {
@@ -2317,6 +2319,28 @@ function renderDonutChart(typeTotals, totalMarketValue) {
 
     document.getElementById('donut-val').innerText = formatMoney(totalMarketValue);
 }
+
+Chart.register({
+    id: 'barValueLabels',
+    afterDraw: function(chart) {
+        if (chart.canvas.id !== 'rollingChart' || db.privacyMode) return;
+        let meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data) return;
+        let ctx = chart.ctx;
+        let textColor = getComputedStyle(document.documentElement).getPropertyValue('--md-on-surface').trim() || '#E6E1E5';
+        ctx.save();
+        ctx.font = '9px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        meta.data.forEach(function(bar, i) {
+            let val = chart.data.datasets[0].data[i];
+            if (val === 0) return;
+            ctx.fillStyle = textColor;
+            ctx.fillText('₹' + Number(val).toLocaleString('en-IN'), bar.x, bar.y - 5);
+        });
+        ctx.restore();
+    }
+});
 
 function renderRollingChart() {
     let canvas = document.getElementById('rollingChart');

@@ -55,6 +55,9 @@
         .budget-header .bh-target { text-align:right; min-width:60px; }
         .budget-header .bh-actual { text-align:right; min-width:70px; }
         .budget-header .bh-status { text-align:right; min-width:40px; }
+        .budget-item-row .input-container { margin-bottom:0 !important; }
+        .budget-item-row .input-container label { margin-bottom:2px !important; }
+        .budget-item-row input[type="number"] { font-size:16px; font-weight:600; }
 
         /* ── Filters ── */
         .filter-tabs { display:flex; gap:4px; padding:4px; background:var(--md-surface-container-high); border-radius:14px; margin-bottom:12px; overflow-x:auto; scrollbar-width:none; }
@@ -179,12 +182,44 @@
     <div class="import-scrim" id="budget-scrim" onclick="closeBudgetSheet()"></div>
     <div class="import-sheet" id="budget-sheet">
         <div class="drag-handle"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
             <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;">account_balance_wallet</span>
-            <span style="font-weight:600;font-size:17px;">Monthly Spend Budget</span>
+            <span style="font-weight:600;font-size:17px;">Monthly Budget</span>
         </div>
-        <div class="input-container"><label>Budget Amount (₹)</label><input type="number" id="budget-amt-input" class="md-input" placeholder="0" inputmode="decimal"></div>
-        <div style="display:flex;gap:12px;margin-top:20px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="budget-item-row">
+                <div class="input-container" style="margin-bottom:0;flex:1;">
+                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+                        <span class="material-symbols-rounded" style="font-size:14px;color:var(--md-primary);">payments</span>
+                        <input type="text" id="budget-label-daily" class="md-input" style="font-size:12px;font-weight:600;padding:2px 6px;border:none;background:transparent;color:var(--md-on-surface);width:auto;min-width:80px;" maxlength="30">
+                    </div>
+                    <input type="number" id="budget-daily-input" class="md-input" placeholder="0" inputmode="decimal">
+                </div>
+            </div>
+            <div class="budget-item-row">
+                <div class="input-container" style="margin-bottom:0;flex:1;">
+                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+                        <span class="material-symbols-rounded" style="font-size:14px;color:var(--md-tertiary);">receipt_long</span>
+                        <input type="text" id="budget-label-fixed" class="md-input" style="font-size:12px;font-weight:600;padding:2px 6px;border:none;background:transparent;color:var(--md-on-surface);width:auto;min-width:80px;" maxlength="30">
+                    </div>
+                    <input type="number" id="budget-fixed-input" class="md-input" placeholder="0" inputmode="decimal">
+                </div>
+            </div>
+            <div class="budget-item-row">
+                <div class="input-container" style="margin-bottom:0;flex:1;">
+                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+                        <span class="material-symbols-rounded" style="font-size:14px;color:#E91E63;">favorite</span>
+                        <input type="text" id="budget-label-family" class="md-input" style="font-size:12px;font-weight:600;padding:2px 6px;border:none;background:transparent;color:var(--md-on-surface);width:auto;min-width:80px;" maxlength="30">
+                    </div>
+                    <input type="number" id="budget-family-input" class="md-input" placeholder="0" inputmode="decimal">
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 14px;background:var(--md-surface-container);border-radius:14px;">
+            <span style="font-size:13px;font-weight:600;color:var(--md-on-surface-variant);">Total Monthly</span>
+            <span style="font-size:20px;font-weight:700;color:var(--md-primary);" id="budget-total-display">₹0</span>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:16px;">
             <button class="btn-secondary" onclick="clearBudget()" style="flex:0.4;color:var(--md-error);border-color:var(--md-error);"><span class="material-symbols-rounded">delete</span> Clear</button>
             <button class="btn-primary" onclick="saveBudget()" style="flex:1;"><span class="material-symbols-rounded">check</span> Save Budget</button>
         </div>
@@ -351,7 +386,18 @@
         let db = loadDB();
         if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
         if (!db.spendTracker.entries) db.spendTracker.entries = [];
-        if (typeof db.spendTracker.monthlyBudget === 'undefined') db.spendTracker.monthlyBudget = 0;
+        if (!db.spendTracker.budget) {
+            db.spendTracker.budget = {
+                dailySpend: db.spendTracker.monthlyBudget || 0,
+                fixedExpenses: 0,
+                familyShare: 0,
+                labels: { dailySpend: 'Daily Spend', fixedExpenses: 'Fixed Expenses', familyShare: 'Family Share' }
+            };
+        }
+        function getTotalBudget() {
+            let b = db.spendTracker.budget || {};
+            return (b.dailySpend||0) + (b.fixedExpenses||0) + (b.familyShare||0);
+        }
 
         // Inherit master toggles from main app db
         window.__aiEnabled = db.aiEnabled !== false;
@@ -539,22 +585,45 @@
         function closeImportSheet() { document.getElementById('import-sheet').classList.remove('open'); document.getElementById('import-scrim').classList.remove('open'); }
 
         // ── BUDGET SHEET ──
+        function updateBudgetTotalDisplay() {
+            let b = db.spendTracker.budget || {};
+            let total = (parseFloat(document.getElementById('budget-daily-input').value)||0) + (parseFloat(document.getElementById('budget-fixed-input').value)||0) + (parseFloat(document.getElementById('budget-family-input').value)||0);
+            document.getElementById('budget-total-display').innerText = '₹' + total.toLocaleString('en-IN');
+        }
         function openBudgetSheet() {
-            document.getElementById('budget-amt-input').value = db.spendTracker.monthlyBudget || '';
+            let b = db.spendTracker.budget || { dailySpend:0, fixedExpenses:0, familyShare:0, labels:{} };
+            let lbl = b.labels || {};
+            document.getElementById('budget-daily-input').value = b.dailySpend || '';
+            document.getElementById('budget-fixed-input').value = b.fixedExpenses || '';
+            document.getElementById('budget-family-input').value = b.familyShare || '';
+            document.getElementById('budget-label-daily').value = lbl.dailySpend || 'Daily Spend';
+            document.getElementById('budget-label-fixed').value = lbl.fixedExpenses || 'Fixed Expenses';
+            document.getElementById('budget-label-family').value = lbl.familyShare || 'Family Share';
+            updateBudgetTotalDisplay();
             document.getElementById('budget-sheet').classList.add('open');
             document.getElementById('budget-scrim').classList.add('open');
-            setTimeout(() => document.getElementById('budget-amt-input').focus(), 200);
+            setTimeout(() => document.getElementById('budget-daily-input').focus(), 200);
         }
         function closeBudgetSheet() { document.getElementById('budget-sheet').classList.remove('open'); document.getElementById('budget-scrim').classList.remove('open'); }
+        document.querySelectorAll('#budget-daily-input, #budget-fixed-input, #budget-family-input').forEach(function(el) {
+            el.addEventListener('input', updateBudgetTotalDisplay);
+        });
         function saveBudget() {
-            const amt = parseFloat(document.getElementById('budget-amt-input').value) || 0;
-            db.spendTracker.monthlyBudget = amt;
+            db.spendTracker.budget = db.spendTracker.budget || { dailySpend:0, fixedExpenses:0, familyShare:0, labels:{} };
+            db.spendTracker.budget.dailySpend = parseFloat(document.getElementById('budget-daily-input').value) || 0;
+            db.spendTracker.budget.fixedExpenses = parseFloat(document.getElementById('budget-fixed-input').value) || 0;
+            db.spendTracker.budget.familyShare = parseFloat(document.getElementById('budget-family-input').value) || 0;
+            db.spendTracker.budget.labels = db.spendTracker.budget.labels || {};
+            db.spendTracker.budget.labels.dailySpend = document.getElementById('budget-label-daily').value.trim() || 'Daily Spend';
+            db.spendTracker.budget.labels.fixedExpenses = document.getElementById('budget-label-fixed').value.trim() || 'Fixed Expenses';
+            db.spendTracker.budget.labels.familyShare = document.getElementById('budget-label-family').value.trim() || 'Family Share';
             saveDB(); closeBudgetSheet(); renderAll();
-            const msg = amt > 0 ? 'Monthly budget set to ₹' + amt.toLocaleString('en-IN') : 'Budget cleared';
+            let total = getTotalBudget();
+            const msg = total > 0 ? 'Monthly budget set to ₹' + total.toLocaleString('en-IN') : 'Budget cleared';
             Swal.fire({icon:'success',title:msg,timer:1500,showConfirmButton:false});
         }
         function clearBudget() {
-            db.spendTracker.monthlyBudget = 0;
+            db.spendTracker.budget = { dailySpend:0, fixedExpenses:0, familyShare:0, labels: { dailySpend:'Daily Spend', fixedExpenses:'Fixed Expenses', familyShare:'Family Share' } };
             saveDB(); closeBudgetSheet(); renderAll();
             Swal.fire({icon:'info',title:'Budget cleared',timer:1200,showConfirmButton:false});
         }
@@ -585,9 +654,9 @@
             const monthKey = getPlanMonthKey(currentYear, currentMonth);
             const monthlyPlans = (db.monthlyPlans || {});
             const plan = monthlyPlans[monthKey];
-            const simpleBudget = db.spendTracker.monthlyBudget || 0;
+            const totalBudget = getTotalBudget();
             const hasPlan = plan && plan.income && plan.income.length > 0;
-            if (!hasPlan && !simpleBudget) { section.style.display = 'none'; return; }
+            if (!hasPlan && !totalBudget) { section.style.display = 'none'; return; }
             section.style.display = 'block';
             const list = document.getElementById('budget-list');
             const entries = getMonthEntries();
@@ -596,11 +665,20 @@
 
             // Build budget categories → spend mapping
             const rows = [];
-            let totalBudget = 0, totalTarget = 0, totalActual = 0;
+            let rowBudget = 0, totalTarget = 0, totalActual = 0;
 
             // Calculate aggregated targets from plan items
             function getTargetForCategories(planArr) {
                 return (planArr||[]).reduce((s, i) => s + (parseFloat(i.target)||0), 0);
+            }
+
+            if (totalBudget > 0) {
+                let b = db.spendTracker.budget || {};
+                let lbl = b.labels || {};
+                if (b.dailySpend > 0) rows.push({ label: lbl.dailySpend || 'Daily Spend', budget: b.dailySpend, target: 0, actual: 0, color: '#4F46E5' });
+                if (b.fixedExpenses > 0) rows.push({ label: lbl.fixedExpenses || 'Fixed Expenses', budget: b.fixedExpenses, target: 0, actual: 0, color: '#7C3AED' });
+                if (b.familyShare > 0) rows.push({ label: lbl.familyShare || 'Family Share', budget: b.familyShare, target: 0, actual: 0, color: '#E91E63' });
+                rowBudget = totalBudget;
             }
 
             if (hasPlan) {
@@ -628,8 +706,8 @@
             if (otherActual > 0) rows.push({ label: 'Uncategorized', budget: 0, target: 0, actual: otherActual, color: '#8E9099' });
 
             totalActual = entries.reduce((s,e) => s+e.amount, 0);
-            totalBudget = simpleBudget > 0 ? simpleBudget : rows.filter(r => !r.isIncome).reduce((s,r) => s+r.budget, 0);
             totalTarget = rows.filter(r => !r.isIncome).reduce((s,r) => s+r.target, 0);
+            const budgetForCalc = totalBudget > 0 ? totalBudget : rows.filter(r => !r.isIncome).reduce((s,r) => s+r.budget, 0);
 
             // Header
             let html = `<div class="budget-header">
@@ -689,7 +767,7 @@
                 // Budget progress bar
                 const budget = (() => {
                     try {
-                        if (simpleBudget > 0) return simpleBudget;
+                        if (totalBudget > 0) return totalBudget;
                         const key = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
                         if (db.monthlyPlans && db.monthlyPlans[key]) {
                             const plan = db.monthlyPlans[key];
@@ -716,7 +794,7 @@
 
             // Update hero with budget info
             const heroBudget = document.getElementById('hero-vs-budget');
-            const budgetForHero = simpleBudget > 0 ? simpleBudget : (totalTarget > 0 ? totalTarget : totalBudget);
+            const budgetForHero = totalBudget > 0 ? totalBudget : (totalTarget > 0 ? totalTarget : 0);
             if (budgetForHero > 0) {
                 heroBudget.innerText = totalActual <= budgetForHero ? `✓ Under budget by ₹${(budgetForHero-totalActual).toLocaleString('en-IN')}` : `⚠ Over budget by ₹${(totalActual-budgetForHero).toLocaleString('en-IN')}`;
                 heroBudget.style.color = totalActual <= budgetForHero ? 'rgba(255,255,255,0.8)' : 'rgba(255,200,200,0.9)';
