@@ -79,7 +79,7 @@
 
         /* ── CARDS ── */
         .planner-card {
-            background: var(--md-surface-container-low); border-radius: 24px;
+            background: var(--md-surface-container-low); border-radius: var(--card-radius);
             padding: 20px; margin-bottom: 16px;
             border: 1px solid var(--md-surface-container-highest);
         }
@@ -96,7 +96,7 @@
         /* ── PLAN vs ACTUAL BAR ── */
         .pva-bar {
             display:flex; gap:0; padding: 10px 14px;
-            background: var(--md-surface-container); border-radius: 14px;
+            background: var(--md-surface-container); border-radius: var(--card-radius-xs);
             margin-bottom: 14px; align-items: center;
         }
         .pva-col { flex:1; text-align:center; }
@@ -201,7 +201,7 @@
         }
         .yearly-overlay.open { opacity:1; pointer-events:auto; }
         .yearly-card {
-            background:var(--md-surface); border-radius:24px;
+            background:var(--md-surface); border-radius:var(--card-radius);
             padding:24px; max-width:600px; width:100%; max-height:90vh;
             overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.15);
             box-sizing:border-box;
@@ -209,7 +209,7 @@
         .yearly-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:8px; margin-top:4px; }
         .yearly-cell {
             background:var(--md-surface-container);
-            border-radius:14px; padding:12px; border:1.5px solid transparent;
+            border-radius:var(--card-radius-xs); padding:12px; border:1.5px solid transparent;
             transition:0.2s; display:flex; flex-direction:column; gap:3px;
         }
         .yearly-cell:hover { border-color:var(--md-primary); background:var(--md-surface-container-highest); }
@@ -266,7 +266,7 @@
         @media(max-width:480px) {
             .planner-hero { padding:16px; }
             .hero-balance { font-size:32px; }
-            .planner-card { padding:14px; border-radius:18px; }
+            .planner-card { padding:14px; border-radius:var(--card-radius-sm); }
             .card-title { font-size:14px; margin-bottom:12px; }
             .plan-row { padding:8px 0; gap:6px; }
             .plan-row-label .name { font-size:14px; }
@@ -295,7 +295,7 @@
         @media(max-width:380px) {
             .planner-hero { padding:12px; }
             .hero-balance { font-size:28px; }
-            .planner-card { padding:10px; border-radius:14px; }
+            .planner-card { padding:10px; border-radius:var(--card-radius-xs); }
             .plan-row-label .name { font-size:13px; }
             .plan-input { max-width:65px; font-size:13px; }
             .del-btn { min-width:36px; min-height:36px; padding:6px; }

@@ -63,7 +63,7 @@
 
         /* ── Spend list ── */
         .spend-list { display:flex; flex-direction:column; gap:8px; }
-        .spend-card { display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--md-surface-container); border-radius:18px; transition:0.2s; border:1px solid transparent; }
+        .spend-card { display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--md-surface-container); border-radius:var(--card-radius-sm); transition:var(--card-transition); border:1px solid transparent; }
         .spend-card:active { background:var(--md-surface-container-highest); border-color:var(--md-outline-variant); transform:scale(0.99); }
         .spend-cat-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
         .spend-date { font-size:11px; color:var(--md-outline); min-width:36px; font-weight:500; flex-shrink:0; }
@@ -76,19 +76,19 @@
 
         /* ── Charts ── */
         .chart-grid { display:flex; gap:12px; margin-bottom:16px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:4px; }
-        .chart-card { background:var(--md-surface-container); border-radius:24px; padding:16px; border:1px solid var(--md-outline-variant); flex-shrink:0; min-width:280px; }
+        .chart-card { background:var(--md-surface-container); border-radius:var(--card-radius); padding:16px; border:1px solid var(--md-outline-variant); flex-shrink:0; min-width:280px; }
         .chart-card canvas { max-height:170px; max-width:100%; }
         .chart-card-title { font-size:11px; font-weight:600; color:var(--md-on-surface-variant); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px; }
         .sankey-svg { width:100%; max-width:100%; height:180px; overflow:visible; }
 
         /* ── Sheet ── */
-        .import-sheet { position:fixed; bottom:0; left:0; right:0; margin:0 auto; max-width:600px; background:var(--md-surface-container-low); border-radius:28px 28px 0 0; padding:24px 24px 32px; z-index:1001; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.1,0.7,0.1,1); max-height:75vh; overflow-y:auto; box-shadow:0 -8px 32px rgba(0,0,0,0.18); }
+        .import-sheet { position:fixed; bottom:0; left:0; right:0; margin:0 auto; max-width:600px; background:var(--md-surface-container-low); border-radius:var(--card-radius-lg) var(--card-radius-lg) 0 0; padding:24px 24px 32px; z-index:1001; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.1,0.7,0.1,1); max-height:75vh; overflow-y:auto; box-shadow:0 -8px 32px rgba(0,0,0,0.18); }
         .import-sheet.open { transform:translateY(0); }
         .import-scrim { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:1000; opacity:0; visibility:hidden; transition:0.3s; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
         .import-scrim.open { opacity:1; visibility:visible; }
 
         /* ── Biggest item ── */
-        .biggest-item { background:var(--md-surface-container); border-radius:20px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:0.2s; border:1px solid var(--md-error-container); }
+        .biggest-item { background:var(--md-surface-container); border-radius:var(--card-radius-sm); padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:var(--card-transition); border:1px solid var(--md-error-container); }
         .biggest-item:active { transform:scale(0.98); background:var(--md-surface-container-highest); }
 
         /* ── Section headers / action rows ── */
@@ -96,7 +96,7 @@
         .st-action-row { display:flex; gap:8px; }
         .month-nav { display:flex; align-items:center; justify-content:space-between; background:var(--md-surface-container-highest); border-radius:100px; padding:4px 12px; margin-bottom:20px; }
         .month-nav .icon-btn { color:var(--md-on-surface-variant); }
-        .spend-empty { padding:48px 20px; text-align:center; background:var(--md-surface-container); border-radius:24px; border:1px solid var(--md-outline-variant); }
+        .spend-empty { padding:48px 20px; text-align:center; background:var(--md-surface-container); border-radius:var(--card-radius); border:1px solid var(--md-outline-variant); }
         .spend-empty .material-symbols-rounded { font-size:40px; color:var(--md-outline); display:block; margin:0 auto 12px; }
         .spend-empty div { font-size:14px; color:var(--md-on-surface-variant); }
 
@@ -105,7 +105,7 @@
             .chart-card canvas { max-height:130px !important; }
             .quick-add-bar { flex-wrap:wrap; }
             .quick-add-bar .btn-primary { width:100%; }
-            .import-sheet { max-width:100%; border-radius:20px 20px 0 0; padding:16px; }
+            .import-sheet { max-width:100%; border-radius:var(--card-radius-lg) var(--card-radius-lg) 0 0; padding:16px; }
             .budget-rows { padding:8px 12px; }
             .budget-row { gap:4px; padding:8px 0; }
             .budget-row .b-label { font-size:11px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
