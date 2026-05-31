@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monthly Planner | TrackInvest</title>
+    <meta name="theme-color" content="#F3F3F7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
@@ -547,13 +549,12 @@
         onclick="if(typeof APP_VERSION!=='undefined'){navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')}" class="version-badge"></div>
     <script>var vb=document.querySelector('.version-badge');if(vb&&typeof APP_VERSION!=='undefined')vb.textContent=APP_VERSION;</script>
 
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="./shared_ai.js"></script>
 <script>
     window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
+    registerSW();
     // ──────────────────────────────────────────────────────────────
     // STATE
     // ──────────────────────────────────────────────────────────────
@@ -2296,42 +2297,30 @@ function showOverlay(title, bodyHtml) {
 // UTILS
 // ──────────────────────────────────────────────────────────────
 function snack(msg, icon = 'info') {
-    const sb = document.getElementById('snackbar');
-    if (!sb) return;
-    sb.innerHTML = `<span class="material-symbols-rounded" style="font-size:18px;">${icon}</span> ${escapeHtml(msg)}`;
-    sb.classList.add('show');
-    setTimeout(() => sb.classList.remove('show'), 3000);
+    showSnackbar(msg, icon);
 }
 
-function escapeHtml(str) {
-    return String(str || '')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
+// ──────────────────────────────────────────────────────────────
 // Cross-tab sync
-try {
-    const _syncChan = new BroadcastChannel('trackinvest-sync');
-    _syncChan.onmessage = async (e) => {
-        if (e.data && e.data.type === 'sync-data') {
-            try {
-                const raw = localStorage.getItem('appHubInvestDb');
-                if (raw) {
-                    db = JSON.parse(raw);
-                    restoreApiKeysInDb(db);
-                }
-            } catch (ex) { console.error('Failed to parse DB from sync:', ex); }
-            if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
-            const key = getMonthKey(getViewDate());
-            _aiClassificationCache = null;
-            loadPlanForMonth(key);
-            await loadActuals();
-            recalc();
-            clearDirty();
-            snack('✓ Data synced from other tab', 'sync');
-        }
-    };
-} catch (e) { console.warn('BroadcastChannel not available:', e); }
+setupSyncChannel(async (e) => {
+    if (e.data && e.data.type === 'sync-data') {
+        try {
+            const raw = localStorage.getItem('appHubInvestDb');
+            if (raw) {
+                db = JSON.parse(raw);
+                restoreApiKeysInDb(db);
+            }
+        } catch (ex) { console.error('Failed to parse DB from sync:', ex); }
+        if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
+        const key = getMonthKey(getViewDate());
+        _aiClassificationCache = null;
+        loadPlanForMonth(key);
+        await loadActuals();
+        recalc();
+        clearDirty();
+        snack('✓ Data synced from other tab', 'sync');
+    }
+});
 </script>
 </body>
 </html>

@@ -305,3 +305,54 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
         .replace(/<!DOCTYPE[^>]*>/gi, '')
         .trim();
 }
+
+// ── Shared Utilities ──
+
+function haptic(ms) {
+    try { navigator.vibrate(Array.isArray(ms) ? ms : Math.max(ms || 30, 20)); } catch(e) {}
+}
+
+function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function fmt(n) {
+    return Number(n || 0).toLocaleString('en-IN');
+}
+
+function registerSW() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e));
+    }
+}
+
+function setupSyncChannel(onMessage) {
+    try {
+        const ch = new BroadcastChannel('trackinvest-sync');
+        if (typeof onMessage === 'function') ch.onmessage = onMessage;
+        window.addEventListener('pagehide', () => ch.close());
+        return ch;
+    } catch(e) { return null; }
+}
+
+function showSnackbar(msg, icon, timeout) {
+    let sb = document.getElementById('snackbar');
+    if (!sb) {
+        sb = document.createElement('div');
+        sb.id = 'snackbar';
+        sb.className = 'snackbar';
+        document.body.appendChild(sb);
+    }
+    const ic = icon || 'info';
+    sb.innerHTML = `<span class="material-symbols-rounded" style="font-size:20px;" aria-hidden="true">${escapeHtml(ic)}</span>
+        <span class="snackbar-message" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(msg)}</span>`;
+    sb.setAttribute('role', 'alert');
+    sb.classList.add('show');
+    sb.setAttribute('tabindex', '0');
+    sb.focus();
+    clearTimeout(sb._t);
+    sb._t = setTimeout(() => { sb.classList.remove('show'); sb.removeAttribute('tabindex'); }, timeout || 3000);
+}

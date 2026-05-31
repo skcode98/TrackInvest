@@ -529,7 +529,7 @@ function renderFrequentActions() {
 document.addEventListener("DOMContentLoaded", async () => {
     // Register service worker for PWA offline support
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e));
+        registerSW();
     }
     const isUnlocked = await checkAppLock();
     initUI();

@@ -643,14 +643,6 @@ function debounce(func, wait) {
 // ==========================================
 // 2. GLOBAL HELPER FUNCTIONS
 // ==========================================
-function haptic(ms = 30) {
-    try {
-        if (typeof navigator === 'undefined' || !navigator.vibrate) return;
-// Light tactile feedback — keep duration short to avoid jank
-    const duration = Array.isArray(ms) ? ms : Math.max(ms, 20);
-    navigator.vibrate(duration);
-} catch (e) { /* vibrate unavailable */ }
-}
 document.addEventListener('mousedown', () => window.userInteracted = true, { once: true });
 document.addEventListener('touchstart', () => window.userInteracted = true, { once: true });
 
@@ -736,10 +728,12 @@ function formatMoney(num) {
  * @param {string} type - Notification type for accessibility (default: "info")
  */
 function showSnackbar(msg, icon = "info", type = "info") {
-    const sb = document.getElementById("snackbar");
+    let sb = document.getElementById("snackbar");
     if (!sb) {
-        console.warn('Snackbar element not found');
-        return;
+        sb = document.createElement('div');
+        sb.id = 'snackbar';
+        sb.className = 'snackbar';
+        document.body.appendChild(sb);
     }
 
     const iconText = icon === "check_circle" ? "Success" :
@@ -1236,35 +1230,6 @@ function showShortcutsHelp() {
     setTimeout(() => document.addEventListener('keydown', closeOnKey), 100);
 }
 window.showShortcutsHelp = showShortcutsHelp;
-
-function _encryptKey(plain, pin) {
-    if (!plain || !pin) return plain || '';
-    let out = '';
-    for (let i = 0; i < plain.length; i++) out += String.fromCharCode(plain.charCodeAt(i) ^ pin.charCodeAt(i % pin.length));
-    return 'EX:' + btoa(out);
-}
-function _decryptKey(enc, pin) {
-    if (!enc || !pin || !enc.startsWith('EX:')) return enc || '';
-    let raw = atob(enc.slice(3)), out = '';
-    for (let i = 0; i < raw.length; i++) out += String.fromCharCode(raw.charCodeAt(i) ^ pin.charCodeAt(i % pin.length));
-    return out;
-}
-function _encodeKey(plain) {
-    if (!plain) return '';
-    return 'BK:' + btoa(plain);
-}
-function _decodeKey(enc) {
-    if (!enc || typeof enc !== 'string') return '';
-    if (enc.startsWith('EX:')) {
-        return typeof window._decryptKey === 'function' ? window._decryptKey(enc, db.appPin) : enc;
-    }
-    if (!enc.startsWith('BK:')) return enc;
-    try {
-        return atob(enc.slice(3));
-    } catch (e) {
-        return enc;
-    }
-}
 
 let _saveDataPending = false;
 let _dataGen = 0;
@@ -1854,16 +1819,6 @@ window.fireMilestoneConfetti = function () {
 function getThemeColor() {
     const root = getComputedStyle(document.body);
     return root.getPropertyValue('--md-primary').trim() || '#4559A4';
-}
-
-function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
 }
 
 function checkMilestones(nw) {

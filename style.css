@@ -91,12 +91,12 @@
         --md-on-secondary: #283141;
         --md-secondary-container: #3E4759;
         --md-on-secondary-container: #DAE2F9;
-        --md-surface: #0F1118;
-        --md-surface-container-lowest: #0A0C13;
-        --md-surface-container-low: #161822;
-        --md-surface-container: #1A1D28;
-        --md-surface-container-high: #242736;
-        --md-surface-container-highest: #2F3343;
+        --md-surface: #111318;
+        --md-surface-container-lowest: #0C0E13;
+        --md-surface-container-low: #191A20;
+        --md-surface-container: #1D1F24;
+        --md-surface-container-high: #282A2F;
+        --md-surface-container-highest: #33353A;
         --md-on-surface: #E2E2E6;
         --md-on-surface-variant: #C4C6D0;
         --md-on-surface-dim: #9A9CA5;
@@ -172,12 +172,12 @@ body.theme-amethyst {
     body.dark-mode {
         --md-primary: #AAC7FF !important;
         --md-primary-container: #284777 !important;
-        --md-surface: #0F1118 !important;
-        --md-surface-container-lowest: #0A0C13 !important;
-        --md-surface-container-low: #161822 !important;
-        --md-surface-container: #1A1D28 !important;
-        --md-surface-container-high: #242736 !important;
-        --md-surface-container-highest: #2F3343 !important;
+        --md-surface: #111318 !important;
+        --md-surface-container-lowest: #0C0E13 !important;
+        --md-surface-container-low: #191A20 !important;
+        --md-surface-container: #1D1F24 !important;
+        --md-surface-container-high: #282A2F !important;
+        --md-surface-container-highest: #33353A !important;
         --md-on-surface: #E2E2E6 !important;
         --md-on-surface-variant: #C4C6D0 !important;
     }

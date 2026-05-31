@@ -361,9 +361,9 @@
     <script src="./shared_ai.js"></script>
     <script>
         window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
+        registerSW();
         // Cross-tab sync listener
-        try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; window.addEventListener('pagehide',()=>_sc.close()); } catch(e){};
+        setupSyncChannel(() => { db = loadDB(); renderAll(); });
         const STORAGE_KEY = 'appHubInvestDb';
         function loadDB() {
             try {
@@ -384,7 +384,6 @@
                 console.error('Storage failed', e);
             }
         }
-        function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
         let db = loadDB();
         if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
         if (!db.spendTracker.entries) db.spendTracker.entries = [];
@@ -558,7 +557,6 @@
                 dl.appendChild(opt);
             });
         }
-        function haptic(n) { try { navigator.vibrate(n); } catch(e) {} }
 
         // Keyboard shortcut
         document.addEventListener('keydown', e => {
@@ -951,7 +949,7 @@
         async function aiSuggestCategory() {
             const comment = document.getElementById('spend-comment-input')?.value.trim();
             if (!comment || comment.length < 3) return;
-            if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return snack("Add API key in Settings","key");
+            if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return showSnackbar("Add API key in Settings","key");
             const btn = document.getElementById('ai-cat-suggest-btn');
             if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;animation:spin 1s linear infinite;">autorenew</span>'; }
             try {
@@ -961,9 +959,9 @@
                 if (CAT_COLORS[cat]) {
                     const catSel = document.getElementById('spend-category-select');
                     if (catSel) catSel.value = cat;
-                    snack(`Suggested: ${cat}`, 'auto_awesome');
+                    showSnackbar(`Suggested: ${cat}`, 'auto_awesome');
                 }
-            } catch(e) { snack("AI suggest failed", "error"); }
+            } catch(e) { showSnackbar("AI suggest failed", "error"); }
             if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">auto_awesome</span>'; }
         }
 
@@ -1097,14 +1095,6 @@
                 <div class="stat-chip"><div class="stat-chip-label">Top Category</div><div class="stat-chip-val">${topCat?topCat[0]:'—'}</div></div>
                 <div class="stat-chip"><div class="stat-chip-label">Categories</div><div class="stat-chip-val">${Object.keys(cats).length}</div></div>
                 <div class="stat-chip"><div class="stat-chip-label">Biggest</div><div class="stat-chip-val">₹${e.length>0?Math.max(...e.map(x=>x.amount)).toLocaleString('en-IN'):0}</div></div>`;
-        }
-
-        function snack(msg, icon) {
-            const el = document.getElementById('snackbar') || (() => { const d = document.createElement('div'); d.id = 'snackbar'; d.className = 'snackbar'; document.body.appendChild(d); return d; })();
-            const ic = icon || 'info';
-            el.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;">' + ic + '</span> ' + DOMPurify.sanitize(msg, {ALLOWED_TAGS:[]});
-            el.classList.add('show');
-            clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2500);
         }
 
         // ── MAIN ──

@@ -1,5 +1,5 @@
 importScripts('./version.js');
-const SW_BUILD = 15; // bump to force cache refresh
+const SW_BUILD = 16; // bump to force cache refresh
 const CACHE_NAME = 'invest-pro-' + APP_VERSION + '-' + SW_BUILD;
 
 const CORE_ASSETS = [
@@ -27,8 +27,6 @@ const CDN_ASSETS = [
     'https://cdn.jsdelivr.net/npm/sweetalert2@11',
     'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
 

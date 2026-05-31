@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="./style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="./version.js"></script>
+    <script src="./shared_ai.js"></script>
     <style>
         body { padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
 
@@ -150,7 +151,7 @@
 
     <script>
         window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
+        registerSW();
         const STORAGE_KEY = 'appHubInvestDb_ao';
 
         function loadDB() {
@@ -180,7 +181,6 @@
             return db.pf;
         }
         function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-        function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
         const sym = '₹';
 
         // ── Tabs ──
