@@ -305,25 +305,32 @@ function extractJSONFromAI(text) {
     // 1. Try direct JSON parse
     try { return JSON.parse(cleaned); } catch (e) {}
 
-    // 2. Try to find the first top-level array
-    const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+    // 2. Try to find a top-level array (non-greedy to prevent over-matching)
+    const arrMatch = cleaned.match(/\[[\s\S]*?\]/);
     if (arrMatch) {
         try { return JSON.parse(arrMatch[0]); } catch (e) {}
     }
 
-    // 3. Try to find a top-level object (balanced braces)
-    const braceMatch = cleaned.match(/\{[\s\S]*\}/);
+    // 3. Try to find a top-level object (non-greedy)
+    const braceMatch = cleaned.match(/\{[\s\S]*?\}/);
     if (braceMatch) {
         try { return JSON.parse(braceMatch[0]); } catch (e) {}
     }
 
-    // 4. Balanced-brace extraction (search for any valid JSON object substring)
+    // 4. String-aware balanced-brace extraction (handles braces inside JSON string values)
     for (let i = 0; i < cleaned.length; i++) {
         if (cleaned[i] !== '{') continue;
         let depth = 0;
+        let inString = false;
+        let escaped = false;
         for (let j = i; j < cleaned.length; j++) {
-            if (cleaned[j] === '{') depth++;
-            else if (cleaned[j] === '}') {
+            const ch = cleaned[j];
+            if (escaped) { escaped = false; continue; }
+            if (ch === '\\' && inString) { escaped = true; continue; }
+            if (ch === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (ch === '{') depth++;
+            else if (ch === '}') {
                 depth--;
                 if (depth === 0) {
                     const cand = cleaned.slice(i, j + 1);
@@ -332,6 +339,15 @@ function extractJSONFromAI(text) {
                 }
             }
         }
+    }
+
+    // 5. Last resort: try to extract "allocations" array directly
+    const allocMatch = cleaned.match(/"allocations"\s*:\s*(\[[\s\S]*?\])/);
+    if (allocMatch) {
+        try {
+            const arr = JSON.parse(allocMatch[1]);
+            return { allocations: arr };
+        } catch (e) {}
     }
 
     throw new Error('Failed to parse JSON from AI response');
