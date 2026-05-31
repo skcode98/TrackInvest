@@ -432,43 +432,58 @@
             spendEditId = null;
         }
 
+        let _spendSaving = false;
         function saveSpendEntry() {
-            const amt = parseFloat(document.getElementById('spend-amt-input').value);
-            const comment = document.getElementById('spend-comment-input').value.trim();
-            const dateStr = document.getElementById('spend-date-input').value;
-            if (!amt || amt <= 0) { Swal.fire({icon:'error',title:'Enter amount',timer:1200,showConfirmButton:false}); return; }
-            const date = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
-            const sanitized = DOMPurify.sanitize(comment, {ALLOWED_TAGS:[],ALLOWED_ATTR:[]});
+            if (_spendSaving) return;
+            const btn = document.getElementById('spend-save-btn');
+            if (btn) btn.style.opacity = '0.5';
+            _spendSaving = true;
 
-            if (spendEditId) {
-                const e = db.spendTracker.entries.find(x => x.id === spendEditId);
-                if (e) { e.amount = amt; e.comment = sanitized; e.date = date.toISOString(); }
-            } else {
-                const catEl = document.getElementById('spend-category-select');
-                const cat = catEl?.value || 'Uncategorized';
-                db.spendTracker.entries.push({
-                    id: Date.now() + '_q' + Math.random().toString(36).slice(2,6),
-                    amount: amt,
-                    comment: sanitized,
-                    date: date.toISOString(),
-                    category: cat
-                });
-            }
-            saveDB();
-            closeSpendSheet();
-            updateCommentSuggestions();
-            renderAll();
-            haptic(30);
-            // Spend confirmation notification
-            if (!spendEditId && db.userPreferences && db.userPreferences.spendConfirmations !== false && 'Notification' in window && Notification.permission === 'granted') {
-                const catLabel = document.getElementById('spend-category-select')?.value || 'Uncategorized';
-                try {
-                    if (navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({ type: 'show-notification', title: 'Expense Recorded', body: '₹' + amt.toLocaleString('en-IN') + ' — ' + (sanitized || catLabel) });
-                    } else {
-                        new Notification('Expense Recorded', { body: '₹' + amt.toLocaleString('en-IN') + ' — ' + (sanitized || catLabel), icon: './icons/icon-192.png' });
-                    }
-                } catch(e) {}
+            try {
+                const amt = parseFloat(document.getElementById('spend-amt-input').value);
+                const comment = document.getElementById('spend-comment-input').value.trim();
+                const dateStr = document.getElementById('spend-date-input').value;
+                if (!amt || amt <= 0) { Swal.fire({icon:'error',title:'Enter amount',timer:1200,showConfirmButton:false}); return; }
+                const date = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
+                const sanitized = DOMPurify.sanitize(comment, {ALLOWED_TAGS:[],ALLOWED_ATTR:[]});
+
+                if (spendEditId) {
+                    const e = db.spendTracker.entries.find(x => x.id === spendEditId);
+                    if (e) { e.amount = amt; e.comment = sanitized; e.date = date.toISOString(); }
+                } else {
+                    const catEl = document.getElementById('spend-category-select');
+                    const cat = catEl?.value || 'Uncategorized';
+                    const dateISO = date.toISOString();
+                    // Duplicate check: same amount + comment + date
+                    const dup = db.spendTracker.entries.some(e => e.amount === amt && e.comment === sanitized && e.date === dateISO);
+                    if (dup) { Swal.fire({icon:'info',title:'Duplicate entry skipped',timer:1500,showConfirmButton:false}); return; }
+                    db.spendTracker.entries.push({
+                        id: Date.now() + '_q' + Math.random().toString(36).slice(2,6),
+                        amount: amt,
+                        comment: sanitized,
+                        date: dateISO,
+                        category: cat
+                    });
+                }
+                saveDB();
+                closeSpendSheet();
+                updateCommentSuggestions();
+                renderAll();
+                haptic(30);
+                // Spend confirmation notification
+                if (!spendEditId && db.userPreferences && db.userPreferences.spendConfirmations !== false && 'Notification' in window && Notification.permission === 'granted') {
+                    const catLabel = document.getElementById('spend-category-select')?.value || 'Uncategorized';
+                    try {
+                        if (navigator.serviceWorker.controller) {
+                            navigator.serviceWorker.controller.postMessage({ type: 'show-notification', title: 'Expense Recorded', body: '₹' + amt.toLocaleString('en-IN') + ' — ' + (sanitized || catLabel) });
+                        } else {
+                            new Notification('Expense Recorded', { body: '₹' + amt.toLocaleString('en-IN') + ' — ' + (sanitized || catLabel), icon: './icons/icon-192.png' });
+                        }
+                    } catch(e) {}
+                }
+            } finally {
+                if (btn) btn.style.opacity = '';
+                _spendSaving = false;
             }
         }
 
@@ -751,7 +766,7 @@
                     const comment=String(row.comment||row.Comment||row.COMMENT||row.description||row.Description||'');
                     let date=null; const dStr=row.commit_time||row.Commit_time||row.date||row.Date||'';
                     date = parseBuckwheatDate(String(dStr)) || (dStr ? new Date(String(dStr)) : null);
-                    if(!isNaN(amt)&&amt>0&&date) { db.spendTracker.entries.push({id:Date.now()+'_x'+i,amount:amt,comment:DOMPurify.sanitize(comment,{ALLOWED_TAGS:[],ALLOWED_ATTR:[]}),date:date.toISOString(),category:'Uncategorized'}); added++; }
+                    if(!isNaN(amt)&&amt>0&&date) { const dISO=date.toISOString(); const sanitized=DOMPurify.sanitize(comment,{ALLOWED_TAGS:[],ALLOWED_ATTR:[]}); const dup=db.spendTracker.entries.some(e=>e.amount===amt&&e.comment===sanitized&&e.date===dISO); if(dup) return; db.spendTracker.entries.push({id:Date.now()+'_x'+i,amount:amt,comment:sanitized,date:dISO,category:'Uncategorized'}); added++; }
                 });
                 saveDB(); e.target.value='';
                 Swal.fire({icon:'success',title:'Imported',text:`${added} added`,timer:2000,showConfirmButton:false});
@@ -765,12 +780,12 @@
             const reader=new FileReader();
             reader.onload=function(ev) {
                 const lines=ev.target.result.split(/\r?\n/).filter(l=>l.trim());
-                let added=0;
+                let added=0, skipped=0;
                 lines.forEach((line,i)=>{
                     const parts=line.split(/\t|,/);
-                    if(parts.length>=2) { const amt=parseFloat(parts[0].replace(/[₹$,]/g,'')); if(!isNaN(amt)&&amt>0){const d=new Date(); db.spendTracker.entries.push({id:Date.now()+'_p'+i,amount:amt,comment:DOMPurify.sanitize(parts.slice(1).join(' '),{ALLOWED_TAGS:[],ALLOWED_ATTR:[]}),date:d.toISOString(),category:'Uncategorized'}); added++; } }
+                    if(parts.length>=2) { const amt=parseFloat(parts[0].replace(/[₹$,]/g,'')); if(!isNaN(amt)&&amt>0){const d=new Date(); const dISO=d.toISOString(); const comment=DOMPurify.sanitize(parts.slice(1).join(' '),{ALLOWED_TAGS:[],ALLOWED_ATTR:[]}); const dup=db.spendTracker.entries.some(e=>e.amount===amt&&e.comment===comment); if(dup){skipped++;return;} db.spendTracker.entries.push({id:Date.now()+'_p'+i,amount:amt,comment:comment,date:dISO,category:'Uncategorized'}); added++; } }
                 });
-                if(added>0){saveDB();Swal.fire({icon:'success',title:'Imported',text:`${added} added`,timer:2000,showConfirmButton:false});closeImportSheet();renderAll();}
+                if(added>0){saveDB();Swal.fire({icon:'success',title:'Imported',text:`${added} added${skipped?', '+skipped+' skipped':''}`,timer:2000,showConfirmButton:false});closeImportSheet();renderAll();}
                 else Swal.fire('Info','No data could be parsed. Try CSV/XLSX instead.','info');
                 e.target.value='';
             };

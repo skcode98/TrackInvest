@@ -380,7 +380,8 @@ function deleteInvestment() {
 }
 
 
-function executeQuickLog(idx) { haptic(40); let tpl = db.templates[idx]; db.investments.push({ id: generateUniqueId(), date: getLocalYYYYMMDD(new Date()), type: tpl.type, amount: tpl.amount, note: tpl.note, tags: tpl.tags, account: tpl.account }); saveData(); renderAll(); showSnackbar(`Quick Logged ${formatMoney(tpl.amount)}`); }
+let _qlSaving = false;
+function executeQuickLog(idx) { if (_qlSaving) return; _qlSaving = true; haptic(40); try { let tpl = db.templates[idx]; if (!tpl) return; db.investments.push({ id: generateUniqueId(), date: getLocalYYYYMMDD(new Date()), type: tpl.type, amount: tpl.amount, note: tpl.note, tags: tpl.tags, account: tpl.account }); saveData(); renderAll(); showSnackbar(`Quick Logged ${formatMoney(tpl.amount)}`); } finally { _qlSaving = false; } }
 function deleteQuickLog(event, idx) { event.stopPropagation(); haptic(40); Swal.fire({ title: 'Delete Template?', showCancelButton: true }).then((res) => { if (res.isConfirmed) { db.templates.splice(idx, 1); saveData(); renderAll(); } }); }
 
 // ==========================================
@@ -762,29 +763,34 @@ function openGoalSheet(id = null) {
     }
     openSheet('goal-sheet');
 }
+let _goalSaving = false;
 function saveGoal() {
-    haptic(40);
-    let name = document.getElementById('goal-name').value;
-    let target = parseFloat(document.getElementById('goal-target').value);
-    let saved = parseFloat(document.getElementById('goal-saved').value) || 0;
-    let link = document.getElementById('goal-link').value;
-    if (!name || isNaN(target)) return showSnackbar("Name and Target required", "error");
-    let newGoal = { id: editGoalId || Date.now(), name, target, saved, linkedCategory: link };
-    if (editGoalId) {
-        let idx = db.goals.findIndex(g => String(g.id) === String(editGoalId));
-        if (idx > -1) {
-            db.goals[idx] = newGoal;
+    if (_goalSaving) return; _goalSaving = true;
+    try {
+        haptic(40);
+        let name = document.getElementById('goal-name').value;
+        let target = parseFloat(document.getElementById('goal-target').value);
+        let saved = parseFloat(document.getElementById('goal-saved').value) || 0;
+        let link = document.getElementById('goal-link').value;
+        if (!name || isNaN(target)) return showSnackbar("Name and Target required", "error");
+        if (!editGoalId && db.goals.some(g => g.name === name)) { showSnackbar("Goal with this name already exists", "error"); return; }
+        let newGoal = { id: editGoalId || Date.now(), name, target, saved, linkedCategory: link };
+        if (editGoalId) {
+            let idx = db.goals.findIndex(g => String(g.id) === String(editGoalId));
+            if (idx > -1) {
+                db.goals[idx] = newGoal;
+            } else {
+                db.goals.push(newGoal);
+            }
         } else {
             db.goals.push(newGoal);
         }
-    } else {
-        db.goals.push(newGoal);
-    }
-    saveData();
-    closeOverlays();
-    renderAll();
-    showSnackbar("Goal Saved!", "flag");
-    window.editGoalId = null;
+        saveData();
+        closeOverlays();
+        renderAll();
+        showSnackbar("Goal Saved!", "flag");
+        window.editGoalId = null;
+    } finally { _goalSaving = false; }
 }
 function openFIRESheet() {
     haptic(30);

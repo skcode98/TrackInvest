@@ -1715,7 +1715,9 @@ function updateName(type, index, val) {
     markDirty();
 }
 
+let _addRowGuard = 0;
 function addRow(type) {
+    if (_addRowGuard) return; _addRowGuard = 1;
     if (type === 'investments') {
         plan.investments.push({ name: 'New Investment', amount: 0 });
     } else {
@@ -1728,6 +1730,7 @@ function addRow(type) {
     const last = rows[rows.length - 1];
     if (last) { const ni = last.querySelector('.name'); if (ni) { ni.select(); ni.focus(); } }
     markDirty();
+    setTimeout(() => { _addRowGuard = 0; }, 300);
 }
 
 function removeRow(type, index) {
@@ -1756,7 +1759,9 @@ function removeRow(type, index) {
     });
 }
 
+let _addIncomeGuard = 0;
 function addIncomeRow() {
+    if (_addIncomeGuard) return; _addIncomeGuard = 1;
     plan.income.push({ name: 'Freelance / Side Income', amount: 0 });
     renderIncomeSection();
     recalc();
@@ -1764,6 +1769,7 @@ function addIncomeRow() {
     const last = rows[rows.length - 1];
     if (last) { const ni = last.querySelector('input[type="text"]'); if (ni) { ni.select(); ni.focus(); } }
     markDirty();
+    setTimeout(() => { _addIncomeGuard = 0; }, 300);
 }
 
 function removeIncomeRow(index) {
