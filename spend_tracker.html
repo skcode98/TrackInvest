@@ -11,8 +11,9 @@
         script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
-        connect-src 'self' https://api.groq.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.cerebras.ai https://models.github.ai https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        connect-src 'self' https://api.groq.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.cerebras.ai https://models.github.ai https://mfapi.in https://query1.finance.yahoo.com https://mintedmetal.com https://ibja-api.vercel.app https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         img-src 'self' data:;
+        manifest-src 'self';
     ">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet">
@@ -361,7 +362,7 @@
         window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
         // Cross-tab sync listener
-        try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; } catch(e){}
+        try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; window.addEventListener('pagehide',()=>_sc.close()); } catch(e){};
         const STORAGE_KEY = 'appHubInvestDb';
         function loadDB() {
             try {
@@ -393,6 +394,7 @@
                 familyShare: 0,
                 labels: { dailySpend: 'Daily Spend', fixedExpenses: 'Fixed Expenses', familyShare: 'Family Share' }
             };
+            delete db.spendTracker.monthlyBudget;
         }
         function getTotalBudget() {
             let b = db.spendTracker.budget || {};
@@ -586,7 +588,6 @@
 
         // ── BUDGET SHEET ──
         function updateBudgetTotalDisplay() {
-            let b = db.spendTracker.budget || {};
             let total = (parseFloat(document.getElementById('budget-daily-input').value)||0) + (parseFloat(document.getElementById('budget-fixed-input').value)||0) + (parseFloat(document.getElementById('budget-family-input').value)||0);
             document.getElementById('budget-total-display').innerText = '₹' + total.toLocaleString('en-IN');
         }

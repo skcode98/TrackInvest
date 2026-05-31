@@ -1,5 +1,5 @@
 importScripts('./version.js');
-const SW_BUILD = 12; // bump to force cache refresh
+const SW_BUILD = 13; // bump to force cache refresh
 const CACHE_NAME = 'invest-pro-' + APP_VERSION + '-' + SW_BUILD;
 
 const CORE_ASSETS = [
@@ -21,11 +21,14 @@ const CORE_ASSETS = [
 const CDN_ASSETS = [
     'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap',
     'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmSU5fBBc9-wd0mQ.woff2',
+    'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap',
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/sweetalert2@11',
     'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js'
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
 
 // 1. Install — cache core shell first, then CDN assets best-effort

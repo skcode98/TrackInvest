@@ -52,6 +52,13 @@ if (!db.investments) db.investments = [];
 if (!db.goals) db.goals = [];
 if (!db.recurring) db.recurring = [];
 if (!db.milestones) db.milestones = [];
+// Migrate old milestone format (array of numbers) to objects with dates
+if (db.milestones.length > 0 && typeof db.milestones[0] === 'number') {
+    db.milestones = db.milestones.map(v => ({ val: v, date: null }));
+}
+function isMilestoneUnlocked(val) {
+    return db.milestones.some(m => (typeof m === 'object' ? m.val : m) === val);
+}
 if (!db.projectionNextMonth) db.projectionNextMonth = 0;
 if (!db.categoryDetails) db.categoryDetails = {};
 if (!db.currentMarketValues) db.currentMarketValues = {};
@@ -190,6 +197,34 @@ const milestoneThresholds = [
     { val: 5000000, label: '50 Lakh' }, { val: 10000000, label: '1 Crore' }
 ];
 
+const milestoneFacts = {
+    100000: {
+        name: 'First Lakh',
+        description: 'Achieve a net worth of ₹1,00,000',
+        fact: 'Saving your first ₹1 lakh is the hardest — it builds the habit of wealth creation. Most people never reach this milestone.'
+    },
+    500000: {
+        name: 'Five Lakh',
+        description: 'Achieve a net worth of ₹5,00,000',
+        fact: 'At this stage you\'re a disciplined saver. Consider diversifying into mutual funds, stocks, and fixed-income assets.'
+    },
+    1000000: {
+        name: 'Ten Lakh',
+        description: 'Achieve a net worth of ₹10,00,000',
+        fact: 'Welcome to the Lakhpati club! With ₹10 lakh, compound interest starts working in your favour — your money earns money.'
+    },
+    5000000: {
+        name: 'Fifty Lakh',
+        description: 'Achieve a net worth of ₹50,00,000',
+        fact: 'Half a crore! At this wealth level, asset allocation and tax-efficient investing become crucial to protect your gains.'
+    },
+    10000000: {
+        name: 'One Crore',
+        description: 'Achieve a net worth of ₹1,00,00,000',
+        fact: 'The Crorepati club! At 8% annual returns, your money now earns ₹8 lakh/year — more than many salaried professionals.'
+    }
+};
+
 window.editInvId = null, window.editGoalId = null, window.editRecurringId = null, window.currentInvType = Object.keys(db.categories)[0] || 'Cash';
 // Default field configurations for standard categories if not exists
 const standardFieldConfigs = {
@@ -282,7 +317,6 @@ function setButtonLoading(buttonOrId, isLoading) {
 // Add CSS animation for spinner and skeleton screens
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
@@ -636,12 +670,12 @@ function pushSheetState(sheetId) {
 
 function handlePopState(event) {
     const state = event.state;
-    const activeSub = document.querySelector('.sheet.sub-sheet.active');
-    const activeMain = document.querySelector('.sheet.active:not(.sub-sheet)');
+    const subSheet = document.querySelector('.sheet.sub-sheet.active');
+    const mainSheet = document.querySelector('.sheet.active:not(.sub-sheet)');
 
-    if (activeSub) {
+    if (subSheet) {
         closeSubSheet(true);
-    } else if (activeMain) {
+    } else if (mainSheet) {
         closeOverlays(true);
     } else if (state && state.tabId) {
         performTabSwitch(state.tabId, true);
@@ -1825,7 +1859,11 @@ function checkMilestones(nw) {
     let unlocked = false;
     const sym = db.currency && db.currency !== 'INR' ? (db.currencySymbol || db.currency + ' ') : '₹';
     milestoneThresholds.forEach(t => {
-        if (nw >= t.val && !db.milestones.includes(t.val)) { db.milestones.push(t.val); unlocked = true; showSnackbar(`Milestone Unlocked: ${sym}${t.label}! 🎉`, "workspace_premium"); }
+        if (nw >= t.val && !isMilestoneUnlocked(t.val)) {
+            db.milestones.push({ val: t.val, date: new Date().toISOString() });
+            unlocked = true;
+            showSnackbar(`Milestone Unlocked: ${sym}${t.label}! 🎉`, "workspace_premium");
+        }
     });
     if (unlocked) { saveData(); window.fireMilestoneConfetti(); }
 }

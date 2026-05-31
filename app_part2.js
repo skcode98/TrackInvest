@@ -1215,13 +1215,52 @@ function renderSettingsSections() {
     const badgeSym = db.currency && db.currency !== 'INR' ? (db.currencySymbol || db.currency + ' ') : '₹';
     let badgeHtml = "";
     milestoneThresholds.forEach(t => {
-        let unlocked = db.milestones.includes(t.val);
-        if (unlocked) badgeHtml += `<div class="badge-item"><span class="material-symbols-rounded">workspace_premium</span> ${badgeSym}${t.label}</div>`;
-        else badgeHtml += `<div class="badge-item locked"><span class="material-symbols-rounded">lock</span> ${badgeSym}${t.label}</div>`;
+        let unlocked = isMilestoneUnlocked(t.val);
+        if (unlocked) badgeHtml += `<div class="badge-item" onclick="showMilestoneDetail(${t.val})"><span class="material-symbols-rounded">workspace_premium</span> ${badgeSym}${t.label}</div>`;
+        else badgeHtml += `<div class="badge-item locked" onclick="showMilestoneDetail(${t.val})"><span class="material-symbols-rounded">lock</span> ${badgeSym}${t.label}</div>`;
     });
     let badgeGrid = document.getElementById('badge-grid');
     if (badgeGrid) badgeGrid.innerHTML = badgeHtml;
 }
+
+window.showMilestoneDetail = function (val) {
+    let fact = milestoneFacts[val];
+    if (!fact) return;
+    let t = milestoneThresholds.find(m => m.val === val);
+    let unlocked = isMilestoneUnlocked(val);
+    let milestone = db.milestones.find(m => (typeof m === 'object' ? m.val : m) === val);
+    let dateStr = milestone && milestone.date ? new Date(milestone.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }) : null;
+    const sym = db.currency && db.currency !== 'INR' ? (db.currencySymbol || db.currency + ' ') : '₹';
+
+    let html = `<div style="text-align:center;padding:8px 0 16px;">
+        <div style="font-size:48px;margin-bottom:8px;">${unlocked ? '🏆' : '🔒'}</div>
+        <div style="font-size:20px;font-weight:700;color:var(--md-on-surface);">${fact.name}</div>
+        <div style="font-size:13px;color:var(--md-outline);margin-top:4px;">${sym}${t ? t.label : ''}</div>
+        ${unlocked && dateStr ? `<div style="font-size:12px;color:var(--md-primary);margin-top:6px;">Unlocked on ${dateStr}</div>` : ''}
+        ${!unlocked ? '<div style="font-size:12px;color:var(--md-outline);margin-top:6px;">Not yet unlocked</div>' : ''}
+    </div>
+    <div style="padding:14px;background:var(--md-surface-container);border-radius:14px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:600;color:var(--md-on-surface);margin-bottom:6px;">${fact.description}</div>
+        <div style="font-size:12px;color:var(--md-on-surface-variant);line-height:1.5;">${fact.fact}</div>
+    </div>
+    <button class="btn-primary" style="width:100%;" onclick="closeMilestoneDetail()">${unlocked ? 'Celebrate! 🎉' : 'Keep Investing!'}</button>`;
+
+    let body = document.getElementById('milestone-detail-body');
+    let sheet = document.getElementById('milestone-detail-sheet');
+    let scrim = document.getElementById('milestone-detail-scrim');
+    if (body) body.innerHTML = html;
+    openSubSheet('milestone-detail-sheet');
+
+    if (unlocked && typeof confetti !== 'undefined') {
+        confetti({ zIndex: 99999, particleCount: 80, spread: 50, origin: { y: 0.5 } });
+    }
+};
+window.closeMilestoneDetail = function () {
+    let sheet = document.getElementById('milestone-detail-sheet');
+    let scrim = document.getElementById('milestone-detail-scrim');
+    if (sheet) sheet.classList.remove('open');
+    if (scrim) scrim.classList.remove('open');
+};
 
 function changeAccountFilter(val) {
     db.activeAccountFilter = val;
