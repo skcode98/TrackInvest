@@ -175,6 +175,22 @@
         <button class="btn-secondary" style="width:100%;margin-top:16px;" onclick="closeImportSheet()">Cancel</button>
     </div>
 
+    <!-- Budget Sheet -->
+    <div class="import-scrim" id="budget-scrim" onclick="closeBudgetSheet()"></div>
+    <div class="import-sheet" id="budget-sheet">
+        <div class="drag-handle"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+            <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;">account_balance_wallet</span>
+            <span style="font-weight:600;font-size:17px;">Monthly Spend Budget</span>
+        </div>
+        <div class="input-container"><label>Budget Amount (₹)</label><input type="number" id="budget-amt-input" class="md-input" placeholder="0" inputmode="decimal"></div>
+        <div style="display:flex;gap:12px;margin-top:20px;">
+            <button class="btn-secondary" onclick="clearBudget()" style="flex:0.4;color:var(--md-error);border-color:var(--md-error);"><span class="material-symbols-rounded">delete</span> Clear</button>
+            <button class="btn-primary" onclick="saveBudget()" style="flex:1;"><span class="material-symbols-rounded">check</span> Save Budget</button>
+        </div>
+        <button class="btn-secondary" style="width:100%;margin-top:8px;" onclick="closeBudgetSheet()">Cancel</button>
+    </div>
+
     <!-- Spend Entry Sheet -->
     <div class="import-scrim" id="spend-scrim" onclick="closeSpendSheet()"></div>
     <div class="import-sheet" id="spend-sheet">
@@ -243,7 +259,12 @@
 
         <!-- Budget vs Actual -->
         <div id="budget-section" style="display:none; margin-bottom:16px;">
-            <div class="st-section"><span class="material-symbols-rounded">compare_arrows</span> Budget vs Actual</div>
+            <div class="st-section" style="justify-content:space-between;">
+                <span><span class="material-symbols-rounded">compare_arrows</span> Budget vs Actual</span>
+                <button class="btn-outline-sm" onclick="openBudgetSheet()" style="font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid var(--md-outline-variant);background:transparent;color:var(--md-on-surface-variant);cursor:pointer;display:flex;align-items:center;gap:4px;">
+                    <span class="material-symbols-rounded" style="font-size:14px;">edit</span> Set Budget
+                </button>
+            </div>
             <div class="budget-rows" id="budget-list"></div>
             <div id="budget-breakdown-container" style="margin-top:12px;"></div>
         </div>
@@ -330,6 +351,7 @@
         let db = loadDB();
         if (!db.spendTracker) db.spendTracker = { entries: [], aiCategoryCache: {} };
         if (!db.spendTracker.entries) db.spendTracker.entries = [];
+        if (typeof db.spendTracker.monthlyBudget === 'undefined') db.spendTracker.monthlyBudget = 0;
 
         // Inherit master toggles from main app db
         window.__aiEnabled = db.aiEnabled !== false;
@@ -437,6 +459,17 @@
             updateCommentSuggestions();
             renderAll();
             haptic(30);
+            // Spend confirmation notification
+            if (!spendEditId && db.userPreferences && db.userPreferences.spendConfirmations !== false && 'Notification' in window && Notification.permission === 'granted') {
+                const catLabel = document.getElementById('spend-category-select')?.value || 'Uncategorized';
+                try {
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({ type: 'show-notification', title: 'Expense Recorded', body: '₹' + amt.toLocaleString('en-IN') + ' — ' + (sanitized || catLabel) });
+                    } else {
+                        new Notification('Expense Recorded', { body: '₹' + amt.toLocaleString('en-IN') + ' — ' + (sanitized || catLabel), icon: './icons/icon-192.png' });
+                    }
+                } catch(e) {}
+            }
         }
 
         function deleteSpendEntry() {
@@ -490,6 +523,27 @@
         function openImportSheet() { document.getElementById('import-sheet').classList.add('open'); document.getElementById('import-scrim').classList.add('open'); }
         function closeImportSheet() { document.getElementById('import-sheet').classList.remove('open'); document.getElementById('import-scrim').classList.remove('open'); }
 
+        // ── BUDGET SHEET ──
+        function openBudgetSheet() {
+            document.getElementById('budget-amt-input').value = db.spendTracker.monthlyBudget || '';
+            document.getElementById('budget-sheet').classList.add('open');
+            document.getElementById('budget-scrim').classList.add('open');
+            setTimeout(() => document.getElementById('budget-amt-input').focus(), 200);
+        }
+        function closeBudgetSheet() { document.getElementById('budget-sheet').classList.remove('open'); document.getElementById('budget-scrim').classList.remove('open'); }
+        function saveBudget() {
+            const amt = parseFloat(document.getElementById('budget-amt-input').value) || 0;
+            db.spendTracker.monthlyBudget = amt;
+            saveDB(); closeBudgetSheet(); renderAll();
+            const msg = amt > 0 ? 'Monthly budget set to ₹' + amt.toLocaleString('en-IN') : 'Budget cleared';
+            Swal.fire({icon:'success',title:msg,timer:1500,showConfirmButton:false});
+        }
+        function clearBudget() {
+            db.spendTracker.monthlyBudget = 0;
+            saveDB(); closeBudgetSheet(); renderAll();
+            Swal.fire({icon:'info',title:'Budget cleared',timer:1200,showConfirmButton:false});
+        }
+
         // ── DATE ──
         function parseBuckwheatDate(str) {
             str = str.trim().replace(/\u202f/g,' ').replace(/\u2009/g,' ');
@@ -516,7 +570,9 @@
             const monthKey = getPlanMonthKey(currentYear, currentMonth);
             const monthlyPlans = (db.monthlyPlans || {});
             const plan = monthlyPlans[monthKey];
-            if (!plan || !plan.income || plan.income.length === 0) { section.style.display = 'none'; return; }
+            const simpleBudget = db.spendTracker.monthlyBudget || 0;
+            const hasPlan = plan && plan.income && plan.income.length > 0;
+            if (!hasPlan && !simpleBudget) { section.style.display = 'none'; return; }
             section.style.display = 'block';
             const list = document.getElementById('budget-list');
             const entries = getMonthEntries();
@@ -532,34 +588,32 @@
                 return (planArr||[]).reduce((s, i) => s + (parseFloat(i.target)||0), 0);
             }
 
-            // Income
-            const incomeBudget = plan.income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
-            rows.push({ label: 'Income', budget: incomeBudget, target: 0, actual: 0, color: '#2E7D32', isIncome: true });
+            if (hasPlan) {
+                const incomeBudget = plan.income.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+                rows.push({ label: 'Income', budget: incomeBudget, target: 0, actual: 0, color: '#2E7D32', isIncome: true });
 
-            // Needs
-            const needsBudget = (plan.needs||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
-            const needsTarget = getTargetForCategories(plan.needs);
-            const needsActual = sumOfCategories(totals, BUDGET_CAT_MAP.needs);
-            if (needsBudget > 0 || needsActual > 0 || needsTarget > 0) rows.push({ label: 'Needs (Bills, Food, Rent)', budget: needsBudget, target: needsTarget, actual: needsActual, color: '#186D33' });
+                const needsBudget = (plan.needs||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
+                const needsTarget = getTargetForCategories(plan.needs);
+                const needsActual = sumOfCategories(totals, BUDGET_CAT_MAP.needs);
+                if (needsBudget > 0 || needsActual > 0 || needsTarget > 0) rows.push({ label: 'Needs (Bills, Food, Rent)', budget: needsBudget, target: needsTarget, actual: needsActual, color: '#186D33' });
 
-            // Wants
-            const wantsBudget = (plan.wants||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
-            const wantsTarget = getTargetForCategories(plan.wants);
-            const wantsActual = sumOfCategories(totals, BUDGET_CAT_MAP.wants);
-            if (wantsBudget > 0 || wantsActual > 0 || wantsTarget > 0) rows.push({ label: 'Wants (Fun, Shopping, Travel)', budget: wantsBudget, target: wantsTarget, actual: wantsActual, color: '#E91E63' });
+                const wantsBudget = (plan.wants||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
+                const wantsTarget = getTargetForCategories(plan.wants);
+                const wantsActual = sumOfCategories(totals, BUDGET_CAT_MAP.wants);
+                if (wantsBudget > 0 || wantsActual > 0 || wantsTarget > 0) rows.push({ label: 'Wants (Fun, Shopping, Travel)', budget: wantsBudget, target: wantsTarget, actual: wantsActual, color: '#E91E63' });
 
-            // Investments
-            const invBudget = (plan.investments||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
-            const invTarget = getTargetForCategories(plan.investments);
-            const invActual = sumOfCategories(totals, BUDGET_CAT_MAP.investments);
-            if (invBudget > 0 || invActual > 0 || invTarget > 0) rows.push({ label: 'Investments', budget: invBudget, target: invTarget, actual: invActual, color: '#F57C00' });
+                const invBudget = (plan.investments||[]).reduce((s,i) => s+(parseFloat(i.amount)||0),0);
+                const invTarget = getTargetForCategories(plan.investments);
+                const invActual = sumOfCategories(totals, BUDGET_CAT_MAP.investments);
+                if (invBudget > 0 || invActual > 0 || invTarget > 0) rows.push({ label: 'Investments', budget: invBudget, target: invTarget, actual: invActual, color: '#F57C00' });
+            }
 
             // Other (uncategorized spend)
             const otherActual = entries.filter(e => !e.category || e.category==='Uncategorized').reduce((s,e) => s+e.amount, 0);
             if (otherActual > 0) rows.push({ label: 'Uncategorized', budget: 0, target: 0, actual: otherActual, color: '#8E9099' });
 
             totalActual = entries.reduce((s,e) => s+e.amount, 0);
-            totalBudget = rows.filter(r => !r.isIncome).reduce((s,r) => s+r.budget, 0);
+            totalBudget = simpleBudget > 0 ? simpleBudget : rows.filter(r => !r.isIncome).reduce((s,r) => s+r.budget, 0);
             totalTarget = rows.filter(r => !r.isIncome).reduce((s,r) => s+r.target, 0);
 
             // Header
@@ -620,6 +674,7 @@
                 // Budget progress bar
                 const budget = (() => {
                     try {
+                        if (simpleBudget > 0) return simpleBudget;
                         const key = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
                         if (db.monthlyPlans && db.monthlyPlans[key]) {
                             const plan = db.monthlyPlans[key];
@@ -646,10 +701,10 @@
 
             // Update hero with budget info
             const heroBudget = document.getElementById('hero-vs-budget');
-            if (totalBudget > 0) {
-                const compareBudget = totalTarget > 0 ? totalTarget : totalBudget;
-                heroBudget.innerText = totalActual <= compareBudget ? `✓ Under budget by ₹${(compareBudget-totalActual).toLocaleString('en-IN')}` : `⚠ Over budget by ₹${(totalActual-compareBudget).toLocaleString('en-IN')}`;
-                heroBudget.style.color = totalActual <= compareBudget ? 'rgba(255,255,255,0.8)' : 'rgba(255,200,200,0.9)';
+            const budgetForHero = simpleBudget > 0 ? simpleBudget : (totalTarget > 0 ? totalTarget : totalBudget);
+            if (budgetForHero > 0) {
+                heroBudget.innerText = totalActual <= budgetForHero ? `✓ Under budget by ₹${(budgetForHero-totalActual).toLocaleString('en-IN')}` : `⚠ Over budget by ₹${(totalActual-budgetForHero).toLocaleString('en-IN')}`;
+                heroBudget.style.color = totalActual <= budgetForHero ? 'rgba(255,255,255,0.8)' : 'rgba(255,200,200,0.9)';
             }
         }
         function sumOfCategories(totals, cats) { return Array.isArray(cats) ? cats.reduce((s,c) => s + (totals[c]||0), 0) : 0; }

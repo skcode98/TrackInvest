@@ -44,6 +44,7 @@ function safeLocalStorageSet(key, value) {
 let db = safeLocalStorageGet('appHubInvestDb', {});
 
 if (!db.userProfile) db.userProfile = { salary: 0, regime: 'new', monthlyExpense: 0, dob: '' };
+if (typeof db.monthlyInvestmentTarget === 'undefined') db.monthlyInvestmentTarget = 0;
 if (!db.userProfile.dob) db.userProfile.dob = '';
 if (!db.userProfile.monthlyExpense) db.userProfile.monthlyExpense = 0;
 if (!db.settingsTable) db.settingsTable = { lastResetMonth: '' };
@@ -164,7 +165,9 @@ if (!db.userPreferences) db.userPreferences = {
     maturityAlerts: true,
     goalProgressUpdates: true,
     weeklyDigest: false,
-    priceAlerts: false
+    priceAlerts: false,
+    dailySpendSummary: false,
+    spendConfirmations: true
 };
 
 const defaultCategories = ['FD', 'PPF', 'PF', 'SIP', 'Liquid', 'Home', 'Cash', 'Stocks'];
@@ -1783,8 +1786,17 @@ function setChartRange(months, el) {
 
 function updateProjectionSlider() {
     let slider = document.getElementById('proj-slider'); if (!slider) return;
-    let months = parseInt(slider.value, 10) || 12; document.getElementById('proj-month-label').innerText = months;
-    let projected = currentTotalNW + (currentAvgMonthly * months); document.getElementById('projected-eoy').innerText = formatMoney(projected);
+    let months = parseInt(slider.value, 10) || 12;
+    let lbl = document.getElementById('proj-month-label'); if (lbl) lbl.innerText = months;
+
+    let projected = currentTotalNW + (currentAvgMonthly * months);
+    let conservative = currentTotalNW + (currentAvgMonthly * 0.7 * months);
+    let optimistic = currentTotalNW + (currentAvgMonthly * 1.4 * months);
+
+    let eoy = document.getElementById('projected-eoy'); if (eoy) eoy.innerText = formatMoney(projected);
+    let cons = document.getElementById('proj-conservative'); if (cons) cons.innerText = formatMoney(conservative);
+    let opti = document.getElementById('proj-optimistic'); if (opti) opti.innerText = formatMoney(optimistic);
+    let avg = document.getElementById('proj-monthly-avg'); if (avg) avg.innerText = formatMoney(currentAvgMonthly);
 }
 
 window.fireMilestoneConfetti = function () {
@@ -1820,13 +1832,13 @@ function checkMilestones(nw) {
 
 window.openMonthlyTargetSheet = function () {
     haptic(30);
-    document.getElementById('monthly-target-amt').value = db.userProfile.monthlyExpense || '';
+    document.getElementById('monthly-target-amt').value = db.monthlyInvestmentTarget || '';
     openSubSheet('monthly-target-sheet');
 };
 
 window.saveMonthlyTarget = function () {
     const amt = parseFloat(document.getElementById('monthly-target-amt').value) || 0;
-    db.userProfile.monthlyExpense = amt;
+    db.monthlyInvestmentTarget = amt;
     saveData(); closeOverlays(); renderAll(); showSnackbar("Monthly Target Saved");
 };
 
@@ -2245,6 +2257,15 @@ function renderNWChart() {
         let bezierPath = getBezierPath(chartDataPoints);
         let fillPath = `${bezierPath} L100 ${height} L0 ${height} Z`;
         chartFill.setAttribute('d', fillPath); chartLine.setAttribute('d', bezierPath);
+
+        // Update chart labels
+        let len = chartDataPoints.length;
+        let lblStart = document.getElementById('chart-label-start');
+        let lblMid = document.getElementById('chart-label-mid');
+        let lblEnd = document.getElementById('chart-label-end');
+        if (lblStart && len > 0) lblStart.textContent = chartDataPoints[0].label;
+        if (lblMid && len > 2) lblMid.textContent = chartDataPoints[Math.floor(len / 2)].label;
+        if (lblEnd && len > 1) lblEnd.textContent = chartDataPoints[len - 1].label;
     } catch (e) { }
 }
 
@@ -2334,11 +2355,65 @@ function renderRollingChart() {
                     legend: { display: false },
                     tooltip: { callbacks: { label: function (c) { return db.privacyMode ? '••••••' : '₹' + Number(c.raw).toLocaleString('en-IN'); } } }
                 },
-                scales: { x: { display: true, ticks: { font: { size: 10 }, maxRotation: 90 } }, y: { display: !db.privacyMode, ticks: { callback: (v) => formatMoney(v) } } }
+                scales: { x: { display: true, ticks: { font: { size: 10 }, maxRotation: 90 } }, y: { display: !db.privacyMode, ticks: { callback: (v) => formatMoney(v) } } },
+                onClick: (e, active) => {
+                    if (active.length > 0) {
+                        let idx = active[0].dataIndex;
+                        let label = chartLabels[idx];
+                        let raw = chartData[idx];
+                        showMonthDetailSheet(label, raw, idx);
+                    }
+                }
             }
         });
         chartDataCache.rolling = { key: cacheKey, data: displayData, labels: chartLabels };
     }
+}
+
+function showMonthDetailSheet(label, totalAmt, idx) {
+    let now = new Date();
+    let monthsAgo = 11 - idx;
+    let m = now.getMonth() - monthsAgo;
+    let y = now.getFullYear();
+    while (m < 0) { m += 12; y -= 1; }
+
+    let entries = db.investments.filter(inv => {
+        let d = new Date(inv.date);
+        return d.getMonth() === m && d.getFullYear() === y && (activeAccountFilter === 'All' || inv.account === activeAccountFilter);
+    });
+
+    let html = `<div style="padding:4px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
+            <div style="font-size:18px;font-weight:600;">${label}</div>
+            <div style="font-size:14px;color:var(--md-on-surface-variant);">Total: <span style="font-weight:600;color:var(--md-primary);">${formatMoney(totalAmt)}</span></div>
+        </div>`;
+
+    if (entries.length === 0) {
+        html += `<div style="text-align:center;padding:24px;opacity:0.5;font-size:13px;">No investments this month</div>`;
+    } else {
+        entries.forEach(e => {
+            let cat = db.categories[e.type] || { color: '#8D6E63', icon: 'savings' };
+            html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--md-outline-variant);">
+                <div style="width:36px;height:36px;border-radius:10px;background:${cat.color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <span class="material-symbols-rounded" style="font-size:18px;color:${cat.color};">${cat.icon}</span>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:13px;font-weight:500;">${escapeHtml(cat.name || e.type)}</div>
+                    <div style="font-size:11px;color:var(--md-outline);">${e.note ? escapeHtml(e.note) : '—'}</div>
+                </div>
+                <div style="font-size:14px;font-weight:600;color:var(--md-primary);">${formatMoney(e.amount)}</div>
+            </div>`;
+        });
+    }
+    html += `</div>`;
+
+    let sheet = document.getElementById('month-detail-sheet');
+    let body = document.getElementById('month-detail-body');
+    let scrim = document.getElementById('month-detail-scrim');
+    if (!sheet || !body) return;
+    body.innerHTML = html;
+    sheet.classList.add('open');
+    if (scrim) scrim.classList.add('open');
 }
 
 function renderCategoryChart(category) {

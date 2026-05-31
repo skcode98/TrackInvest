@@ -1104,6 +1104,23 @@ tr:last-child td {
     animation: drawSmoothLine 1.5s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
+.chart-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2px;
+    margin-top: -4px;
+    position: relative;
+    z-index: 1;
+}
+.chart-lbl {
+    font-size: 9px;
+    color: var(--md-on-surface-variant);
+    opacity: 0.55;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
 @keyframes drawSmoothLine {
     to {
         stroke-dashoffset: 0;

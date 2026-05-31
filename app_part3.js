@@ -421,7 +421,7 @@ function updatePortfolioCalculations() {
 
     renderHistory();
 
-    let monthTarget = db.userProfile.monthlyExpense || 0; let pct = monthTarget > 0 ? Math.min(100, (thisMonthTotal / monthTarget) * 100) : 0;
+    let monthTarget = db.monthlyInvestmentTarget || 0; let pct = monthTarget > 0 ? Math.min(100, (thisMonthTotal / monthTarget) * 100) : 0;
     let mTargetDisplay = document.getElementById('monthly-target-display'); if (mTargetDisplay) mTargetDisplay.innerText = formatMoney(monthTarget);
     let pPercent = document.getElementById('progress-percent'); if (pPercent) pPercent.innerText = Math.round(pct) + '%';
     let pCircle = document.getElementById('progress-circle'); if (pCircle) pCircle.style.strokeDashoffset = 188.4 * (1 - pct / 100);
@@ -743,6 +743,20 @@ function generateScheduledNotifications() {
     // Monthly financial letter (1st of month)
     if (prefs.monthlyLetter !== false && new Date().getDate() === 1) {
         generateMonthlyLetterAI();
+    }
+
+    // Daily spend summary
+    if (prefs.dailySpendSummary !== false && Array.isArray(db.spendTracker?.entries)) {
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const todayTotal = db.spendTracker.entries.filter(e => e.date === todayStr).reduce((s, e) => s + Math.abs(e.amount), 0);
+        const yesterdayTotal = db.spendTracker.entries.filter(e => e.date === yesterdayStr).reduce((s, e) => s + Math.abs(e.amount), 0);
+        if (todayTotal > 0) {
+            const trend = yesterdayTotal > 0 ? (todayTotal > yesterdayTotal ? '↑ Higher than yesterday' : '↓ Lower than yesterday') : '';
+            addInAppNotification('Daily Spend Summary', 'Today: ₹' + fmtNum(todayTotal) + (trend ? ' (' + trend + ')' : ''), 'spend', 'account_balance_wallet');
+        }
     }
 }
 window.generateScheduledNotifications = generateScheduledNotifications;

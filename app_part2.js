@@ -1107,7 +1107,7 @@ function enableNotifPrefs(enabled) {
         document.querySelectorAll('.notif-toggle').forEach(cb => cb.checked = false);
     }
     if (!db.userPreferences) db.userPreferences = {};
-    Object.assign(db.userPreferences, { sipReminders: enabled, maturityAlerts: enabled, goalProgressUpdates: enabled, weeklyDigest: false, priceAlerts: false });
+    Object.assign(db.userPreferences, { sipReminders: enabled, maturityAlerts: enabled, goalProgressUpdates: enabled, weeklyDigest: false, priceAlerts: false, dailySpendSummary: false, spendConfirmations: enabled });
     document.querySelectorAll('.notif-toggle').forEach(cb => {
         cb.checked = db.userPreferences[cb.dataset.key] || false;
     });

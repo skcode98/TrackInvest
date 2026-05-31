@@ -107,17 +107,45 @@
                         <path id="chart-fill-path" class="chart-fill" d="M0 40 L100 40" />
                         <path id="chart-line-path" class="chart-line chart-animate" d="M0 40 L100 40" />
                     </svg>
+                    <div class="chart-labels">
+                        <span class="chart-lbl" id="chart-label-start"> </span>
+                        <span class="chart-lbl chart-lbl--mid" id="chart-label-mid"> </span>
+                        <span class="chart-lbl chart-lbl--end" id="chart-label-end"> </span>
+                    </div>
                     <div class="chart-tooltip" id="chart-tooltip"></div>
                     <div class="chart-point" id="chart-point"></div>
                 </div>
 
-                <div class="hero-projected">
-                    <div class="hero-proj-header">
-                        <span>Projected NW (<span id="proj-month-label">12</span> mo) 🎯</span>
-                        <span id="projected-eoy" style="font-weight:700; color:var(--md-primary);">0</span>
+                <div class="hero-projected" style="margin-top:8px;background:var(--md-surface-container);border-radius:16px;padding:14px 16px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--md-on-surface-variant);">
+                            <span class="material-symbols-rounded" style="font-size:16px;">trending_up</span>
+                            Projection
+                        </div>
+                        <div style="display:flex;align-items:baseline;gap:4px;">
+                            <span style="font-size:11px;color:var(--md-outline);"><span id="proj-month-label">12</span>mo</span>
+                            <span id="projected-eoy" style="font-size:20px;font-weight:700;color:var(--md-primary);">0</span>
+                        </div>
                     </div>
-                    <input type="range" id="proj-slider" min="1" max="24" value="12" oninput="updateProjectionSlider()"
-                        onchange="haptic(10)">
+                    <div style="display:flex;gap:12px;margin-bottom:8px;">
+                        <div style="flex:1;background:var(--md-surface-container-highest);border-radius:10px;padding:8px 10px;">
+                            <div style="font-size:10px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.3px;">Conservative</div>
+                            <div id="proj-conservative" style="font-size:14px;font-weight:600;color:var(--md-on-surface);margin-top:2px;">—</div>
+                        </div>
+                        <div style="flex:1;background:var(--md-primary-container);border-radius:10px;padding:8px 10px;">
+                            <div style="font-size:10px;color:var(--md-on-primary-container);text-transform:uppercase;letter-spacing:0.3px;opacity:0.7;">Optimistic</div>
+                            <div id="proj-optimistic" style="font-size:14px;font-weight:600;color:var(--md-on-primary-container);margin-top:2px;">—</div>
+                        </div>
+                        <div style="flex:1;background:var(--md-surface-container-highest);border-radius:10px;padding:8px 10px;">
+                            <div style="font-size:10px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.3px;">Monthly</div>
+                            <div id="proj-monthly-avg" style="font-size:14px;font-weight:600;color:var(--md-on-surface);margin-top:2px;">—</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:11px;color:var(--md-outline);min-width:20px;text-align:right;" id="proj-range-min">1</span>
+                        <input type="range" id="proj-slider" min="1" max="24" value="12" oninput="updateProjectionSlider()" onchange="haptic(10)" style="flex:1;">
+                        <span style="font-size:11px;color:var(--md-outline);min-width:20px;">24</span>
+                    </div>
                 </div>
             </div>
 
@@ -325,8 +353,9 @@
             </div>
 
             <!-- Smart Advisor Card -->
-            <div id="advisor-card" class="md-card"
-                style="display:none; margin-bottom:24px; border:1px solid var(--md-primary-fixed-dim); background:var(--md-surface-container-low);">
+            <div id="advisor-card"
+                style="display:none; margin-bottom:24px; border:none; background:linear-gradient(145deg, #1E1B2E, #16171D); box-shadow:0 0 0 1px rgba(124,58,237,0.15), 0 8px 32px rgba(0,0,0,0.3); border-radius:20px; position:relative; overflow:hidden; padding:20px;">
+                <div style="position:absolute; top:-40%; right:-15%; width:160px; height:160px; background:radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%); pointer-events:none;"></div>
                 <div id="advisor-text"></div>
             </div>
 
@@ -1068,6 +1097,26 @@
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="priceAlerts"><span
                                 class="slider"></span></label>
                     </div>
+                    <div class="notif-row"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                        <div>
+                            <div style="font-weight:500;font-size:13px;">Spend Confirmations</div>
+                            <div style="font-size:11px;color:var(--md-outline);">Notify after adding spend entries
+                            </div>
+                        </div>
+                        <label class="switch"><input type="checkbox" class="notif-toggle"
+                                data-key="spendConfirmations"><span class="slider"></span></label>
+                    </div>
+                    <div class="notif-row"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                        <div>
+                            <div style="font-weight:500;font-size:13px;">Daily Spend Summary</div>
+                            <div style="font-size:11px;color:var(--md-outline);">Daily total spent notification
+                            </div>
+                        </div>
+                        <label class="switch"><input type="checkbox" class="notif-toggle"
+                                data-key="dailySpendSummary"><span class="slider"></span></label>
+                    </div>
                 </div>
                 <div style="font-size:11px;color:var(--md-outline);margin-top:8px;">Notifications work offline via
                     service worker. No server needed.</div>
@@ -1256,6 +1305,12 @@
         <div class="input-container"><label>Target Amount (₹)</label><input type="number" id="proj-amt"
                 class="md-input"></div>
         <button class="btn-primary" onclick="saveProjection()">Set Target</button>
+    </div>
+
+    <div class="scrim" id="month-detail-scrim" onclick="document.getElementById('month-detail-sheet').classList.remove('open');this.classList.remove('open');"></div>
+    <div class="sheet sub-sheet" id="month-detail-sheet">
+        <div class="drag-handle"></div>
+        <div id="month-detail-body"></div>
     </div>
 
     <div class="sheet sub-sheet" id="monthly-target-sheet">
