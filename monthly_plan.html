@@ -17,13 +17,6 @@
     <link rel="stylesheet" href="./style.css">
     <script src="./version.js"></script>
     <style>
-        body { padding-bottom:calc(120px + env(safe-area-inset-bottom)); }
-        :root {
-            --cat-needs:   #BA1A1A;
-            --cat-invest:  #415F91;
-            --cat-wants:   #186D33;
-            --cat-unalloc: #8E9099;
-        }
 
         /* ── HERO ── */
         .planner-hero {
@@ -38,7 +31,7 @@
         .hero-status  {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 12px; font-weight: 600;
-            background: rgba(0,0,0,0.08); padding: 5px 14px;
+            background: rgba(255,255,255,0.2); padding: 5px 14px;
             border-radius: 20px; margin-top: 10px;
         }
 
@@ -79,7 +72,7 @@
 
         /* ── CARDS ── */
         .planner-card {
-            background: var(--md-surface-container-low); border-radius: var(--card-radius);
+            background: var(--md-surface-container); border-radius: var(--card-radius);
             padding: 20px; margin-bottom: 16px;
             border: 1px solid var(--md-surface-container-highest);
         }
@@ -288,7 +281,7 @@
             .bench-val { font-size:12px; }
             .alloc-legend-row { font-size:10px; gap:6px; }
             .month-nav { font-size:12px; padding:3px 8px; }
-            .month-nav button { padding:8px; min-height:40px; min-width:40px; }
+            .month-nav button { padding:8px; min-height:44px; min-width:44px; }
             #breakdown-overlay > div { padding:16px !important; border-radius:16px !important; max-width:94vw !important; }
         }
 
@@ -306,20 +299,9 @@
         }
 
         /* ── MONTH NAV ── */
-        .month-nav {
-            display:flex; align-items:center; gap:8px;
-            background:var(--md-surface-container-highest);
-            border-radius:100px; padding:4px 12px;
-            font-size:13px; font-weight:500;
-        }
-        .month-nav button {
-            background:none; border:none; cursor:pointer;
-            color:var(--md-on-surface-variant); padding:4px;
-            border-radius:50%; display:flex; align-items:center;
-        }
-        .month-nav button:active { background:var(--md-surface-container); }
+        .month-nav { margin-bottom:20px; }
 
-        .bottom-spacer { height: 100px; }
+        .bottom-spacer { height: 16px; }
 
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .spin { animation:spin 1s linear infinite; display:inline-block; }
@@ -387,7 +369,7 @@
                     <span class="material-symbols-rounded" style="font-size:12px;">receipt_long</span>
                     Actual: <span id="hero-actual">₹0</span>
                 </span>
-                <span class="hero-status" id="hero-status" style="margin:0;background:rgba(0,0,0,0.07);padding:3px 10px;border-radius:20px;">
+                <span class="hero-status" id="hero-status" style="margin:0;padding:3px 10px;border-radius:20px;">
                     <span class="material-symbols-rounded" style="font-size:12px;" id="hero-icon">info</span>
                     <span id="hero-msg">Enter your income to begin</span>
                 </span>
@@ -530,8 +512,7 @@
     </div>
 
     <div id="snackbar" class="snackbar"></div>
-    <div style="text-align:center;padding:8px 16px 16px;font-size:10px;color:var(--md-outline);opacity:0.4;user-select:none;"
-        onclick="if(typeof APP_VERSION!=='undefined'){navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')}" class="version-badge"></div>
+    <div title="Build version" class="version-badge" onclick="if(typeof APP_VERSION!=='undefined'){navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')}"></div>
     <script>var vb=document.querySelector('.version-badge');if(vb&&typeof APP_VERSION!=='undefined')vb.textContent=APP_VERSION;</script>
 
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>

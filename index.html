@@ -45,12 +45,10 @@
 
 <body>
     <div id="app-lock-screen" style="display:none;">
-        <span class="material-symbols-rounded"
-            style="font-size:64px;color:var(--md-primary);margin-bottom:16px;">lock</span>
-        <h2 style="margin:0 0 24px 0;">App Locked</h2>
-        <input type="password" id="pin-input-auth" class="search-box"
-            style="text-align:center;letter-spacing:12px;width:220px;font-size:24px;" maxlength="4" placeholder="••••">
-        <button class="btn-primary" style="width:220px;" onclick="unlockApp()">Unlock</button>
+        <span class="material-symbols-rounded">lock</span>
+        <h2>App Locked</h2>
+        <input type="password" id="pin-input-auth" class="search-box" maxlength="4" placeholder="••••">
+        <button class="btn-primary" onclick="unlockApp()">Unlock</button>
     </div>
 
     <input type="file" id="restore-file" style="display:none;" accept=".json" onchange="restoreData(event)">
@@ -127,38 +125,34 @@
             <!-- Frequent Actions Quick Navigation -->
             <div id="frequent-actions" style="margin-bottom:16px;"></div>
 
-            <div class="md-card" id="monthly-planner-entry"
-                style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);"
-                onclick="window.location.href='monthly_plan.html'">
-                <div style="display:flex; align-items:center; gap:16px;">
-                    <div
-                        style="width:48px; height:48px; border-radius:16px; background:var(--md-primary-container); color:var(--md-on-primary-container); display:flex; align-items:center; justify-content:center;">
+            <div class="nav-entry-card" id="monthly-planner-entry"
+                style="display:none;" onclick="window.location.href='monthly_plan.html'">
+                <div class="nav-entry-left">
+                    <div class="nav-entry-icon"
+                        style="background:var(--md-primary-container); color:var(--md-on-primary-container);">
                         <span class="material-symbols-rounded">account_balance_wallet</span>
                     </div>
                     <div>
-                        <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Monthly Planner</div>
-                        <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your
-                            salary & cash flow</div>
+                        <div class="nav-entry-title">Monthly Planner</div>
+                        <div class="nav-entry-desc">Budget your salary & cash flow</div>
                     </div>
                 </div>
-                <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
+                <span class="material-symbols-rounded nav-entry-chevron">chevron_right</span>
             </div>
 
-            <div class="md-card" id="spend-tracker-entry"
-                style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);"
-                onclick="window.location.href='spend_tracker.html'">
-                <div style="display:flex; align-items:center; gap:16px;">
-                    <div
-                        style="width:48px; height:48px; border-radius:16px; background:var(--md-secondary-container); color:var(--md-on-secondary-container); display:flex; align-items:center; justify-content:center;">
+            <div class="nav-entry-card" id="spend-tracker-entry"
+                style="display:none;" onclick="window.location.href='spend_tracker.html'">
+                <div class="nav-entry-left">
+                    <div class="nav-entry-icon"
+                        style="background:var(--md-secondary-container); color:var(--md-on-secondary-container);">
                         <span class="material-symbols-rounded">receipt_long</span>
                     </div>
                     <div>
-                        <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Spend Tracker</div>
-                        <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses,
-                            AI categorization & insights</div>
+                        <div class="nav-entry-title">Spend Tracker</div>
+                        <div class="nav-entry-desc">Track expenses, AI categorization & insights</div>
                     </div>
                 </div>
-                <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
+                <span class="material-symbols-rounded nav-entry-chevron">chevron_right</span>
             </div>
 
 
@@ -171,18 +165,15 @@
 
             <div class="section-title">Performance Overview</div>
 
-            <div class="md-card"
-                style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px;">
-                <div style="display:flex; flex-direction:column; gap:12px; flex:1;">
-                    <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom: 1px solid var(--md-surface-container-highest); padding-bottom:8px; cursor:pointer;"
-                        onclick="openMonthDetails(0)">
-                        <span style="font-size:13px;color:var(--md-on-surface-variant);">Invested</span>
-                        <span style="font-weight:700;font-size:18px;" id="monthly-invested-display">₹0</span>
+            <div class="md-card perf-card">
+                <div class="perf-col">
+                    <div class="perf-row perf-row-divider" onclick="openMonthDetails(0)">
+                        <span class="perf-label">Invested</span>
+                        <span class="perf-value" id="monthly-invested-display">₹0</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:baseline; cursor:pointer;"
-                        onclick="openMonthlyTargetSheet()">
-                        <span style="font-size:13px;color:var(--md-primary);font-weight:500;">Target 🎯</span>
-                        <span style="font-weight:500;font-size:14px;" id="monthly-target-display">₹0</span>
+                    <div class="perf-row" onclick="openMonthlyTargetSheet()">
+                        <span class="perf-label-accent">Target 🎯</span>
+                        <span class="perf-value-sm" id="monthly-target-display">₹0</span>
                     </div>
                 </div>
                 <div class="progress-ring" id="monthly-progress-ring">
@@ -196,7 +187,7 @@
             </div>
 
             <!-- Quick stat chips -->
-            <div class="md-card" style="padding:16px;">
+            <div class="md-card">
                 <div class="stat-row" id="stat-row">
                     <div class="stat-chip">
                         <div class="stat-chip-label">Invested</div>
@@ -326,7 +317,7 @@
 
             <!-- Smart Advisor Card -->
             <div id="advisor-card" class="md-card"
-                style="display:none; margin-bottom:24px; border:1px solid var(--md-primary-fixed-dim); background:var(--md-surface-container-low);">
+                style="display:none; margin-bottom:24px; border:1px solid var(--md-outline-variant); background:var(--md-surface-container-low);">
                 <div id="advisor-text"></div>
             </div>
 
@@ -363,13 +354,9 @@
             <div class="section-title">
                 Financial Goals
                 <div>
-                    <button
-                        style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;font-weight:500; margin-right:8px;"
-                        onclick="autoSetGoalsViaAI()"><span class="material-symbols-rounded"
+                    <button class="text-btn" onclick="autoSetGoalsViaAI()"><span class="material-symbols-rounded"
                             style="font-size:16px;vertical-align:text-bottom;">auto_awesome</span> AI Sync</button>
-                    <button
-                        style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;font-weight:500;"
-                        onclick="openGoalSheet()">+ Add</button>
+                    <button class="text-btn" onclick="openGoalSheet()">+ Add</button>
                 </div>
             </div>
             <div id="goals-list"></div>
@@ -410,7 +397,7 @@
                 <button class="sort-chip" id="sort-asc" onclick="toggleLedgerOrder(this)" title="Toggle order"><span
                         class="material-symbols-rounded" style="font-size:14px;"
                         id="sort-order-icon">arrow_downward</span></button>
-                <span style="width:1px;height:24px;background:var(--md-outline-variant);margin:auto 4px;flex-shrink:0;" class="filter-separator"></span>
+                <span class="filter-separator"></span>
                 <input type="date" id="ledger-date-from" class="date-filter-input" onchange="renderHistory()" title="From date" aria-label="From date" placeholder="From">
                 <span style="color:var(--md-outline);font-size:12px;flex-shrink:0;display:none;" class="filter-separator">—</span>
                 <input type="date" id="ledger-date-to" class="date-filter-input" onchange="renderHistory()" title="To date" aria-label="To date" placeholder="To">
@@ -435,6 +422,7 @@
             </div>
 
             <div class="list" id="ledger-history-list"></div>
+            <div title="Build version" class="version-badge" onclick="navigator.clipboard.writeText(APP_VERSION).catch(()=>{})"></div>
         </div>
     </main>
 
@@ -452,8 +440,6 @@
                     id="ledger-entry-badge" style="display:none;"></span></div><span class="nav-label">Ledger</span>
         </div>
     </nav>
-    <div style="position:fixed;right:4px;bottom:4px;cursor:default;opacity:0.25;user-select:none;z-index:101;pointer-events:none;"
-        title="Build version" class="version-badge"></div>
     <script>document.querySelector('.version-badge').textContent = APP_VERSION;</script>
 
     <button class="fab" onclick="openInvestSheet()" title="Add Entry (N)"><span
@@ -576,16 +562,14 @@
             <div class="input-row">
                 <div class="input-container" style="flex:2"><label>Asset Note / Name</label><input type="text"
                         id="inv-note" class="md-input" placeholder="e.g. Nifty 50">
-                        <button class="ai-button-inline"
-                            style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;margin-left:4px;"
+                        <button class="text-btn"
                             onclick="aiSuggestInvestment()" title="AI Suggest: fill category, tags, price from name"><span
                                 class="material-symbols-rounded">auto_fix_high</span></button>
                     </div>
                 <div class="input-container" style="flex:1"><label>Tags</label>
                     <div style="display:flex;align-items:center;">
                         <input type="text" id="inv-tags" class="md-input" placeholder="#Tax">
-                        <button class="ai-button-inline"
-                            style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;"
+                        <button class="text-btn"
                             onclick="generateAITags()" title="Auto-Generate Tags"><span
                                 class="material-symbols-rounded">auto_awesome</span></button>
                     </div>
@@ -639,8 +623,7 @@
     </div>
 
     <!-- AI Hub Sheet - unified chat + reports -->
-    <div class="sheet sheet-display ai-dependent" id="ai-hub-sheet"
-        style="height:90vh; max-height:90vh; display:flex; flex-direction:column;">
+    <div class="sheet sheet-display ai-dependent" id="ai-hub-sheet">
         <div class="drag-handle"></div>
         <div style="flex-shrink:0; padding:0 20px 12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -818,7 +801,7 @@
             Target</button>
     </div>
 
-    <div class="sheet" id="settings-sheet" style="display:flex; flex-direction:column; overflow:hidden;">
+    <div class="sheet" id="settings-sheet">
         <div class="drag-handle"></div>
         <div class="sheet-title" style="margin-bottom:12px; flex-shrink:0;">
             <div style="display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">settings</span>
@@ -827,24 +810,17 @@
                     class="material-symbols-rounded">close</span></button>
         </div>
 
-        <div class="settings-tabs"
-            style="display:flex; gap:4px; padding:4px; background:var(--md-surface-container-high); border-radius:12px; margin-bottom:20px; flex-shrink:0;">
-            <button class="s-tab active" onclick="switchSettingsTab('profile', this)"
-                style="flex:1; padding:8px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer;">Profile</button>
-            <button class="s-tab" onclick="switchSettingsTab('security', this)"
-                style="flex:1; padding:8px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer;">App</button>
-            <button class="s-tab" onclick="switchSettingsTab('manage', this)"
-                style="flex:1; padding:8px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer;">Manage</button>
-            <button class="s-tab" onclick="switchSettingsTab('data', this)"
-                style="flex:1; padding:8px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer;">Data</button>
+        <div class="settings-tab-bar">
+            <button class="settings-tab active" onclick="switchSettingsTab('profile', this)">Profile</button>
+            <button class="settings-tab" onclick="switchSettingsTab('security', this)">App</button>
+            <button class="settings-tab" onclick="switchSettingsTab('manage', this)">Manage</button>
+            <button class="settings-tab" onclick="switchSettingsTab('data', this)">Data</button>
         </div>
 
         <div id="settings-content-scroll" class="scroll-y" style="flex:1; padding-bottom:20px;">
             <!-- Tab 1: Profile -->
             <div id="stab-profile" class="s-tab-content active">
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Financial Profile</div>
+                <div class="section-subtitle">Financial Profile</div>
                 <div class="input-container"><label>Gross Annual Salary (₹)</label><input type="number"
                         id="settings-salary" class="md-input" placeholder="e.g. 1500000"></div>
                 <div class="input-row">
@@ -880,19 +856,12 @@
                         </select>
                     </div>
                 </div>
-                <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
-                    <div
-                        style="display:flex; align-items:center; justify-content:space-between; background:var(--md-surface-container-low); padding:12px 16px; border-radius:16px; border:1px solid var(--md-surface-container-highest);">
-                        <div>
-                            <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Date of Birth
-                            </div>
-                            <div style="font-size:12px; color:var(--md-on-surface-variant);" id="calculated-age-label">
-                                Age: Not set</div>
-                        </div>
-                        <input type="date" id="profile-dob"
-                            style="border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); font-family:inherit; font-weight:600; padding:8px 12px; border-radius:12px; outline:none;"
-                            onchange="updateCalculatedAgeDisplay()">
+                <div class="setting-row setting-row-border">
+                    <div>
+                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Date of Birth</div>
+                        <div style="font-size:12px; color:var(--md-on-surface-variant);" id="calculated-age-label">Age: Not set</div>
                     </div>
+                    <input type="date" id="profile-dob" onchange="updateCalculatedAgeDisplay()">
                 </div>
                 
                 <div class="input-row">
@@ -913,30 +882,22 @@
                             id="settings-primary-goal" class="md-input" placeholder="e.g. Buy a house in 5 years"></div>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin:20px 0 12px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Dashboard Features</div>
+                <div class="section-subtitle" style="margin-top:20px;">Dashboard Features</div>
 
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
+                <div class="setting-row">
                     <div>
                         <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Monthly Planner</div>
-                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your
-                            salary & cash flow</div>
+                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your salary & cash flow</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-enable-planner" onchange="saveToggleState('planner', this.checked)"><span
-                            class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="settings-enable-planner" onchange="saveToggleState('planner', this.checked)"><span class="slider"></span></label>
                 </div>
 
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
+                <div class="setting-row">
                     <div>
                         <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Spend Tracker</div>
-                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses,
-                            AI categorization & insights</div>
+                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses, AI categorization & insights</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker" onchange="saveToggleState('spend', this.checked)"><span
-                            class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker" onchange="saveToggleState('spend', this.checked)"><span class="slider"></span></label>
                 </div>
 
                 <button class="btn-primary" onclick="saveProfileSettings()" style="margin-top:12px;"><span
@@ -945,9 +906,7 @@
 
             <!-- Tab 2: Security & App -->
             <div id="stab-security" class="s-tab-content" style="display:none;">
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    App Security</div>
+                <div class="section-subtitle">App Security</div>
                 <div class="input-container"><label>App Lock PIN (4 digits)</label><input type="password"
                         id="settings-pin" class="md-input" placeholder="Set PIN" maxlength="4"></div>
                 <div
@@ -963,23 +922,16 @@
                     </div>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    AI Features</div>
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:12px;">
+                <div class="section-subtitle">AI Features</div>
+                <div class="setting-row">
                     <div>
                         <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Enable AI</div>
-                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">AI chat, reports,
-                            auto-categorize, forecasts</div>
+                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">AI chat, reports, auto-categorize, forecasts</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-ai-toggle" onchange="saveToggleState('ai', this.checked)"><span
-                            class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="settings-ai-toggle" onchange="saveToggleState('ai', this.checked)"><span class="slider"></span></label>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    AI Strategy Keys</div>
+                <div class="section-subtitle">AI Strategy Keys</div>
                 <div class="input-container"><label>Groq API Key (Primary)</label><input type="password"
                         id="groq-api-key" class="md-input" placeholder="gsk_..."></div>
                 <div class="input-container"><label>Gemini API Key (Fallback 1)</label><input type="password"
@@ -993,37 +945,25 @@
                 <button class="btn-primary" onclick="saveApiKeys()"><span class="material-symbols-rounded">key</span>
                     Save API Keys</button>
 
-                <div
-                    style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Web Connectivity</div>
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:12px;">
+                <div class="section-subtitle" style="margin-top:24px;">Web Connectivity</div>
+                <div class="setting-row">
                     <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Enable Web Access
-                        </div>
-                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Live prices, NAV lookup,
-                            exchange rates, gold rates</div>
+                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Enable Web Access</div>
+                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Live prices, NAV lookup, exchange rates, gold rates</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="settings-web-toggle" onchange="saveToggleState('web', this.checked)"><span
-                            class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="settings-web-toggle" onchange="saveToggleState('web', this.checked)"><span class="slider"></span></label>
                 </div>
 
-                <div
-                    style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Notifications</div>
-                <div
-                    style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--md-surface-container);border-radius:14px;margin-bottom:4px;">
+                <div class="section-subtitle" style="margin-top:24px;">Notifications</div>
+                <div class="setting-row">
                     <div>
                         <div style="font-weight:500;font-size:14px;color:var(--md-on-surface);">Master Toggle</div>
-                        <div style="font-size:11px;color:var(--md-outline);margin-top:2px;" id="notif-status-text">
-                            Requires browser permission</div>
+                        <div style="font-size:11px;color:var(--md-outline);margin-top:2px;" id="notif-status-text">Requires browser permission</div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="notif-master-toggle"
-                            onchange="toggleNotificationMaster(this.checked)"><span class="slider"></span></label>
+                    <label class="switch"><input type="checkbox" id="notif-master-toggle" onchange="toggleNotificationMaster(this.checked)"><span class="slider"></span></label>
                 </div>
                 <div id="notif-preferences" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row">
                         <div>
                             <div style="font-weight:500;font-size:13px;">SIP Reminders</div>
                             <div style="font-size:11px;color:var(--md-outline);">Notify when SIPs are due</div>
@@ -1031,8 +971,7 @@
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="sipReminders"><span
                                 class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row">
                         <div>
                             <div style="font-weight:500;font-size:13px;">Maturity Alerts</div>
                             <div style="font-size:11px;color:var(--md-outline);">Upcoming FD/PPF maturity reminders
@@ -1041,8 +980,7 @@
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="maturityAlerts"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row">
                         <div>
                             <div style="font-weight:500;font-size:13px;">Goal Progress</div>
                             <div style="font-size:11px;color:var(--md-outline);">Monthly goal achievement updates</div>
@@ -1050,8 +988,7 @@
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="goalProgressUpdates"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row">
                         <div>
                             <div style="font-weight:500;font-size:13px;">Weekly Digest</div>
                             <div style="font-size:11px;color:var(--md-outline);">Weekly portfolio summary</div>
@@ -1059,8 +996,7 @@
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="weeklyDigest"><span
                                 class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row">
                         <div>
                             <div style="font-weight:500;font-size:13px;">Price Alerts</div>
                             <div style="font-size:11px;color:var(--md-outline);">Stock/MF price movement alerts</div>
@@ -1072,9 +1008,7 @@
                 <div style="font-size:11px;color:var(--md-outline);margin-top:8px;">Notifications work offline via
                     service worker. No server needed.</div>
 
-                <div
-                    style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Theme</div>
+                <div class="section-subtitle" style="margin-top:24px;">Theme</div>
                 <div class="theme-picker" id="theme-picker" style="margin-bottom:24px;">
                     <div class="theme-swatch ts-indigo active" style="background: #415F91;"
                         onclick="setTheme('indigo')"></div>
@@ -1085,17 +1019,13 @@
                     </div>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Milestone Badges</div>
+                <div class="section-subtitle">Milestone Badges</div>
                 <div class="badge-grid" id="badge-grid"></div>
             </div>
 
             <!-- Tab 3: Manage Accounts & Categories -->
             <div id="stab-manage" class="s-tab-content" style="display:none;">
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Manage Accounts</div>
+                <div class="section-subtitle">Manage Accounts</div>
                 <div id="account-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
                 <div class="input-row" style="margin-bottom:24px;">
                     <input type="text" id="new-acc-name" class="md-input" placeholder="New Account Name"
@@ -1104,9 +1034,7 @@
                             class="material-symbols-rounded">add</span></button>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Manage Categories</div>
+                <div class="section-subtitle">Manage Categories</div>
                 <div id="category-crud-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
                 </div>
                 <div style="font-size:12px; color:var(--md-on-surface-variant); margin-bottom:4px;">Add New Category
@@ -1127,9 +1055,7 @@
 
             <!-- Tab 4: Data Management -->
             <div id="stab-data" class="s-tab-content" style="display:none;">
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Data Operations</div>
+                <div class="section-subtitle">Data Operations</div>
 
                 <div class="settings-action-card" onclick="exportData()">
                     <span class="material-symbols-rounded" style="color:var(--md-primary);">cloud_download</span>
@@ -1171,9 +1097,7 @@
                         style="font-size:13px;color:var(--md-on-surface-variant);">Encrypt Backup with App PIN</label>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase; margin-top:24px;">
-                    Reports & Sync</div>
+                <div class="section-subtitle" style="margin-top:24px;">Reports & Sync</div>
                 <button class="btn-primary"
                     style="background:var(--md-secondary-container);color:var(--md-on-secondary-container); margin-bottom:8px;"
                     onclick="openSheet('history-sync-sheet')">
