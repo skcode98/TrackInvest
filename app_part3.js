@@ -9,7 +9,8 @@ async function generateAITags() {
     if (!tagInput) return;
     tagInput.value = "Generating...";
     let prompt = `Provide exactly 3 comma‑separated short tags for a financial asset of type '${window.currentInvType || 'Unknown'}' with note '${noteBody}'. Examples: tax, equity, longterm.`;
-    try { let tags = await callAIApi(prompt, "You return comma-separated lists of tags only."); tagInput.value = tags; haptic([30, 50]); } catch (e) { tagInput.value = ""; showSnackbar("AI Tag generation failed.", "error"); }
+    showAILoading('invest-sheet');
+    try { let tags = await callAIApi(prompt, "You return comma-separated lists of tags only."); tagInput.value = tags; haptic([30, 50]); hideAILoading(); } catch (e) { tagInput.value = ""; showSnackbar("AI Tag generation failed.", "error"); hideAILoading(); }
 }
 
 async function aiSuggestInvestment() {
@@ -23,6 +24,7 @@ async function aiSuggestInvestment() {
     const categories = Object.keys(db.categories || {}).join(', ');
     const btn = document.querySelector('[onclick="aiSuggestInvestment()"]');
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;animation:spin 1s linear infinite;">autorenew</span>'; }
+    showAILoading('invest-sheet');
     try {
         const r = await callAIApi(`Investment type: ${type}. Asset note: "${note.slice(0,200)}". Available categories: ${categories}. Suggest: 1) subcategory 2) best matching category from the list 3) 3 tags 4) estimated price if known. Return JSON only: {"subcat":"...","category":"...","tags":"tag1,tag2,tag3","estPrice":0}.`, 'You return only valid JSON. No markdown.');
         const d = extractJSONFromAI(r);
@@ -31,7 +33,8 @@ async function aiSuggestInvestment() {
         if (d.tags) { const el = document.getElementById('inv-tags'); if (el) el.value = d.tags; }
         if (d.estPrice > 0) { const el = document.getElementById('inv-price'); if (el && !el.value) el.value = d.estPrice.toFixed(2); }
         showSnackbar("AI suggestions applied!", "auto_awesome");
-    } catch (e) { showSnackbar("AI suggest failed. Try manual entry.", "error"); }
+        hideAILoading();
+    } catch (e) { showSnackbar("AI suggest failed. Try manual entry.", "error"); hideAILoading(); }
     if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>'; }
 }
 
@@ -527,10 +530,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     const isUnlocked = await checkAppLock();
     initUI();
+    applyDarkMode();
+    updatePinReminderDot();
     processRecurring();
     if (window.ledgerSort === undefined) window.ledgerSort = 'date';
     if (window.ledgerAsc === undefined) window.ledgerAsc = false;
+    showDashboardSkeleton();
     renderAll();
+    hideDashboardSkeleton();
+
+    // Show onboarding after initial load
+    showOnboarding();
+
+    // Init pull to refresh on ledger and dashboard containers
+    initPullToRefresh('ledger-history-list', () => Promise.resolve(renderAll()));
+    initPullToRefresh('dashboard-history-list', () => Promise.resolve(renderAll()));
+
+    // Enable enter-key navigation on spend entry form fields
+    setTimeout(() => {
+        enableEnterKeyNavigation(['spend-amt-input', 'spend-comment-input', 'spend-date-input']);
+    }, 500);
 
     // Listen for back button
     window.addEventListener('popstate', handlePopState);
@@ -1048,6 +1067,7 @@ async function generatePDFWealthReport() {
         return;
     }
     window._generatingPDF = true;
+    showProcessingOverlay('Generating wealth report...');
     showSnackbar('Generating wealth report...', 'auto_awesome');
     try {
         if (document.getElementById('pdf-report-container')) {
@@ -1108,12 +1128,15 @@ async function generatePDFWealthReport() {
         document.body.appendChild(reportDiv);
 
         let aiCommentaryEl = document.getElementById('pdf-ai-text');
+        showAILoading('pdf-ai-commentary');
         try {
             let prompt = `Generate a 3-4 sentence wealth insight summary for a portfolio of ₹${fmtNum(currentTotalNW || 0)} with categories: ${JSON.stringify(currentTypeTotals || {})}. 80C at ${tax80cPerc.toFixed(0)}%. Goals: ${JSON.stringify((db.goals || []).slice(0, 3))}. Include one actionable tip. Raw HTML only, no markdown.`;
             let aiResp = await callAIApi(prompt, "You are a wealth report analyst. Output raw HTML.");
             aiCommentaryEl.innerHTML = formatAIResponse(aiResp);
+            hideAILoading();
         } catch (e) {
             aiCommentaryEl.innerHTML = 'Keep contributing regularly and review your allocation targets for optimal growth.';
+            hideAILoading();
         }
 
         await new Promise(r => setTimeout(r, 500));
@@ -1127,9 +1150,11 @@ async function generatePDFWealthReport() {
         await html2pdf().set(opt).from(reportDiv).save();
         document.body.removeChild(reportDiv);
         showSnackbar('Wealth Report PDF downloaded!', 'check_circle');
+        hideProcessingOverlay();
     } catch (e) {
         console.error('PDF generation error:', e);
         showSnackbar('PDF generation failed: ' + e.message, 'error');
+        hideProcessingOverlay();
     } finally {
         window._generatingPDF = false;
     }

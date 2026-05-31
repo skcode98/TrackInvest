@@ -203,10 +203,10 @@
     </div>
 
     <!-- FAB -->
-    <button class="fab" onclick="openSpendSheet()" title="Add Expense (N)"><span class="material-symbols-rounded">add</span> Add Expense</button>
+    <button class="fab" onclick="openSpendSheet()" title="Add Expense (N)" style="bottom:calc(24px + env(safe-area-inset-bottom));"><span class="material-symbols-rounded">add</span> Add Expense</button>
 
     <header class="top-app-bar">
-        <button class="icon-btn" onclick="window.location.href='index.html'" title="Dashboard"><span class="material-symbols-rounded">arrow_back</span></button>
+        <button class="icon-btn" onclick="navigateBack()" title="Dashboard"><span class="material-symbols-rounded">arrow_back</span></button>
         <div class="app-title">Spend Tracker</div>
         <button class="icon-btn" onclick="openImportSheet()" title="Import"><span class="material-symbols-rounded">file_upload</span></button>
         <button class="icon-btn" onclick="document.getElementById('ai-insights-output').style.display='none';renderAll()" title="Refresh"><span class="material-symbols-rounded">refresh</span></button>
@@ -215,9 +215,9 @@
     <main class="container" style="padding-top:0;">
         <!-- Month Picker -->
         <div class="month-nav">
-            <button class="icon-btn" onclick="shiftMonth(-1)"><span class="material-symbols-rounded">chevron_left</span></button>
+            <button onclick="shiftMonth(-1)"><span class="material-symbols-rounded">chevron_left</span></button>
             <div style="font-size:13px;font-weight:500;color:var(--md-on-surface);" id="month-label"></div>
-            <button class="icon-btn" onclick="shiftMonth(1)"><span class="material-symbols-rounded">chevron_right</span></button>
+            <button onclick="shiftMonth(1)"><span class="material-symbols-rounded">chevron_right</span></button>
         </div>
 
         <!-- Hero -->
@@ -247,11 +247,48 @@
 
         <!-- Charts -->
         <div class="st-section"><span class="material-symbols-rounded">monitoring</span> Insights</div>
-        <div class="chart-grid" id="charts-section">
+        <div class="chart-grid" id="chart-cards-scroll">
             <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded" style="font-size:14px;">donut_small</span> By Category</div><div style="height:170px;"><canvas id="catPieChart"></canvas></div></div>
             <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded" style="font-size:14px;">bar_chart</span> Daily Trend</div><div style="height:170px;"><canvas id="dailyTrendChart"></canvas></div></div>
             <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded" style="font-size:14px;">flowchart</span> Spend Flow</div><div class="sankey-container"><svg class="sankey-svg" id="sankey-svg"></svg></div></div>
         </div>
+        <div class="scroll-dots" id="chart-scroll-dots" style="display:flex;gap:6px;justify-content:center;margin-top:8px;"></div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const scrollContainer = document.querySelector('.chart-grid, .scroll-row, [id*="chart"]');
+            const dotsContainer = document.getElementById('chart-scroll-dots');
+            if (scrollContainer && dotsContainer) {
+                const cards = scrollContainer.querySelectorAll('.carousel-card, .chart-card, .spend-card');
+                if (cards.length > 1) {
+                    cards.forEach((_, i) => {
+                        const dot = document.createElement('span');
+                        dot.style.cssText = 'width:6px;height:6px;border-radius:50%;background:var(--md-outline-variant);transition:background 0.2s;cursor:pointer;';
+                        if (i === 0) dot.style.background = 'var(--md-primary)';
+                        dot.dataset.index = i;
+                        dot.addEventListener('click', () => {
+                            cards[i].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                        });
+                        dotsContainer.appendChild(dot);
+                    });
+                    scrollContainer.addEventListener('scroll', () => {
+                        const rect = scrollContainer.getBoundingClientRect();
+                        let activeIdx = 0;
+                        cards.forEach((card, i) => {
+                            const cr = card.getBoundingClientRect();
+                            if (cr.left >= rect.left - cr.width/2 && cr.left <= rect.left + rect.width/2) {
+                                activeIdx = i;
+                            }
+                        });
+                        dotsContainer.querySelectorAll('span').forEach((d, i) => {
+                            d.style.background = i === activeIdx ? 'var(--md-primary)' : 'var(--md-outline-variant)';
+                        });
+                    });
+                } else {
+                    dotsContainer.style.display = 'none';
+                }
+            }
+        });
+        </script>
 
         <!-- Biggest Single Expense -->
         <div id="biggest-item-section" style="display:none;"></div>
@@ -300,6 +337,7 @@
     <script>
         window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
+        function navigateBack() { if (window.history.length > 1) { window.history.back(); } else { window.location.href = 'index.html'; } }
         // Cross-tab sync listener
         try { const _sc=new BroadcastChannel('trackinvest-sync'); _sc.onmessage=()=>{ db=loadDB(); renderAll(); }; } catch(e){}
         const STORAGE_KEY = 'appHubInvestDb';

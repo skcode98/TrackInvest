@@ -427,19 +427,19 @@ function getEmptyStateHTML(context = 'default') {
         history: {
             icon: 'history',
             title: 'No Transaction History',
-            subtitle: 'Your investment history will appear here',
+            subtitle: 'No entries found — start tracking your investments',
             action: { text: 'Log Investment', icon: 'edit_note', onclick: 'openInvestSheet()' }
         },
         portfolio: {
             icon: 'pie_chart',
             title: 'Portfolio is Empty',
-            subtitle: 'Add investments across different categories to build a diversified portfolio',
+            subtitle: 'No investments yet — tap + to add your first SIP',
             action: { text: 'Start Investing', icon: 'trending_up', onclick: 'openInvestSheet()' }
         },
         goals: {
             icon: 'flag',
             title: 'No Goals Set',
-            subtitle: 'Set financial goals to track your progress towards financial freedom',
+            subtitle: 'No goals set yet — tap + Add to create your first financial goal',
             action: { text: 'Create Goal', icon: 'target', onclick: 'openGoalSheet()' }
         },
         recurring: {
@@ -447,6 +447,12 @@ function getEmptyStateHTML(context = 'default') {
             title: 'No Recurring SIPs',
             subtitle: 'Set up automatic monthly investments to build wealth consistently',
             action: { text: 'Add SIP', icon: 'schedule', onclick: 'openInvestSheet(); setTimeout(()=>document.getElementById(\'inv-is-monthly\').checked=true, 100)' }
+        },
+        expenses: {
+            icon: 'receipt',
+            title: 'No Expenses Yet',
+            subtitle: 'No expenses this month — enjoying a break?',
+            action: { text: 'Add Expense', icon: 'add', onclick: 'openSpendSheet()' }
         }
     };
 
@@ -1117,7 +1123,7 @@ function enableNotifPrefs(enabled) {
 function switchSettingsTab(tabName, btn) {
     haptic(20);
     // Update tab buttons
-    const tabs = document.querySelectorAll('.s-tab');
+    const tabs = document.querySelectorAll('.settings-tab');
     tabs.forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
 
@@ -1708,8 +1714,9 @@ async function decryptData(encStr, pin) {
 
 async function exportData() {
     haptic(40);
+    showProcessingOverlay('Preparing backup...');
     let encrypt = document.getElementById('encrypt-backup-toggle') ? document.getElementById('encrypt-backup-toggle').checked : false;
-    if (encrypt && !db.appPin) { showSnackbar("Please set a PIN first to encrypt", "warning"); return; }
+    if (encrypt && !db.appPin) { hideProcessingOverlay(); showSnackbar("Please set a PIN first to encrypt", "warning"); return; }
 
     let dataStr = JSON.stringify(db, null, 2);
     let finalData = encrypt ? await encryptData(dataStr, db.appPin) : dataStr;
@@ -1721,11 +1728,13 @@ async function exportData() {
     a.download = `Invest_Backup_${new Date().toISOString().split('T')[0]}${ext}`;
     a.click();
     closeOverlays();
+    hideProcessingOverlay();
     showSnackbar(encrypt ? "Encrypted Backup Downloaded" : "Backup Downloaded");
 }
 
 function restoreData(e) {
     const file = e.target.files[0]; if (!file) return;
+    showProcessingOverlay('Restoring data...');
     const reader = new FileReader();
     reader.onload = async (event) => {
         try {
@@ -1734,12 +1743,13 @@ function restoreData(e) {
 
             if (content.startsWith('ENC:') || content.startsWith('ENC2:')) {
                 let pin = prompt("Enter PIN to decrypt backup:");
-                if (!pin) { showSnackbar("Decryption cancelled", "error"); e.target.value = ''; return; }
+                if (!pin) { showSnackbar("Decryption cancelled", "error"); e.target.value = ''; hideProcessingOverlay(); return; }
                 try {
                     parsedStr = await decryptData(content, pin);
                 } catch (decErr) {
                     showSnackbar("Incorrect PIN or Corrupted Data", "error");
                     e.target.value = '';
+                    hideProcessingOverlay();
                     return;
                 }
             }
@@ -1801,6 +1811,7 @@ function restoreData(e) {
             console.error(err);
             showSnackbar("Invalid or Corrupted Backup", "error");
         }
+        hideProcessingOverlay();
     };
     reader.readAsText(file);
 }
@@ -1810,6 +1821,7 @@ function restoreData(e) {
 function importCSV(e) {
     const file = e.target.files[0];
     if (!file) return;
+    showProcessingOverlay('Importing CSV...');
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
@@ -1823,13 +1835,14 @@ function importCSV(e) {
                     added++;
                 }
             }
+            hideProcessingOverlay();
             if (added > 0) {
                 saveData(); renderAll(); closeOverlays();
                 showSnackbar(`${added} Entries Imported!`, "check_circle");
             }
             else { showSnackbar("No valid rows found in CSV", "warning"); }
         }
-        catch (err) { showSnackbar("Failed to parse CSV", "error"); }
+        catch (err) { hideProcessingOverlay(); showSnackbar("Failed to parse CSV", "error"); }
     };
     reader.readAsText(file);
 }
@@ -2746,4 +2759,209 @@ async function askAIEngine(context, alreadyOpen = false) {
         console.error("AI Engine Error:", e);
         showHubReport(`<div style="color:var(--md-error); padding:20px;">Analysis failed. Check your connection or API keys.</div>`);
     }
+}
+
+// ==========================================
+// UI/UX IMPROVEMENTS
+// ==========================================
+function navigateBack() {
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = 'index.html';
+    }
+}
+
+function showDashboardSkeleton() {
+    const skel = document.getElementById('skeleton-dashboard');
+    const groups = document.querySelectorAll('.dash-group');
+    if (skel) skel.style.display = 'block';
+    groups.forEach(g => g.style.display = 'none');
+}
+function hideDashboardSkeleton() {
+    const skel = document.getElementById('skeleton-dashboard');
+    const groups = document.querySelectorAll('.dash-group');
+    if (skel) skel.style.display = 'none';
+    groups.forEach(g => g.style.display = 'block');
+}
+
+function initPullToRefresh(containerId, callback) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    let startY = 0, pulling = false;
+    let indicator = document.createElement('div');
+    indicator.className = 'ptr-indicator';
+    indicator.innerHTML = '<span class="ptr-spinner"></span> Pull to refresh';
+    container.parentNode.insertBefore(indicator, container);
+    container.addEventListener('touchstart', e => {
+        if (container.scrollTop <= 0) {
+            startY = e.touches[0].clientY;
+            pulling = true;
+        }
+    }, {passive: true});
+    container.addEventListener('touchmove', e => {
+        if (!pulling) return;
+        const dist = e.touches[0].clientY - startY;
+        if (dist > 40) {
+            indicator.classList.add('active');
+            indicator.innerHTML = '<span class="ptr-spinner"></span> Release to refresh';
+        } else if (dist > 0) {
+            indicator.innerHTML = '<span class="ptr-spinner"></span> Pull to refresh';
+        }
+    }, {passive: true});
+    container.addEventListener('touchend', e => {
+        if (!pulling) return;
+        pulling = false;
+        if (indicator.classList.contains('active')) {
+            indicator.innerHTML = '<span class="ptr-spinner"></span> Refreshing...';
+            callback().then(() => {
+                indicator.classList.remove('active');
+                indicator.innerHTML = '<span class="ptr-spinner"></span> Pull to refresh';
+            }).catch(() => {
+                indicator.classList.remove('active');
+                indicator.innerHTML = '<span class="ptr-spinner"></span> Pull to refresh';
+            });
+        }
+    }, {passive: true});
+}
+
+let isDarkMode = localStorage.getItem('trackinvest-dark-mode') === 'true';
+
+function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('trackinvest-dark-mode', isDarkMode);
+    applyDarkMode();
+}
+
+function applyDarkMode() {
+    const toggle = document.getElementById('dark-mode-toggle');
+    if (toggle) toggle.checked = isDarkMode;
+    document.body.classList.toggle('dark-mode', isDarkMode);
+}
+
+const onboardingSteps = [
+    { icon: '📊', title: 'Welcome to TrackInvest', desc: 'Track your wealth, plan your future, and reach financial independence.' },
+    { icon: '💰', title: 'Add Your Investments', desc: 'Log your mutual funds, stocks, FDs, and other assets in the Ledger tab.' },
+    { icon: '🎯', title: 'Set Goals & Budget', desc: 'Use Monthly Planner to budget your salary and set financial targets.' }
+];
+let onboardStep = 0;
+
+function showOnboarding() {
+    const overlay = document.getElementById('onboarding-overlay');
+    if (!overlay || localStorage.getItem('trackinvest-onboarding-done')) return;
+    overlay.style.display = 'flex';
+    onboardStep = 0;
+    renderOnboardingStep();
+}
+
+function renderOnboardingStep() {
+    const step = onboardingSteps[onboardStep];
+    document.getElementById('onboarding-icon').textContent = step.icon;
+    document.getElementById('onboarding-title').textContent = step.title;
+    document.getElementById('onboarding-desc').textContent = step.desc;
+    document.querySelectorAll('.onb-dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === onboardStep);
+    });
+    document.getElementById('onboarding-next').textContent = onboardStep < onboardingSteps.length - 1 ? 'Next' : 'Done';
+}
+
+function nextOnboardingStep() {
+    if (onboardStep < onboardingSteps.length - 1) {
+        onboardStep++;
+        renderOnboardingStep();
+    } else {
+        closeOnboarding();
+    }
+}
+
+function closeOnboarding() {
+    document.getElementById('onboarding-overlay').style.display = 'none';
+    localStorage.setItem('trackinvest-onboarding-done', 'true');
+}
+
+function loadDemoData() {
+    const demo = {
+        accounts: [{ id: 'demo-1', name: 'Main Account', balance: 2500000, type: 'investment' }],
+        history: [
+            { date: '2026-01-15', amount: 50000, type: 'Mutual Fund', account: 'demo-1', note: 'Parag Parikh Flexi Cap', tags: '#Tax#Growth' },
+            { date: '2026-02-15', amount: 50000, type: 'Mutual Fund', account: 'demo-1', note: 'Parag Parikh Flexi Cap', tags: '#Tax#Growth' },
+            { date: '2026-03-15', amount: 50000, type: 'Mutual Fund', account: 'demo-1', note: 'Parag Parikh Flexi Cap', tags: '#Tax#Growth' },
+            { date: '2026-01-10', amount: 25000, type: 'Stock', account: 'demo-1', note: 'Reliance Industries', tags: '#LargeCap' },
+            { date: '2026-02-10', amount: 25000, type: 'Stock', account: 'demo-1', note: 'Reliance Industries', tags: '#LargeCap' },
+            { date: '2026-03-10', amount: 25000, type: 'Stock', account: 'demo-1', note: 'Reliance Industries', tags: '#LargeCap' },
+            { date: '2026-01-05', amount: 100000, type: 'FD', account: 'demo-1', note: '5yr FD @7.5%', tags: '#Safe#FD' },
+            { date: '2026-01-20', amount: 15000, type: 'PPF', account: 'demo-1', note: 'PPF Contribution', tags: '#Tax#PPF' }
+        ],
+        'monthly-plans': [{
+            month: '2026-01', income: 125000, categories: { needs: 45000, wants: 20000, invest: 50000 },
+            expenses: { needs: 42000, wants: 18000 }
+        }, {
+            month: '2026-02', income: 125000, categories: { needs: 45000, wants: 20000, invest: 50000 },
+            expenses: { needs: 44000, wants: 22000 }
+        }, {
+            month: '2026-03', income: 125000, categories: { needs: 45000, wants: 20000, invest: 50000 },
+            expenses: { needs: 41000, wants: 19000 }
+        }]
+    };
+    Object.keys(demo).forEach(key => {
+        try { localStorage.setItem(key, JSON.stringify(demo[key])); } catch(e) {}
+    });
+    localStorage.setItem('trackinvest-onboarding-done', 'true');
+    closeOnboarding();
+    window.location.reload();
+}
+
+function showProcessingOverlay(text) {
+    let overlay = document.getElementById('processing-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'processing-overlay';
+        overlay.className = 'processing-overlay';
+        overlay.innerHTML = '<div class="processing-card"><div class="processing-spinner"></div><div class="processing-label" id="processing-label">Processing...</div></div>';
+        document.body.appendChild(overlay);
+    }
+    document.getElementById('processing-label').textContent = text || 'Processing...';
+    overlay.style.display = 'flex';
+}
+function hideProcessingOverlay() {
+    const overlay = document.getElementById('processing-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function showAILoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const loader = document.createElement('div');
+    loader.className = 'ai-loading-dots';
+    loader.id = 'ai-loading-indicator';
+    loader.innerHTML = 'Thinking<span></span><span></span><span></span>';
+    container.appendChild(loader);
+}
+function hideAILoading() {
+    const loader = document.getElementById('ai-loading-indicator');
+    if (loader) loader.remove();
+}
+
+function enableEnterKeyNavigation(inputIds) {
+    inputIds.forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const next = inputIds[i + 1];
+                if (next) {
+                    const nextEl = document.getElementById(next);
+                    if (nextEl) nextEl.focus();
+                }
+            }
+        });
+    });
+}
+
+function updatePinReminderDot() {
+    const dot = document.getElementById('pin-reminder-dot');
+    if (!dot) return;
+    const pin = localStorage.getItem('trackinvest-pin');
+    dot.style.display = pin ? 'none' : 'block';
 }
