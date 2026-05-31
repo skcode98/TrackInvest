@@ -1857,8 +1857,8 @@ function formatAIResponse(text) {
     if (/<(div|p|table|h[1-6]|span|ul|ol|li|br|hr|blockquote|pre|code|strong|em|b|i|a|img|section|article|header|footer|main|aside|nav|figure|figcaption|details|summary|mark|small|sub|sup)[\s>]/i.test(formatted)) {
         if (typeof DOMPurify !== 'undefined') {
             return DOMPurify.sanitize(formatted, {
-                ALLOWED_TAGS: ['div','p','span','br','strong','em','b','i','ul','ol','li','h1','h2','h3','h4','h5','h6','hr','pre','code','blockquote','table','thead','tbody','tr','th','td','section','article'],
-                ALLOWED_ATTR: []
+                ALLOWED_TAGS: ['div','p','span','br','strong','em','b','i','u','ul','ol','li','h1','h2','h3','h4','h5','h6','hr','pre','code','blockquote','table','thead','tbody','tr','th','td','section','article','a'],
+                ALLOWED_ATTR: ['style','class','href','target','border','colspan','rowspan','bgcolor','align']
             });
         }
         formatted = formatted
@@ -2356,8 +2356,8 @@ function showHubReport(htmlContent) {
             .trim();
         if (typeof DOMPurify !== 'undefined') {
             cleaned = DOMPurify.sanitize(cleaned, {
-                ALLOWED_TAGS: ['div','p','span','br','strong','em','b','i','ul','ol','li','h1','h2','h3','h4','h5','h6','hr','pre','code','blockquote','table','thead','tbody','tr','th','td','section','article'],
-                ALLOWED_ATTR: []
+                ALLOWED_TAGS: ['div','p','span','br','strong','em','b','i','u','ul','ol','li','h1','h2','h3','h4','h5','h6','hr','pre','code','blockquote','table','thead','tbody','tr','th','td','section','article'],
+                ALLOWED_ATTR: ['style','class','border','colspan','rowspan','bgcolor','align']
             });
         }
         container.innerHTML = cleaned;
@@ -2374,32 +2374,32 @@ async function downloadAIHubReport() {
     const data = window._hubReportData;
     if (!data) { showSnackbar("No report to download", "error"); return; }
 
-    // Create a temporary container for PDF
     const tempDiv = document.createElement('div');
     tempDiv.id = '_hub_report_pdf';
-    tempDiv.style.cssText = 'padding:24px; font-size:14px; line-height:1.6; background:#fff; color:#000;';
+    tempDiv.style.cssText = 'padding:24px;font-size:14px;line-height:1.6;background:#fff;color:#000;max-width:800px;margin:0 auto;';
     tempDiv.innerHTML = data;
-    tempDiv.style.display = 'block';
-    tempDiv.style.position = 'fixed';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.top = '0';
     document.body.appendChild(tempDiv);
+    tempDiv.scrollIntoView({ block: 'nearest' });
+
+    // small delay for CSS variable resolution
+    await new Promise(r => setTimeout(r, 200));
 
     try {
         const opt = {
             margin: [0.5, 0.5, 0.5, 0.5],
             filename: `Wealth_Report_${new Date().toISOString().split('T')[0]}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 800 },
+            html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 800, width: tempDiv.scrollWidth, height: tempDiv.scrollHeight },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
         };
-        await html2pdf().set(opt).from(tempDiv).save(opt.filename);
+        await html2pdf().set(opt).from(tempDiv).save();
         showSnackbar("PDF Downloaded!", "check_circle");
     } catch (e) {
-        showSnackbar("PDF generation failed", "error");
+        console.error('PDF error:', e);
+        showSnackbar("PDF generation failed: " + (e.message || 'unknown'), "error");
     }
 
-    document.body.removeChild(tempDiv);
+    if (tempDiv.parentNode) document.body.removeChild(tempDiv);
 }
 window.downloadAIHubReport = downloadAIHubReport;
 
