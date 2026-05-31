@@ -180,7 +180,8 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
     const sanitizedSystem = systemPrompt ? sanitizeInput(systemPrompt) : '';
     const hasMessages = Array.isArray(messages) && messages.length > 0;
     const maxRetries = 2;
-    const timeoutMs = 30000;
+    const timeoutMs = 90000;
+    const maxTokens = 6000;
 
     // Build conversation messages
     let chatMessages = [];
@@ -229,6 +230,14 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
                     responseText = responseText || 'Sorry, I could not process that request.';
                     return;
                 }
+                if (res.status === 429) {
+                    const retryAfter = parseInt(res.headers.get('Retry-After') || '') || Math.pow(2, attempt + 1);
+                    lastError = new Error(`${name} HTTP 429: Rate limited (retry in ${retryAfter}s)`);
+                    if (attempt < maxRetries) {
+                        await new Promise(r => setTimeout(r, retryAfter * 1000));
+                        continue;
+                    }
+                }
                 const errorText = await getErrorMessage(res);
                 lastError = new Error(`${name} HTTP ${res.status}: ${errorText}`);
             } catch (e) {
@@ -242,9 +251,9 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
     // Gemini
     if (active.geminiKey && !responseText) {
         await tryFetch('Gemini',
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
             { 'Content-Type': 'application/json', 'x-goog-api-key': keys.geminiKey, 'User-Agent': 'TrackInvest/1.0' },
-            { contents: [{ parts: [{ text: geminiText }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 1000, topK: 40, topP: 0.95 } }
+            { contents: [{ parts: [{ text: geminiText }] }], generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens, topK: 40, topP: 0.95 } }
         );
     }
 
@@ -253,7 +262,7 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
         await tryFetch('Groq',
             'https://api.groq.com/openai/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.groqKey, 'Content-Type': 'application/json', 'User-Agent': 'TrackInvest/1.0' },
-            { model: 'llama-3.3-70b-versatile', messages: chatMessages, max_tokens: 1000, temperature: 0.7 }
+            { model: 'llama-3.3-70b-versatile', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }
         );
     }
 
@@ -262,7 +271,7 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
         await tryFetch('OpenRouter',
             'https://openrouter.ai/api/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.openrouterKey, 'Content-Type': 'application/json', 'HTTP-Referer': (typeof window !== 'undefined' ? window.location.origin : ''), 'X-Title': 'TrackInvest' },
-            { model: 'openrouter/free', messages: chatMessages, max_tokens: 1000, temperature: 0.7 }
+            { model: 'openrouter/free', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }
         );
     }
 
@@ -271,7 +280,7 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
         await tryFetch('Cerebras',
             'https://api.cerebras.ai/v1/chat/completions',
             { 'Authorization': 'Bearer ' + keys.cerebrasKey, 'Content-Type': 'application/json' },
-            { model: 'gpt-oss-120b', messages: chatMessages, max_tokens: 1000, temperature: 0.7 }
+            { model: 'gpt-oss-120b', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }
         );
     }
 
@@ -280,7 +289,7 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
         await tryFetch('GitHub Models',
             'https://models.github.ai/inference/chat/completions',
             { 'Authorization': 'Bearer ' + keys.githubKey, 'Content-Type': 'application/json' },
-            { model: 'gpt-4o-mini', messages: chatMessages, max_tokens: 1000, temperature: 0.7 }
+            { model: 'gpt-4o-mini', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }
         );
     }
 

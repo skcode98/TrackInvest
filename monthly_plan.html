@@ -530,6 +530,15 @@
     </div>
 
     <div id="snackbar" class="snackbar"></div>
+    <div id="ai-batch-progress" class="ai-batch-progress" style="display:none;">
+        <div class="ai-batch-progress-label">
+            <span id="ai-batch-label">AI processing...</span>
+            <span id="ai-batch-count">0/0</span>
+        </div>
+        <div class="ai-batch-progress-track">
+            <div id="ai-batch-bar" class="ai-batch-progress-fill"></div>
+        </div>
+    </div>
     <div style="text-align:center;padding:8px 16px 16px;font-size:10px;color:var(--md-outline);opacity:0.4;user-select:none;"
         onclick="if(typeof APP_VERSION!=='undefined'){navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')}" class="version-badge"></div>
     <script>var vb=document.querySelector('.version-badge');if(vb&&typeof APP_VERSION!=='undefined')vb.textContent=APP_VERSION;</script>
@@ -874,13 +883,11 @@ async function aiAllocateToCategories() {
     const d = getViewDate();
     let m = d.getMonth(), y = d.getFullYear();
     
-    // 1. Gather Spend Entries
     const spendEntries = ((db.spendTracker && db.spendTracker.entries) || []).filter(e => {
         const ed = new Date(e.date);
         return ed.getMonth() === m && ed.getFullYear() === y;
     });
     
-    // 2. Gather Investment Entries
     const investEntries = (db.investments || []).filter(i => {
         const id = new Date(i.date);
         return id.getMonth() === m && id.getFullYear() === y;
@@ -934,9 +941,20 @@ async function aiAllocateToCategories() {
             const memBucket = db.aiMemory[key].bucket;
             
             let isValid = false;
-            if (memBucket === 'needs') isValid = userNeeds.some(n => n.toLowerCase() === memCat || memCat.includes(n.toLowerCase()) || n.toLowerCase().includes(memCat));
-            else if (memBucket === 'wants') isValid = userWants.some(w => w.toLowerCase() === memCat || memCat.includes(w.toLowerCase()) || w.toLowerCase().includes(memCat));
-            else if (memBucket === 'investments') isValid = userInvests.some(i => i.toLowerCase() === memCat || memCat.includes(i.toLowerCase()) || i.toLowerCase().includes(memCat));
+            const matchCat = (cat, list) => {
+                const lc = cat.toLowerCase().trim();
+                if (lc.length < 2) return false;
+                return list.some(item => {
+                    const li = item.toLowerCase();
+                    return li === lc || (lc.length >= 4 && li.includes(lc)) || (li.length >= 4 && lc.includes(li));
+                });
+            };
+            if (memBucket === 'needs') isValid = matchCat(memCat, userNeeds);
+            else if (memBucket === 'wants') isValid = matchCat(memCat, userWants);
+            else if (memBucket === 'investments') isValid = matchCat(memCat, userInvests);
+
+            if (isValid && e.type === 'spend' && memBucket === 'investments') isValid = false;
+            if (isValid && e.type === 'investment' && memBucket !== 'investments') isValid = false;
 
             if (isValid) {
                 preAllocated.push({ id: e.id, category: db.aiMemory[key].category, bucket: db.aiMemory[key].bucket });
@@ -972,48 +990,142 @@ async function aiAllocateToCategories() {
         return;
     }
 
-    const prompt = `You are a personal finance assistant. Allocate each entry to ONE of the user's custom categories:
+    const btn = document.getElementById('ai-classify-btn');
+
+    async function parseAIResponse(raw) {
+        const extracted = extractJSON(raw);
+        if (!extracted) return null;
+        const parsed = JSON.parse(extracted);
+        if (!parsed || !Array.isArray(parsed.allocations)) return null;
+        return parsed.allocations;
+    }
+
+    function extractJSON(text) {
+        if (!text) return null;
+        let cleaned = text.trim();
+        const codeBlock = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlock) cleaned = codeBlock[1].trim();
+        const braceMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (braceMatch) cleaned = braceMatch[0];
+        cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+        try { const p = JSON.parse(cleaned); return JSON.stringify(p); } catch (e) {}
+        try { const p = JSON.parse(cleaned.replace(/'/g, '"')); return JSON.stringify(p); } catch (e) {}
+        return null;
+    }
+
+    async function processBatch(batch, batchIdx, totalBatches) {
+        const prompt = `You are a personal finance assistant. Allocate each entry to ONE of the user's custom categories:
 ${allCategories.join('\n')}
 
 Rules:
 1. For entries with type="spend", map them ONLY to a category from the "Needs" or "Wants" list.
 2. For entries with type="investment", map them ONLY to a category from the "Investments" list.
 3. If an entry does not clearly match, pick the closest existing category in the allowed lists.
+4. Return EVERY entry in the data — do not skip any.
 
 Return ONLY JSON with the shape: {"allocations":[{"id":"...","category":"...","bucket":"needs|wants|investments"}]}. No markdown.
 
-Data:
-${JSON.stringify(needsAiData)}`;
+Data (batch ${batchIdx + 1}/${totalBatches}):
+${JSON.stringify(batch)}`;
 
-    const btn = document.getElementById('ai-classify-btn');
+        let responseText = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const raw = await callAI(prompt, 'You are a financial allocator assigning spend and investments to custom budget categories.');
+                const allocs = await parseAIResponse(raw);
+                if (!allocs) {
+                    if (attempt === 0) {
+                        const fixPrompt = prompt + `\n\nYour previous response was not valid JSON. Fix it:\n${raw}`;
+                        const fixed = await callAI(fixPrompt, 'You are a financial allocator. Fix the JSON response.');
+                        const fixedAllocs = await parseAIResponse(fixed);
+                        if (fixedAllocs) return fixedAllocs;
+                    }
+                    return null;
+                }
+                responseText = allocs;
+                break;
+            } catch (e) {
+                if (attempt === 1) return null;
+            }
+        }
+        return responseText;
+    }
+
+    const BATCH_SIZE = 40;
+    const batches = [];
+    for (let i = 0; i < needsAiData.length; i += BATCH_SIZE) {
+        batches.push(needsAiData.slice(i, i + BATCH_SIZE));
+    }
+
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
 
     try {
-        const raw = await callAI(prompt, 'You are a financial allocator assigning spend and investments to custom budget categories.');
-        let parsed;
-        try { parsed = JSON.parse(raw); } catch (e) {
-            const matchStr = raw.match(/\{[\s\S]*\}/);
-            if (matchStr) parsed = JSON.parse(matchStr[0]);
-        }
-        if (!parsed || !Array.isArray(parsed.allocations)) {
-            throw new Error('Invalid AI response');
+        const allAllocations = [];
+        const totalBatches = batches.length;
+
+        for (let b = 0; b < totalBatches; b++) {
+            if (totalBatches > 1) {
+                const pct = Math.round(((b + 1) / totalBatches) * 100);
+                document.getElementById('ai-batch-label').textContent = 'AI processing batch ' + (b + 1) + '/' + totalBatches;
+                document.getElementById('ai-batch-count').textContent = pct + '%';
+                document.getElementById('ai-batch-bar').style.width = pct + '%';
+                document.getElementById('ai-batch-progress').style.display = 'block';
+            }
+            const batchAllocs = await processBatch(batches[b], b, totalBatches);
+            if (!batchAllocs) {
+                throw new Error(`Batch ${b + 1}/${totalBatches} failed — AI returned invalid JSON`);
+            }
+            allAllocations.push(...batchAllocs);
         }
 
         const allocationMap = {};
         const categoryTotals = { needs: {}, wants: {}, investments: {} };
         
-        [...preAllocated, ...parsed.allocations].forEach(a => {
+        const sentIds = new Set(needsAiData.map(e => e.id));
+        const receivedIds = new Set();
+        
+        [...preAllocated, ...allAllocations].forEach(a => {
             if (a.id && a.category && a.bucket) {
                 const categoryName = String(a.category).trim();
                 const bucket = String(a.bucket).toLowerCase().trim();
-                allocationMap[a.id] = { category: categoryName, bucket: bucket };
+                
+                if (bucket !== 'needs' && bucket !== 'wants' && bucket !== 'investments') return;
                 
                 const origEntry = allData.find(e => e.id === a.id);
+                if (origEntry && origEntry.type === 'spend' && bucket === 'investments') return;
+                if (origEntry && origEntry.type === 'investment' && bucket !== 'investments') return;
+
+                const isPreAlloc = sentIds.has(a.id);
+                receivedIds.add(a.id);
+                allocationMap[a.id] = { category: categoryName, bucket: bucket };
+                
                 if (origEntry && categoryTotals[bucket]) {
                     categoryTotals[bucket][categoryName] = (categoryTotals[bucket][categoryName] || 0) + origEntry.amount;
                 }
             }
         });
+
+        const missingIds = [...sentIds].filter(id => !receivedIds.has(id) && !preAllocated.some(p => p.id === id));
+        if (missingIds.length > 0 && totalBatches > 1) {
+            const retryBatch = needsAiData.filter(e => missingIds.includes(e.id));
+            const retryAllocs = await processBatch(retryBatch, 0, 1);
+            if (retryAllocs) {
+                retryAllocs.forEach(a => {
+                    if (a.id && a.category && a.bucket) {
+                        const categoryName = String(a.category).trim();
+                        const bucket = String(a.bucket).toLowerCase().trim();
+                        if (bucket !== 'needs' && bucket !== 'wants' && bucket !== 'investments') return;
+                        const origEntry = allData.find(e => e.id === a.id);
+                        if (origEntry && origEntry.type === 'spend' && bucket === 'investments') return;
+                        if (origEntry && origEntry.type === 'investment' && bucket !== 'investments') return;
+                        allocationMap[a.id] = { category: categoryName, bucket: bucket };
+                        if (origEntry && categoryTotals[bucket]) {
+                            categoryTotals[bucket][categoryName] = (categoryTotals[bucket][categoryName] || 0) + origEntry.amount;
+                        }
+                    }
+                });
+            }
+        }
 
         const allocationEntries = allData.map(e => {
             const alloc = allocationMap[e.id];
@@ -1027,13 +1139,16 @@ ${JSON.stringify(needsAiData)}`;
         });
 
         showAllocationPreview(allocationEntries, categoryTotals, () => {
+            document.getElementById('ai-batch-progress').style.display = 'none';
             applyClassificationResult(allocationMap);
             if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
         }, () => {
+            document.getElementById('ai-batch-progress').style.display = 'none';
             if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
         });
     } catch (e) {
         console.warn('AI allocation failed:', e);
+        document.getElementById('ai-batch-progress').style.display = 'none';
         snack('AI allocation failed: ' + (e.message || 'unknown'), 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
     }
@@ -1135,7 +1250,14 @@ function applyClassificationResult(allocationMap) {
     
     const isValidCategory = (cat, allowedList) => {
         const c = String(cat).toLowerCase().trim();
-        return allowedList.some(item => item === c || item.includes(c) || c.includes(item));
+        if (c.length < 2) return false;
+        const exact = allowedList.find(item => item === c);
+        if (exact) return true;
+        return allowedList.some(item => {
+            if (c.length >= 4 && item.includes(c)) return true;
+            if (item.length >= 4 && c.includes(item)) return true;
+            return false;
+        });
     };
 
     if (!db.aiMemory) db.aiMemory = {};
@@ -1144,7 +1266,8 @@ function applyClassificationResult(allocationMap) {
     spendEntries.forEach(entry => {
         const alloc = allocationMap[entry.id];
         if (alloc) {
-            const allowedList = alloc.bucket === 'needs' ? validNeeds : (alloc.bucket === 'wants' ? validWants : [...validNeeds, ...validWants]);
+            if (alloc.bucket !== 'needs' && alloc.bucket !== 'wants') return;
+            const allowedList = alloc.bucket === 'needs' ? validNeeds : validWants;
             if (alloc.category && entry.category !== alloc.category && isValidCategory(alloc.category, allowedList)) {
                 entry.category = alloc.category;
                 const commentKey = String(entry.comment || '').toLowerCase().trim();
@@ -1158,9 +1281,12 @@ function applyClassificationResult(allocationMap) {
     investEntries.forEach(entry => {
         const alloc = allocationMap[entry.id];
         if (alloc && alloc.bucket === 'investments') {
-            if (alloc.category && entry.type !== alloc.category && isValidCategory(alloc.category, validInvests)) {
-                entry.type = alloc.category;
-                investmentsModified = true;
+            if (alloc.category && isValidCategory(alloc.category, validInvests)) {
+                if (!entry.originalType) entry.originalType = entry.type;
+                if (entry.type !== alloc.category) {
+                    entry.type = alloc.category;
+                    investmentsModified = true;
+                }
                 const noteKey = String(entry.note || '').toLowerCase().trim();
                 if (noteKey) db.aiMemory[noteKey] = { category: alloc.category, bucket: 'investments' };
             }

@@ -2491,3 +2491,29 @@ body.web-disabled .web-dependent-info {
 .ai-dependent-info, .web-dependent-info {
   display: none;
 }
+
+/* AI Batch Progress Bar */
+.ai-batch-progress {
+    margin: 8px 16px;
+    animation: slideFade 0.3s ease;
+}
+.ai-batch-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--md-on-surface-variant);
+    margin-bottom: 4px;
+}
+.ai-batch-progress-track {
+    height: 4px;
+    background: var(--md-surface-container-highest);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.ai-batch-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--md-primary);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
