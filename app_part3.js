@@ -25,7 +25,7 @@ async function aiSuggestInvestment() {
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;animation:spin 1s linear infinite;">autorenew</span>'; }
     try {
         const r = await callAIApi(`Investment type: ${type}. Asset note: "${note.slice(0,200)}". Available categories: ${categories}. Suggest: 1) subcategory 2) best matching category from the list 3) 3 tags 4) estimated price if known. Return JSON only: {"subcat":"...","category":"...","tags":"tag1,tag2,tag3","estPrice":0}.`, 'You return only valid JSON. No markdown.');
-        const d = JSON.parse(r.replace(/```json|```/gi,'').trim());
+        const d = extractJSONFromAI(r);
         if (d.subcat) { const el = document.getElementById('inv-subcat'); if (el) el.value = d.subcat; }
         if (d.category && db.categories?.[d.category]) { const el = document.getElementById('invest-type-select'); if (el) { el.value = d.category; el.dispatchEvent(new Event('change')); } }
         if (d.tags) { const el = document.getElementById('inv-tags'); if (el) el.value = d.tags; }

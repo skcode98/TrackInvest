@@ -296,3 +296,43 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
         .replace(/<!DOCTYPE[^>]*>/gi, '')
         .trim();
 }
+
+// Extract JSON from AI responses that may include markdown, code fences, or extra text.
+function extractJSONFromAI(text) {
+    const src = String(text || '');
+    const cleaned = src.replace(/```[\w]*|```/gi, '').trim();
+
+    // 1. Try direct JSON parse
+    try { return JSON.parse(cleaned); } catch (e) {}
+
+    // 2. Try to find the first top-level array
+    const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+        try { return JSON.parse(arrMatch[0]); } catch (e) {}
+    }
+
+    // 3. Try to find a top-level object (balanced braces)
+    const braceMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (braceMatch) {
+        try { return JSON.parse(braceMatch[0]); } catch (e) {}
+    }
+
+    // 4. Balanced-brace extraction (search for any valid JSON object substring)
+    for (let i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] !== '{') continue;
+        let depth = 0;
+        for (let j = i; j < cleaned.length; j++) {
+            if (cleaned[j] === '{') depth++;
+            else if (cleaned[j] === '}') {
+                depth--;
+                if (depth === 0) {
+                    const cand = cleaned.slice(i, j + 1);
+                    try { return JSON.parse(cand); } catch (e) {}
+                    break;
+                }
+            }
+        }
+    }
+
+    throw new Error('Failed to parse JSON from AI response');
+}

@@ -735,8 +735,13 @@
             const prompt = `You are a financial categorizer. Categorize each expense into: ${Object.keys(CAT_COLORS).join(', ')}. Respond ONLY with valid JSON array: [{"comment":"exact match","category":"..."}]. No markdown.\n\n${JSON.stringify(uncat.map(e=>({comment:e.comment,amount:e.amount})))}`;
             try {
                 const resp = await callAI(prompt, 'spend_categorize_2');
-                const cats = JSON.parse(resp.replace(/```json|```/gi,'').trim());
-                if(!Array.isArray(cats)) throw new Error('Not array');
+                let cats;
+                try {
+                    cats = extractJSONFromAI(resp);
+                } catch (e) {
+                    throw new Error('AI returned invalid JSON');
+                }
+                if (!Array.isArray(cats)) throw new Error('Not array');
                 let suggestions = [];
                 uncat.forEach(e=>{const x=cats.find(c=>c.comment===e.comment); if(x&&CAT_COLORS[x.category]) suggestions.push({entry:e,suggested:x.category});});
                 if (suggestions.length === 0) { Swal.fire('Info','AI could not categorize any items','info'); btn.disabled=false; btn.innerHTML='<span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize'; return; }

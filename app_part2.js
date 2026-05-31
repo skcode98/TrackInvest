@@ -2476,8 +2476,7 @@ async function generateAIForecast(alreadyOpen = false) {
 
     try {
         let raw = await callAIApi(prompt, "You return only valid JSON arrays. No markdown.");
-        raw = raw.replace(/```json|```/g, '').trim();
-        let predictions = JSON.parse(raw);
+        let predictions = extractJSONFromAI(raw);
         let total = predictions.reduce((s, p) => s + p.predicted, 0);
         let html = `<div style="background:var(--md-primary-container);color:var(--md-on-primary-container);border-radius:24px;padding:24px;margin-bottom:24px;text-align:center;">
                     <div style="font-size:14px;font-weight:500;opacity:0.8;margin-bottom:4px;">Predicted Total Next Month</div>
