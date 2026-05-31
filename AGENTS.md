@@ -13,8 +13,17 @@
 | `monthly_plan.html` | inline only | `shared_ai.js` |
 | `spend_tracker.html` | inline only | `shared_ai.js` |
 
-- `style.css` (~3000 lines) is **shared by all 3 pages** — changes affect all of them.
+- `style.css` (~1300 lines) is **shared by all 3 pages** — changes affect all of them.
 - `app_part2.js` and `app_part3.js` are **dashboard-only** (not in monthly_plan/spend_tracker).
+
+## Theme: Obsidian (glassmorphism finance)
+- Dark-first with `@media (prefers-color-scheme: light)` light mode override
+- `body.dark-mode` class forces dark variables
+- Theme variants: `body.theme-emerald`, `body.theme-sunset`, `body.theme-amethyst`
+- CSS vars use `--obs-*` prefix (e.g. `--obs-primary`, `--obs-glass`, `--grad-primary`)
+- Legacy `--md-*` aliases provided for backward compat
+- Glass cards: `background: var(--obs-glass)`, `border: 1px solid var(--obs-glass-border)`
+- Gradients: `var(--grad-primary)` (indigo→teal), `var(--grad-secondary)` (teal→emerald)
 
 ## AI provider fallback (in `shared_ai.js`)
 Gemini → Groq → OpenRouter (free) → Cerebras → GitHub Models (gpt-4o-mini)
@@ -22,7 +31,7 @@ Gemini → Groq → OpenRouter (free) → Cerebras → GitHub Models (gpt-4o-min
 Each page that uses AI manages its own provider key and prompt — there is no shared key store.
 
 ## Version / cache busting
-- `version.js`: `APP_VERSION = 'v5.7'`
+- `version.js`: `APP_VERSION = 'v5.13'`
 - `sw.js` cache name includes version — bump both files when releasing
 
 ## Developer commands (no npm, no test runner)
@@ -33,6 +42,7 @@ Each page that uses AI manages its own provider key and prompt — there is no s
 ## Gotchas
 - **Post-commit hook** (`.githooks/post-commit`) auto-pushes to `origin main` — every commit is immediately pushed
 - **CSP headers** are inline in `<meta http-equiv="Content-Security-Policy">` in each HTML file. Adding a new external domain (e.g., a new AI provider API) must be added to `connect-src` in all 3 files.
-- `style.css` uses Material Design 3 CSS custom properties — color tokens are `--md-primary`, `--md-surface`, etc. (defined at top of file)
+- `style.css` uses `--obs-*` CSS custom properties — color tokens are `--obs-primary`, `--obs-glass`, etc. (defined at top of file)
 - Remote auto-redirects: `surajtalele1998/TrackInvest` → `skcode98/TrackInvest`
 - No `.gitconfig`-level hooks path set — `core.hooksPath` is not configured, so `git commit` will run `.git/hooks/` (sample files only), not `.githooks/`. The post-commit hook at `.githooks/post-commit` is inactive unless `git config core.hooksPath .githooks` is run.
+- Branch `ui-ux-design-improvements` contains the Obsidian theme — merge into `main` when ready
