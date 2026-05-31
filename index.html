@@ -189,6 +189,22 @@
                 <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
             </div>
 
+            <div class="md-card" id="account-overview-entry"
+                style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);"
+                onclick="window.location.href='account_overview.html'">
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <div
+                        style="width:48px; height:48px; border-radius:16px; background:var(--md-tertiary-container); color:var(--md-on-tertiary-container); display:flex; align-items:center; justify-content:center;">
+                        <span class="material-symbols-rounded">account_balance_wallet</span>
+                    </div>
+                    <div>
+                        <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Account Overview</div>
+                        <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Cards, bank accounts & PF details</div>
+                    </div>
+                </div>
+                <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
+            </div>
+
 
             <div id="maturity-section" style="display:none; margin-bottom:16px;">
                 <div class="section-title" style="margin-top:0;">⏰ Maturing Soon <span
@@ -965,6 +981,16 @@
                             AI categorization & insights</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker" onchange="saveToggleState('spend', this.checked)"><span
+                            class="slider"></span></label>
+                </div>
+
+                <div
+                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
+                    <div>
+                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Account Overview</div>
+                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Cards, bank accounts & PF details</div>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="settings-enable-account-overview" onchange="saveToggleState('accountOverview', this.checked)"><span
                             class="slider"></span></label>
                 </div>
 

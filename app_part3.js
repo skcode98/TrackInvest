@@ -419,6 +419,12 @@ function updatePortfolioCalculations() {
         spendEntry.style.display = db.enableSpendTracker ? 'flex' : 'none';
     }
 
+    // NEW: Show/Hide Account Overview Entry Card
+    let aoEntry = document.getElementById('account-overview-entry');
+    if (aoEntry) {
+        aoEntry.style.display = db.enableAccountOverview ? 'flex' : 'none';
+    }
+
     renderHistory();
 
     let monthTarget = db.monthlyInvestmentTarget || 0; let pct = monthTarget > 0 ? Math.min(100, (thisMonthTotal / monthTarget) * 100) : 0;

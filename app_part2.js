@@ -951,6 +951,8 @@ function saveProfileSettings() {
     if(plannerEl) db.enableMonthlyPlanner = plannerEl.checked;
     const spendEl = document.getElementById('settings-enable-spend-tracker');
     if(spendEl) db.enableSpendTracker = spendEl.checked;
+    const aoEl = document.getElementById('settings-enable-account-overview');
+    if(aoEl) db.enableAccountOverview = aoEl.checked;
     const aiToggle = document.getElementById('settings-ai-toggle');
     if (aiToggle) { db.aiEnabled = aiToggle.checked; window.__aiEnabled = db.aiEnabled; }
     const webToggle = document.getElementById('settings-web-toggle');
@@ -965,6 +967,8 @@ function saveToggleState(type, isChecked) {
         db.enableMonthlyPlanner = isChecked;
     } else if (type === 'spend') {
         db.enableSpendTracker = isChecked;
+    } else if (type === 'accountOverview') {
+        db.enableAccountOverview = isChecked;
     } else if (type === 'ai') {
         db.aiEnabled = isChecked;
         window.__aiEnabled = isChecked;
@@ -1030,6 +1034,7 @@ function openSettings() {
         'use-biometric-toggle': db.useBiometric || false,
         'settings-enable-planner': db.enableMonthlyPlanner !== false,
         'settings-enable-spend-tracker': db.enableSpendTracker !== false,
+        'settings-enable-account-overview': db.enableAccountOverview !== false,
         'settings-ai-toggle': db.aiEnabled !== false,
         'settings-web-toggle': db.webEnabled !== false
     };

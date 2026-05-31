@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#F3F3F7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
+    <title>Account Overview | TrackInvest</title>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        img-src 'self' data:;
+        manifest-src 'self';
+    ">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./version.js"></script>
+    <style>
+        body { padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+
+        /* ── Tab bar ── */
+        .ao-tabs { display:flex; gap:4px; padding:4px; background:var(--md-surface-container-high); border-radius:14px; margin-bottom:16px; overflow-x:auto; scrollbar-width:none; }
+        .ao-tab { flex:1; flex-shrink:0; padding:10px 12px; border:none; background:transparent; border-radius:10px; font-size:12px; font-weight:500; cursor:pointer; color:var(--md-on-surface-variant); transition:0.2s; white-space:nowrap; display:flex; align-items:center; gap:4px; justify-content:center; }
+        .ao-tab.active { background:var(--md-primary-container); color:var(--md-on-primary-container); font-weight:600; }
+        .ao-tab .material-symbols-rounded { font-size:16px; }
+
+        /* ── Card grid ── */
+        .card-grid { display:flex; flex-direction:column; gap:16px; margin-bottom:20px; }
+
+        /* ── Visual card ── */
+        .vc-card { position:relative; border-radius:20px; padding:24px 20px; color:#fff; overflow:hidden; cursor:pointer; transition:0.2s; min-height:180px; display:flex; flex-direction:column; justify-content:space-between; user-select:none; }
+        .vc-card:active { transform:scale(0.98); }
+        .vc-card .vc-bg { position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; }
+        .vc-card .vc-chip { position:absolute; top:20px; left:20px; width:40px; height:30px; background:linear-gradient(135deg,#D4AF37,#FDB931); border-radius:6px; opacity:0.9; }
+        .vc-card .vc-network { position:absolute; bottom:20px; right:20px; font-size:18px; font-weight:700; letter-spacing:1px; opacity:0.7; }
+        .vc-card .vc-number { font-size:18px; letter-spacing:3px; font-weight:500; margin:20px 0 8px; text-shadow:0 1px 2px rgba(0,0,0,0.2); }
+        .vc-card .vc-row { display:flex; justify-content:space-between; font-size:11px; opacity:0.85; }
+        .vc-card .vc-label { opacity:0.6; font-size:9px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px; }
+        .vc-card .vc-balance { font-size:24px; font-weight:700; text-shadow:0 1px 3px rgba(0,0,0,0.2); }
+        .vc-card .vc-name { font-size:14px; font-weight:500; margin-top:8px; text-transform:uppercase; letter-spacing:1px; }
+        .vc-card .vc-footer { display:flex; justify-content:space-between; align-items:flex-end; margin-top:8px; }
+        .vc-card .vc-provider { font-size:13px; font-weight:600; opacity:0.9; }
+
+        /* Card variants */
+        .vc-credit { background:linear-gradient(135deg,#1a1a3e,#2d1b69,#1a1a3e); }
+        .vc-debit { background:linear-gradient(135deg,#0d3b66,#1a6d8a,#0d3b66); }
+        .vc-bank { background:linear-gradient(135deg,#0f4c3a,#1b7a5a,#0f4c3a); }
+        .vc-pf { background:linear-gradient(135deg,#5c2e0a,#8B5E1A,#5c2e0a); }
+
+        .vc-empty { background:var(--md-surface-container); border-radius:20px; padding:40px 20px; text-align:center; border:1px dashed var(--md-outline-variant); cursor:pointer; transition:0.2s; }
+        .vc-empty:active { background:var(--md-surface-container-highest); transform:scale(0.98); }
+        .vc-empty .material-symbols-rounded { font-size:36px; color:var(--md-outline); display:block; margin:0 auto 8px; }
+        .vc-empty div { font-size:13px; color:var(--md-on-surface-variant); }
+
+        /* ── Detail sheet ── */
+        .detail-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--md-outline-variant); }
+        .detail-row:last-child { border-bottom:none; }
+        .detail-label { font-size:12px; color:var(--md-outline); }
+        .detail-value { font-size:14px; font-weight:500; color:var(--md-on-surface); text-align:right; }
+
+        @media(max-width:480px) {
+            .vc-card { padding:18px 16px; min-height:150px; border-radius:16px; }
+            .vc-card .vc-number { font-size:16px; letter-spacing:2px; }
+            .vc-card .vc-balance { font-size:20px; }
+            .vc-card .vc-chip { width:32px; height:24px; top:16px; left:16px; }
+            .ao-tab { font-size:11px; padding:8px 10px; }
+            .ao-tab .material-symbols-rounded { font-size:14px; }
+        }
+
+        @media(max-width:380px) {
+            .vc-card { min-height:130px; padding:14px; }
+            .vc-card .vc-number { font-size:14px; }
+            .vc-card .vc-balance { font-size:18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Add/Edit Sheet -->
+    <div class="import-scrim" id="form-scrim" onclick="closeFormSheet()"></div>
+    <div class="import-sheet" id="form-sheet">
+        <div class="drag-handle"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+            <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;" id="form-sheet-icon">add_circle</span>
+            <span style="font-weight:600;font-size:17px;" id="form-sheet-title">Add</span>
+        </div>
+        <div id="form-fields"></div>
+        <div style="display:flex;gap:12px;margin-top:20px;">
+            <button class="btn-secondary" id="form-del-btn" style="display:none;color:var(--md-error);border-color:var(--md-error);flex:0.4;" onclick="deleteItem()"><span class="material-symbols-rounded">delete</span> Delete</button>
+            <button class="btn-primary" onclick="saveItem()" style="flex:1;" id="form-save-btn"><span class="material-symbols-rounded">check</span> Save</button>
+        </div>
+        <button class="btn-secondary" onclick="closeFormSheet()" style="width:100%;margin-top:8px;">Cancel</button>
+    </div>
+
+    <!-- Detail Sheet -->
+    <div class="import-scrim" id="detail-scrim" onclick="closeDetailSheet()"></div>
+    <div class="import-sheet" id="detail-sheet" style="max-height:85vh;">
+        <div class="drag-handle"></div>
+        <div id="detail-body"></div>
+        <div style="display:flex;gap:12px;margin-top:20px;">
+            <button class="btn-secondary" onclick="editFromDetail()" style="flex:1;"><span class="material-symbols-rounded">edit</span> Edit</button>
+            <button class="btn-secondary" onclick="closeDetailSheet()" style="flex:1;">Close</button>
+        </div>
+    </div>
+
+    <!-- FAB -->
+    <button class="fab" id="fab-btn" onclick="openAddSheet()" title="Add"><span class="material-symbols-rounded">add</span> Add</button>
+
+    <header class="top-app-bar">
+        <button class="icon-btn" onclick="window.location.href='index.html'"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="app-title">Account Overview</div>
+        <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner"><span class="material-symbols-rounded">account_balance</span></button>
+        <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker"><span class="material-symbols-rounded">receipt_long</span></button>
+    </header>
+
+    <main class="container" style="padding-top:0;">
+        <!-- Tabs -->
+        <div class="ao-tabs">
+            <button class="ao-tab active" data-tab="cards" onclick="switchTab('cards',this)"><span class="material-symbols-rounded">credit_card</span> Cards</button>
+            <button class="ao-tab" data-tab="banks" onclick="switchTab('banks',this)"><span class="material-symbols-rounded">account_balance</span> Bank</button>
+            <button class="ao-tab" data-tab="pf" onclick="switchTab('pf',this)"><span class="material-symbols-rounded">lock</span> PF</button>
+        </div>
+
+        <!-- Summary -->
+        <div id="summary-section" style="margin-bottom:16px;"></div>
+
+        <!-- Cards list -->
+        <div id="cards-section" class="card-grid"></div>
+        <!-- Banks list -->
+        <div id="banks-section" class="card-grid" style="display:none;"></div>
+        <!-- PF list -->
+        <div id="pf-section" class="card-grid" style="display:none;"></div>
+
+        <div style="text-align:center;padding:12px 0;font-size:10px;color:var(--md-outline);opacity:0.4;user-select:none;" onclick="navigator.clipboard.writeText(APP_VERSION).catch(()=>{})" title="Build version" class="version-badge"></div>
+        <script>document.querySelector('.version-badge').textContent=APP_VERSION;</script>
+        <div style="height:80px;"></div>
+    </main>
+
+    <script>
+        window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
+        const STORAGE_KEY = 'appHubInvestDb_ao';
+
+        function loadDB() {
+            try {
+                const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+                return stored;
+            } catch(e) { return {}; }
+        }
+        function saveDB() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+                try { new BroadcastChannel('trackinvest-sync').postMessage({ type: 'sync-data', data: { overview: true } }); } catch(e) {}
+            } catch(e) { console.error('Storage failed', e); }
+        }
+
+        let db = loadDB();
+        if (!db.cards) db.cards = [];
+        if (!db.banks) db.banks = [];
+        if (!db.pf) db.pf = [];
+
+        let currentTab = 'cards';
+        let editId = null;
+
+        function getCollection(type) {
+            if (type === 'cards') return db.cards;
+            if (type === 'banks') return db.banks;
+            return db.pf;
+        }
+        function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+        function fmt(n) { return Number(n||0).toLocaleString('en-IN'); }
+        const sym = '₹';
+
+        // ── Tabs ──
+        function switchTab(tab, btn) {
+            currentTab = tab;
+            document.querySelectorAll('.ao-tab').forEach(t => t.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            document.getElementById('cards-section').style.display = tab === 'cards' ? '' : 'none';
+            document.getElementById('banks-section').style.display = tab === 'banks' ? '' : 'none';
+            document.getElementById('pf-section').style.display = tab === 'pf' ? '' : 'none';
+            document.getElementById('fab-btn').innerHTML = '<span class="material-symbols-rounded">add</span> Add ' + (tab === 'cards' ? 'Card' : tab === 'banks' ? 'Bank' : 'PF');
+            renderAll();
+        }
+
+        // ── Render ──
+        function renderAll() {
+            renderCards();
+            renderBanks();
+            renderPF();
+            renderSummary();
+        }
+
+        function renderSummary() {
+            let s = document.getElementById('summary-section');
+            let cards = db.cards || [];
+            let banks = db.banks || [];
+            let pf = db.pf || [];
+            let totalCards = cards.reduce((sum, c) => sum + (c.outstandingAmount||0), 0);
+            let totalBanks = banks.reduce((sum, b) => sum + (b.balance||0), 0);
+            let totalPF = pf.reduce((sum, p) => sum + (p.balance||0), 0);
+            s.innerHTML = '<div class="st-section" style="margin-bottom:8px;"><span class="material-symbols-rounded">account_balance_wallet</span> Summary</div>'
+                + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+                + '<div class="stat-chip" style="flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--md-outline);">Cards Due</span><span style="font-size:16px;font-weight:700;">' + sym + fmt(totalCards) + '</span></div>'
+                + '<div class="stat-chip" style="flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--md-outline);">Bank Balance</span><span style="font-size:16px;font-weight:700;color:var(--md-success);">' + sym + fmt(totalBanks) + '</span></div>'
+                + '<div class="stat-chip" style="flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--md-outline);">PF Balance</span><span style="font-size:16px;font-weight:700;color:#F4A100;">' + sym + fmt(totalPF) + '</span></div>'
+                + '</div>';
+        }
+
+        // ── Card HTML helpers ──
+        function buildCardHTML(item) {
+            let num = item.cardNumber || '••••';
+            let networkLogo = item.cardNetwork || '';
+            let typeClass = item.type === 'debit' ? 'vc-debit' : 'vc-credit';
+            let chipIcon = item.type === 'debit' ? '<span class="material-symbols-rounded" style="font-size:14px;color:#fff;position:absolute;top:20px;left:20px;">account_balance</span>' : '<div class="vc-chip"></div>';
+            let network = item.cardNetwork === 'RuPay' ? 'RUPAY' : (item.cardNetwork === 'AmEx' ? 'AMEX' : (item.cardNetwork === 'Mastercard' ? 'MC' : 'VISA'));
+            return '<div class="vc-card ' + typeClass + '" onclick="showDetail(\'' + item.id + '\',\'cards\')">'
+                + chipIcon
+                + '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;margin-top:16px;">'
+                + '<div class="vc-number">' + ('xxxx xxxx xxxx ' + num) + '</div>'
+                + '<div class="vc-row"><div><div class="vc-label">VALID THRU</div><div>' + (item.expiryMonth||'MM') + '/' + (item.expiryYear||'YY') + '</div></div>'
+                + '<div style="text-align:right;"><div class="vc-label">' + (item.type === 'credit' ? 'LIMIT' : 'BALANCE') + '</div><div>' + sym + fmt(item.type === 'credit' ? item.creditLimit : 0) + '</div></div></div>'
+                + '</div>'
+                + '<div class="vc-footer"><div class="vc-name">' + (item.cardHolderName || 'CARD HOLDER').toUpperCase() + '</div><div class="vc-network">' + network + '</div></div>'
+                + '<div class="vc-bg" style="background:radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 60%);"></div>'
+                + '</div>';
+        }
+
+        function buildBankHTML(item) {
+            let typeLabel = {savings:'Savings',current:'Current',salary:'Salary',fixed_deposit:'Fixed Deposit'}[item.accountType] || item.accountType;
+            return '<div class="vc-card vc-bank" onclick="showDetail(\'' + item.id + '\',\'banks\')">'
+                + '<div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:space-between;">'
+                + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + typeLabel + '</div>'
+                + '<div style="font-size:15px;font-weight:600;margin-top:2px;">' + (item.bankName || 'Bank') + '</div></div>'
+                + '<div><div class="vc-balance">' + sym + fmt(item.balance) + '</div>'
+                + '<div style="font-size:12px;opacity:0.7;margin-top:2px;">••••' + (item.accountNumber || '0000') + '</div>'
+                + '<div style="font-size:10px;opacity:0.5;margin-top:6px;">' + (item.ifscCode || '') + '</div></div>'
+                + '</div>'
+                + '<div class="vc-bg" style="background:radial-gradient(circle at 30% 80%, rgba(255,255,255,0.08) 0%, transparent 50%);"></div>'
+                + '</div>';
+        }
+
+        function buildPFHTML(item) {
+            return '<div class="vc-card vc-pf" onclick="showDetail(\'' + item.id + '\',\'pf\')">'
+                + '<div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:space-between;">'
+                + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + (item.provider || 'PF') + '</div>'
+                + '<div style="font-size:13px;font-weight:500;margin-top:2px;opacity:0.85;">' + (item.accountNumber || '') + '</div></div>'
+                + '<div><div class="vc-balance">' + sym + fmt(item.balance) + '</div>'
+                + '<div style="display:flex;gap:16px;margin-top:4px;font-size:11px;opacity:0.7;">'
+                + '<span>Self: ' + sym + fmt(item.monthlyContribution) + '/mo</span>'
+                + '<span>Employer: ' + sym + fmt(item.employerContribution) + '/mo</span></div></div>'
+                + '</div>'
+                + '<div class="vc-bg" style="background:radial-gradient(circle at 70% 30%, rgba(255,200,50,0.1) 0%, transparent 50%);"></div>'
+                + '</div>';
+        }
+
+        function renderCards() {
+            let list = document.getElementById('cards-section');
+            let items = db.cards || [];
+            if (items.length === 0) {
+                list.innerHTML = '<div class="vc-empty" onclick="openAddSheet()"><span class="material-symbols-rounded">credit_card</span><div>No cards yet — tap to add</div></div>';
+                return;
+            }
+            list.innerHTML = items.map(buildCardHTML).join('');
+        }
+
+        function renderBanks() {
+            let list = document.getElementById('banks-section');
+            let items = db.banks || [];
+            if (items.length === 0) {
+                list.innerHTML = '<div class="vc-empty" onclick="switchTab(\'banks\',document.querySelector(\'[data-tab=banks]\'))"><span class="material-symbols-rounded">account_balance</span><div>No bank accounts yet — tap to add</div></div>';
+                return;
+            }
+            list.innerHTML = items.map(buildBankHTML).join('');
+        }
+
+        function renderPF() {
+            let list = document.getElementById('pf-section');
+            let items = db.pf || [];
+            if (items.length === 0) {
+                list.innerHTML = '<div class="vc-empty" onclick="switchTab(\'pf\',document.querySelector(\'[data-tab=pf]\'))"><span class="material-symbols-rounded">lock</span><div>No PF accounts yet — tap to add</div></div>';
+                return;
+            }
+            list.innerHTML = items.map(buildPFHTML).join('');
+        }
+
+        // ── Show detail ──
+        function showDetail(id, type) {
+            let items = getCollection(type);
+            let item = items.find(i => i.id === id);
+            if (!item) return;
+            editId = id;
+            let body = document.getElementById('detail-body');
+            let html = '';
+
+            if (type === 'cards') {
+                let network = item.cardNetwork || '';
+                let typeClass = item.type === 'debit' ? 'vc-debit' : 'vc-credit';
+                html += '<div class="vc-card ' + typeClass + '" style="cursor:default;margin-bottom:16px;min-height:160px;">'
+                    + (item.type === 'debit' ? '<span class="material-symbols-rounded" style="position:absolute;top:20px;left:20px;font-size:14px;z-index:1;">account_balance</span>' : '<div class="vc-chip"></div>')
+                    + '<div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;padding-top:10px;">'
+                    + '<div class="vc-number">' + ('xxxx xxxx xxxx ' + (item.cardNumber||'••••')) + '</div>'
+                    + '<div class="vc-row"><div><div class="vc-label">VALID THRU</div><div>' + (item.expiryMonth||'MM') + '/' + (item.expiryYear||'YY') + '</div></div>'
+                    + '<div style="text-align:right;"><div class="vc-label">CVV</div><div>•••</div></div></div>'
+                    + '<div class="vc-footer" style="margin-top:10px;"><div class="vc-name">' + (item.cardHolderName||'CARD HOLDER').toUpperCase() + '</div><div class="vc-network">' + network.toUpperCase() + '</div></div></div>'
+                    + '<div class="vc-bg" style="background:radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 60%);"></div></div>';
+                html += '<div class="detail-row"><div class="detail-label">Bank</div><div class="detail-value">' + (item.bankName||'—') + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Type</div><div class="detail-value" style="text-transform:capitalize;">' + (item.type||'—') + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Card Network</div><div class="detail-value">' + (item.cardNetwork||'—') + '</div></div>';
+                if (item.type === 'credit') {
+                    html += '<div class="detail-row"><div class="detail-label">Credit Limit</div><div class="detail-value" style="color:var(--md-primary);">' + sym + fmt(item.creditLimit) + '</div></div>'
+                        + '<div class="detail-row"><div class="detail-label">Outstanding</div><div class="detail-value" style="color:' + ((item.outstandingAmount||0) > 0 ? 'var(--md-error)' : 'var(--md-success)') + ';">' + sym + fmt(item.outstandingAmount) + '</div></div>'
+                        + '<div class="detail-row"><div class="detail-label">Billing Date</div><div class="detail-value">' + (item.billingDate ? 'Every ' + item.billingDate + 'th' : '—') + '</div></div>';
+                }
+                if (item.notes) html += '<div class="detail-row"><div class="detail-label">Notes</div><div class="detail-value" style="font-weight:400;max-width:180px;word-break:break-word;">' + item.notes + '</div></div>';
+            } else if (type === 'banks') {
+                html += '<div class="vc-card vc-bank" style="cursor:default;margin-bottom:16px;min-height:120px;">'
+                    + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">'
+                    + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + ({savings:'Savings',current:'Current',salary:'Salary',fixed_deposit:'Fixed Deposit'}[item.accountType]||item.accountType) + '</div>'
+                    + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + (item.bankName||'Bank') + '</div></div>'
+                    + '<div><div class="vc-balance">' + sym + fmt(item.balance) + '</div></div></div>'
+                    + '<div class="vc-bg" style="background:radial-gradient(circle at 30% 80%, rgba(255,255,255,0.08) 0%, transparent 50%);"></div></div>';
+                html += '<div class="detail-row"><div class="detail-label">Account Number</div><div class="detail-value">••••' + (item.accountNumber||'0000') + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">IFSC Code</div><div class="detail-value">' + (item.ifscCode||'—') + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Branch</div><div class="detail-value">' + (item.branchName||'—') + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Type</div><div class="detail-value" style="text-transform:capitalize;">' + (item.accountType||'—') + '</div></div>';
+                if (item.notes) html += '<div class="detail-row"><div class="detail-label">Notes</div><div class="detail-value" style="font-weight:400;max-width:180px;word-break:break-word;">' + item.notes + '</div></div>';
+            } else if (type === 'pf') {
+                html += '<div class="vc-card vc-pf" style="cursor:default;margin-bottom:16px;min-height:120px;">'
+                    + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">'
+                    + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + (item.provider||'PF') + '</div>'
+                    + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + sym + fmt(item.balance) + '</div></div>'
+                    + '<div style="font-size:12px;opacity:0.7;">' + (item.accountNumber||'') + '</div></div>'
+                    + '<div class="vc-bg" style="background:radial-gradient(circle at 70% 30%, rgba(255,200,50,0.1) 0%, transparent 50%);"></div></div>';
+                html += '<div class="detail-row"><div class="detail-label">Provider</div><div class="detail-value">' + (item.provider||'—') + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Account Number</div><div class="detail-value">' + (item.accountNumber||'—') + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Balance</div><div class="detail-value" style="color:var(--md-primary);">' + sym + fmt(item.balance) + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Your Contribution</div><div class="detail-value">' + sym + fmt(item.monthlyContribution) + '/mo</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Employer Contribution</div><div class="detail-value">' + sym + fmt(item.employerContribution) + '/mo</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Interest Rate</div><div class="detail-value">' + (item.interestRate ? item.interestRate + '%' : '—') + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Start Date</div><div class="detail-value">' + (item.startDate || '—') + '</div></div>';
+                if (item.nominee) html += '<div class="detail-row"><div class="detail-label">Nominee</div><div class="detail-value">' + item.nominee + '</div></div>';
+                if (item.notes) html += '<div class="detail-row"><div class="detail-label">Notes</div><div class="detail-value" style="font-weight:400;max-width:180px;word-break:break-word;">' + item.notes + '</div></div>';
+            }
+
+            body.innerHTML = html;
+            document.getElementById('detail-sheet').classList.add('open');
+            document.getElementById('detail-scrim').classList.add('open');
+        }
+
+        function closeDetailSheet() {
+            document.getElementById('detail-sheet').classList.remove('open');
+            document.getElementById('detail-scrim').classList.remove('open');
+            editId = null;
+        }
+
+        function editFromDetail() {
+            closeDetailSheet();
+            openAddSheet(editId);
+        }
+
+        // ── Form ──
+        function openAddSheet(existingId) {
+            editId = existingId || null;
+            let type = currentTab;
+            let item = null;
+            if (editId) item = getCollection(type).find(i => i.id === editId);
+
+            let icon = document.getElementById('form-sheet-icon');
+            let title = document.getElementById('form-sheet-title');
+            let delBtn = document.getElementById('form-del-btn');
+            let saveBtn = document.getElementById('form-save-btn');
+
+            if (editId && item) {
+                icon.textContent = 'edit';
+                title.textContent = 'Edit ' + (type === 'cards' ? 'Card' : type === 'banks' ? 'Bank Account' : 'PF Account');
+                delBtn.style.display = '';
+                saveBtn.innerHTML = '<span class="material-symbols-rounded">check</span> Update';
+            } else {
+                icon.textContent = 'add_circle';
+                title.textContent = 'Add ' + (type === 'cards' ? 'Card' : type === 'banks' ? 'Bank Account' : 'PF Account');
+                delBtn.style.display = 'none';
+                saveBtn.innerHTML = '<span class="material-symbols-rounded">check</span> Save';
+            }
+
+            let fields = document.getElementById('form-fields');
+            if (type === 'cards') fields.innerHTML = getCardForm(item);
+            else if (type === 'banks') fields.innerHTML = getBankForm(item);
+            else fields.innerHTML = getPFForm(item);
+
+            document.getElementById('form-sheet').classList.add('open');
+            document.getElementById('form-scrim').classList.add('open');
+        }
+
+        function closeFormSheet() {
+            document.getElementById('form-sheet').classList.remove('open');
+            document.getElementById('form-scrim').classList.remove('open');
+            editId = null;
+        }
+
+        function getCardForm(item) {
+            let i = item || {};
+            return '<div class="input-container"><label>Bank Name</label><input type="text" id="f-bankName" class="md-input" value="' + esc(i.bankName||'') + '" placeholder="HDFC Bank"></div>'
+                + '<div class="input-container"><label>Card Type</label><select id="f-type" class="md-input"><option value="credit"' + (i.type==='credit'?' selected':'') + '>Credit</option><option value="debit"' + (i.type==='debit'?' selected':'') + '>Debit</option></select></div>'
+                + '<div class="input-container"><label>Card Network</label><select id="f-cardNetwork" class="md-input"><option value="Visa"' + (i.cardNetwork==='Visa'?' selected':'') + '>Visa</option><option value="Mastercard"' + (i.cardNetwork==='Mastercard'?' selected':'') + '>Mastercard</option><option value="RuPay"' + (i.cardNetwork==='RuPay'?' selected':'') + '>RuPay</option><option value="AmEx"' + (i.cardNetwork==='AmEx'?' selected':'') + '>American Express</option></select></div>'
+                + '<div class="input-container"><label>Cardholder Name</label><input type="text" id="f-cardHolderName" class="md-input" value="' + esc(i.cardHolderName||'') + '" placeholder="JOHN DOE"></div>'
+                + '<div class="input-container"><label>Last 4 Digits</label><input type="text" id="f-cardNumber" class="md-input" maxlength="4" value="' + esc(i.cardNumber||'') + '" placeholder="4532" inputmode="numeric"></div>'
+                + '<div style="display:flex;gap:8px;"><div class="input-container" style="flex:1;"><label>Expiry Month</label><input type="text" id="f-expiryMonth" class="md-input" maxlength="2" value="' + esc(i.expiryMonth||'') + '" placeholder="MM" inputmode="numeric"></div>'
+                + '<div class="input-container" style="flex:1;"><label>Expiry Year</label><input type="text" id="f-expiryYear" class="md-input" maxlength="2" value="' + esc(i.expiryYear||'') + '" placeholder="YY" inputmode="numeric"></div></div>'
+                + (i.type !== 'debit' && !item ? '' : '')
+                + '<div class="input-container"' + (i.type==='debit'?' style="display:none;"':'') + ' id="f-credit-fields"><label>Credit Limit (₹)</label><input type="number" id="f-creditLimit" class="md-input" value="' + (i.creditLimit||'') + '" placeholder="500000"></div>'
+                + '<div class="input-container" id="f-outstanding-container"><label>Outstanding Amount (₹)</label><input type="number" id="f-outstandingAmount" class="md-input" value="' + (i.outstandingAmount||'') + '" placeholder="0"></div>'
+                + '<div class="input-container"><label>Billing Date (day of month)</label><input type="number" id="f-billingDate" class="md-input" min="1" max="31" value="' + (i.billingDate||'') + '" placeholder="5"></div>'
+                + '<div class="input-container"><label>Notes</label><input type="text" id="f-notes" class="md-input" value="' + esc(i.notes||'') + '" placeholder="Optional"></div>';
+        }
+
+        function getBankForm(item) {
+            let i = item || {};
+            return '<div class="input-container"><label>Bank Name</label><input type="text" id="f-bankName" class="md-input" value="' + esc(i.bankName||'') + '" placeholder="State Bank of India"></div>'
+                + '<div class="input-container"><label>Account Type</label><select id="f-accountType" class="md-input"><option value="savings"' + (i.accountType==='savings'?' selected':'') + '>Savings</option><option value="current"' + (i.accountType==='current'?' selected':'') + '>Current</option><option value="salary"' + (i.accountType==='salary'?' selected':'') + '>Salary</option><option value="fixed_deposit"' + (i.accountType==='fixed_deposit'?' selected':'') + '>Fixed Deposit</option></select></div>'
+                + '<div class="input-container"><label>Last 4 Digits</label><input type="text" id="f-accountNumber" class="md-input" maxlength="4" value="' + esc(i.accountNumber||'') + '" placeholder="4567" inputmode="numeric"></div>'
+                + '<div class="input-container"><label>IFSC Code</label><input type="text" id="f-ifscCode" class="md-input" value="' + esc(i.ifscCode||'') + '" placeholder="SBIN0001234"></div>'
+                + '<div class="input-container"><label>Branch Name</label><input type="text" id="f-branchName" class="md-input" value="' + esc(i.branchName||'') + '" placeholder="Main Branch"></div>'
+                + '<div class="input-container"><label>Balance (₹)</label><input type="number" id="f-balance" class="md-input" value="' + (i.balance||'') + '" placeholder="0"></div>'
+                + '<div class="input-container"><label>Notes</label><input type="text" id="f-notes" class="md-input" value="' + esc(i.notes||'') + '" placeholder="Optional"></div>';
+        }
+
+        function getPFForm(item) {
+            let i = item || {};
+            return '<div class="input-container"><label>Provider</label><select id="f-provider" class="md-input"><option value="EPFO"' + (i.provider==='EPFO'?' selected':'') + '>EPFO</option><option value="PPF"' + (i.provider==='PPF'?' selected':'') + '>PPF</option><option value="VPF"' + (i.provider==='VPF'?' selected':'') + '>VPF</option><option value="NPS"' + (i.provider==='NPS'?' selected':'') + '>NPS</option><option value="Other"' + (i.provider==='Other'?' selected':'') + '>Other</option></select></div>'
+                + '<div class="input-container"><label>Account Number</label><input type="text" id="f-accountNumber" class="md-input" value="' + esc(i.accountNumber||'') + '" placeholder="AP/1234/567"></div>'
+                + '<div class="input-container"><label>Balance (₹)</label><input type="number" id="f-balance" class="md-input" value="' + (i.balance||'') + '" placeholder="0"></div>'
+                + '<div class="input-container"><label>Your Monthly Contribution (₹)</label><input type="number" id="f-monthlyContribution" class="md-input" value="' + (i.monthlyContribution||'') + '" placeholder="5000"></div>'
+                + '<div class="input-container"><label>Employer Contribution (₹)</label><input type="number" id="f-employerContribution" class="md-input" value="' + (i.employerContribution||'') + '" placeholder="5000"></div>'
+                + '<div class="input-container"><label>Interest Rate (%)</label><input type="number" step="0.01" id="f-interestRate" class="md-input" value="' + (i.interestRate||'') + '" placeholder="8.15"></div>'
+                + '<div class="input-container"><label>Start Date</label><input type="date" id="f-startDate" class="md-input" value="' + (i.startDate||'') + '"></div>'
+                + '<div class="input-container"><label>Nominee</label><input type="text" id="f-nominee" class="md-input" value="' + esc(i.nominee||'') + '" placeholder="Spouse"></div>'
+                + '<div class="input-container"><label>Notes</label><input type="text" id="f-notes" class="md-input" value="' + esc(i.notes||'') + '" placeholder="Optional"></div>';
+        }
+
+        function g(id) { return document.getElementById(id); }
+        function gv(id) { let el = g(id); return el ? el.value : ''; }
+        function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+        // ── Save ──
+        function saveItem() {
+            let type = currentTab;
+            let items = getCollection(type);
+            let data = {};
+
+            if (type === 'cards') {
+                data.bankName = gv('f-bankName');
+                data.type = gv('f-type') || 'credit';
+                data.cardNetwork = gv('f-cardNetwork') || 'Visa';
+                data.cardHolderName = gv('f-cardHolderName').toUpperCase();
+                data.cardNumber = gv('f-cardNumber').slice(-4);
+                data.expiryMonth = gv('f-expiryMonth').slice(0,2);
+                data.expiryYear = gv('f-expiryYear').slice(0,2);
+                data.creditLimit = parseFloat(gv('f-creditLimit')) || 0;
+                data.outstandingAmount = parseFloat(gv('f-outstandingAmount')) || 0;
+                data.billingDate = parseInt(gv('f-billingDate')) || 0;
+                data.notes = gv('f-notes');
+                if (!data.bankName) { Swal.fire({icon:'error',title:'Bank name required',timer:1200,showConfirmButton:false}); return; }
+                if (!data.cardNumber || data.cardNumber.length < 4) { Swal.fire({icon:'error',title:'Enter last 4 digits',timer:1200,showConfirmButton:false}); return; }
+            } else if (type === 'banks') {
+                data.bankName = gv('f-bankName');
+                data.accountType = gv('f-accountType') || 'savings';
+                data.accountNumber = gv('f-accountNumber').slice(-4);
+                data.ifscCode = gv('f-ifscCode');
+                data.branchName = gv('f-branchName');
+                data.balance = parseFloat(gv('f-balance')) || 0;
+                data.notes = gv('f-notes');
+                if (!data.bankName) { Swal.fire({icon:'error',title:'Bank name required',timer:1200,showConfirmButton:false}); return; }
+            } else {
+                data.provider = gv('f-provider') || 'EPFO';
+                data.accountNumber = gv('f-accountNumber');
+                data.balance = parseFloat(gv('f-balance')) || 0;
+                data.monthlyContribution = parseFloat(gv('f-monthlyContribution')) || 0;
+                data.employerContribution = parseFloat(gv('f-employerContribution')) || 0;
+                data.interestRate = parseFloat(gv('f-interestRate')) || 0;
+                data.startDate = gv('f-startDate');
+                data.nominee = gv('f-nominee');
+                data.notes = gv('f-notes');
+                if (!data.accountNumber) { Swal.fire({icon:'error',title:'Account number required',timer:1200,showConfirmButton:false}); return; }
+            }
+
+            if (editId) {
+                let idx = items.findIndex(i => i.id === editId);
+                if (idx >= 0) items[idx] = { ...items[idx], ...data };
+            } else {
+                data.id = genId();
+                items.push(data);
+            }
+
+            saveDB();
+            closeFormSheet();
+            renderAll();
+            Swal.fire({icon:'success',title:editId ? 'Updated' : 'Added',timer:1200,showConfirmButton:false});
+        }
+
+        function deleteItem() {
+            if (!editId) return;
+            Swal.fire({title:'Delete?',text:'This cannot be undone',icon:'warning',showCancelButton:true,confirmButtonColor:'var(--md-error)',confirmButtonText:'Delete',cancelButtonText:'Cancel'}).then(r => {
+                if (!r.isConfirmed) return;
+                let type = currentTab;
+                let items = getCollection(type);
+                let idx = items.findIndex(i => i.id === editId);
+                if (idx >= 0) items.splice(idx, 1);
+                saveDB();
+                closeFormSheet();
+                renderAll();
+                Swal.fire({icon:'info',title:'Deleted',timer:1200,showConfirmButton:false});
+            });
+        }
+
+        // ── Init ──
+        renderAll();
+    </script>
+</body>
+</html>

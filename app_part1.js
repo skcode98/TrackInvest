@@ -69,6 +69,17 @@ if (!db.fireTargetMonthly) db.fireTargetMonthly = 0;
 if (!db.templates) db.templates = [];
 if (typeof db.privacyMode === 'undefined') db.privacyMode = false;
 if (!db.theme) db.theme = 'indigo';
+// Migrate any existing accountOverview data to separate private key (never shared with AI)
+if (db.accountOverview) {
+    try {
+        const existing = JSON.parse(localStorage.getItem('appHubInvestDb_ao')) || {};
+        if (!existing.cards && db.accountOverview.cards) existing.cards = db.accountOverview.cards;
+        if (!existing.banks && db.accountOverview.banks) existing.banks = db.accountOverview.banks;
+        if (!existing.pf && db.accountOverview.pf) existing.pf = db.accountOverview.pf;
+        localStorage.setItem('appHubInvestDb_ao', JSON.stringify(existing));
+    } catch(e) {}
+    delete db.accountOverview;
+}
 if (!db.geminiKey) db.geminiKey = '';
 if (!db.groqKey) db.groqKey = '';
 if (!db.openrouterKey) db.openrouterKey = '';
