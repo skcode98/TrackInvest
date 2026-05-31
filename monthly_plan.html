@@ -17,6 +17,13 @@
     <link rel="stylesheet" href="./style.css">
     <script src="./version.js"></script>
     <style>
+        body { padding-bottom:calc(120px + env(safe-area-inset-bottom)); }
+        :root {
+            --cat-needs:   #BA1A1A;
+            --cat-invest:  #415F91;
+            --cat-wants:   #186D33;
+            --cat-unalloc: #8E9099;
+        }
 
         /* ── HERO ── */
         .planner-hero {
@@ -31,7 +38,7 @@
         .hero-status  {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 12px; font-weight: 600;
-            background: rgba(255,255,255,0.2); padding: 5px 14px;
+            background: rgba(0,0,0,0.08); padding: 5px 14px;
             border-radius: 20px; margin-top: 10px;
         }
 
@@ -72,7 +79,7 @@
 
         /* ── CARDS ── */
         .planner-card {
-            background: var(--md-surface-container); border-radius: var(--card-radius);
+            background: var(--md-surface-container-low); border-radius: 24px;
             padding: 20px; margin-bottom: 16px;
             border: 1px solid var(--md-surface-container-highest);
         }
@@ -89,7 +96,7 @@
         /* ── PLAN vs ACTUAL BAR ── */
         .pva-bar {
             display:flex; gap:0; padding: 10px 14px;
-            background: var(--md-surface-container); border-radius: var(--card-radius-xs);
+            background: var(--md-surface-container); border-radius: 14px;
             margin-bottom: 14px; align-items: center;
         }
         .pva-col { flex:1; text-align:center; }
@@ -194,7 +201,7 @@
         }
         .yearly-overlay.open { opacity:1; pointer-events:auto; }
         .yearly-card {
-            background:var(--md-surface); border-radius:var(--card-radius);
+            background:var(--md-surface); border-radius:24px;
             padding:24px; max-width:600px; width:100%; max-height:90vh;
             overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.15);
             box-sizing:border-box;
@@ -202,7 +209,7 @@
         .yearly-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:8px; margin-top:4px; }
         .yearly-cell {
             background:var(--md-surface-container);
-            border-radius:var(--card-radius-xs); padding:12px; border:1.5px solid transparent;
+            border-radius:14px; padding:12px; border:1.5px solid transparent;
             transition:0.2s; display:flex; flex-direction:column; gap:3px;
         }
         .yearly-cell:hover { border-color:var(--md-primary); background:var(--md-surface-container-highest); }
@@ -259,7 +266,7 @@
         @media(max-width:480px) {
             .planner-hero { padding:16px; }
             .hero-balance { font-size:32px; }
-            .planner-card { padding:14px; border-radius:var(--card-radius-sm); }
+            .planner-card { padding:14px; border-radius:18px; }
             .card-title { font-size:14px; margin-bottom:12px; }
             .plan-row { padding:8px 0; gap:6px; }
             .plan-row-label .name { font-size:14px; }
@@ -281,14 +288,14 @@
             .bench-val { font-size:12px; }
             .alloc-legend-row { font-size:10px; gap:6px; }
             .month-nav { font-size:12px; padding:3px 8px; }
-            .month-nav button { padding:8px; min-height:44px; min-width:44px; }
+            .month-nav button { padding:8px; min-height:40px; min-width:40px; }
             #breakdown-overlay > div { padding:16px !important; border-radius:16px !important; max-width:94vw !important; }
         }
 
         @media(max-width:380px) {
             .planner-hero { padding:12px; }
             .hero-balance { font-size:28px; }
-            .planner-card { padding:10px; border-radius:var(--card-radius-xs); }
+            .planner-card { padding:10px; border-radius:14px; }
             .plan-row-label .name { font-size:13px; }
             .plan-input { max-width:65px; font-size:13px; }
             .del-btn { min-width:36px; min-height:36px; padding:6px; }
@@ -299,9 +306,20 @@
         }
 
         /* ── MONTH NAV ── */
-        .month-nav { margin-bottom:20px; }
+        .month-nav {
+            display:flex; align-items:center; gap:8px;
+            background:var(--md-surface-container-highest);
+            border-radius:100px; padding:4px 12px;
+            font-size:13px; font-weight:500;
+        }
+        .month-nav button {
+            background:none; border:none; cursor:pointer;
+            color:var(--md-on-surface-variant); padding:4px;
+            border-radius:50%; display:flex; align-items:center;
+        }
+        .month-nav button:active { background:var(--md-surface-container); }
 
-        .bottom-spacer { height: 16px; }
+        .bottom-spacer { height: 100px; }
 
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .spin { animation:spin 1s linear infinite; display:inline-block; }
@@ -339,7 +357,7 @@
 </head>
 <body>
     <header class="top-app-bar" style="gap:8px;">
-        <button class="icon-btn" onclick="navigateBack()">
+        <button class="icon-btn" onclick="window.location.href='index.html'">
             <span class="material-symbols-rounded">arrow_back</span>
         </button>
         <div class="app-title" style="flex:1;">Monthly Planner</div>
@@ -369,7 +387,7 @@
                     <span class="material-symbols-rounded" style="font-size:12px;">receipt_long</span>
                     Actual: <span id="hero-actual">₹0</span>
                 </span>
-                <span class="hero-status" id="hero-status" style="margin:0;padding:3px 10px;border-radius:20px;">
+                <span class="hero-status" id="hero-status" style="margin:0;background:rgba(0,0,0,0.07);padding:3px 10px;border-radius:20px;">
                     <span class="material-symbols-rounded" style="font-size:12px;" id="hero-icon">info</span>
                     <span id="hero-msg">Enter your income to begin</span>
                 </span>
@@ -393,22 +411,6 @@
             <div class="metric-chip">
                 <span class="metric-chip-label">Total Outflow</span>
                 <span class="metric-chip-val" id="m-total-out">₹0</span>
-            </div>
-        </div>
-
-        <!-- ALLOCATION BAR -->
-        <div class="alloc-bar-wrap">
-            <div class="alloc-bar" id="pva-stacked-bar">
-                <div class="alloc-seg" id="seg-needs" style="width:0%;background:var(--cat-needs);"></div>
-                <div class="alloc-seg" id="seg-invest" style="width:0%;background:var(--cat-invest);"></div>
-                <div class="alloc-seg" id="seg-wants" style="width:0%;background:var(--cat-wants);"></div>
-                <div class="alloc-seg" id="seg-unalloc" style="width:0%;background:var(--cat-unalloc);"></div>
-            </div>
-            <div class="pva-legend" id="pva-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:11px;color:var(--md-on-surface-variant);">
-                <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--cat-needs);vertical-align:middle;margin-right:4px;"></span> Needs: <span id="pva-legend-needs">0%</span></span>
-                <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--cat-invest);vertical-align:middle;margin-right:4px;"></span> Invest: <span id="pva-legend-invest">0%</span></span>
-                <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--cat-wants);vertical-align:middle;margin-right:4px;"></span> Wants: <span id="pva-legend-wants">0%</span></span>
-                <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--cat-unalloc);vertical-align:middle;margin-right:4px;"></span> Unalloc: <span id="pva-legend-unalloc">0%</span></span>
             </div>
         </div>
 
@@ -528,7 +530,17 @@
     </div>
 
     <div id="snackbar" class="snackbar"></div>
-    <div title="Build version" class="version-badge" onclick="if(typeof APP_VERSION!=='undefined'){navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')}"></div>
+    <div id="ai-batch-progress" class="ai-batch-progress" style="display:none;">
+        <div class="ai-batch-progress-label">
+            <span id="ai-batch-label">AI processing...</span>
+            <span id="ai-batch-count">0/0</span>
+        </div>
+        <div class="ai-batch-progress-track">
+            <div id="ai-batch-bar" class="ai-batch-progress-fill"></div>
+        </div>
+    </div>
+    <div style="text-align:center;padding:8px 16px 16px;font-size:10px;color:var(--md-outline);opacity:0.4;user-select:none;"
+        onclick="if(typeof APP_VERSION!=='undefined'){navigator.clipboard.writeText(APP_VERSION).catch(()=>{});snack('Version copied','check_circle')}" class="version-badge"></div>
     <script>var vb=document.querySelector('.version-badge');if(vb&&typeof APP_VERSION!=='undefined')vb.textContent=APP_VERSION;</script>
 
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
@@ -538,7 +550,6 @@
 <script>
     window.addEventListener('unhandledrejection', e => { e.preventDefault(); });
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e)); }
-    function navigateBack() { if (window.history.length > 1) { window.history.back(); } else { window.location.href = 'index.html'; } }
     // ──────────────────────────────────────────────────────────────
     // STATE
     // ──────────────────────────────────────────────────────────────
@@ -872,13 +883,11 @@ async function aiAllocateToCategories() {
     const d = getViewDate();
     let m = d.getMonth(), y = d.getFullYear();
     
-    // 1. Gather Spend Entries
     const spendEntries = ((db.spendTracker && db.spendTracker.entries) || []).filter(e => {
         const ed = new Date(e.date);
         return ed.getMonth() === m && ed.getFullYear() === y;
     });
     
-    // 2. Gather Investment Entries
     const investEntries = (db.investments || []).filter(i => {
         const id = new Date(i.date);
         return id.getMonth() === m && id.getFullYear() === y;
@@ -932,9 +941,20 @@ async function aiAllocateToCategories() {
             const memBucket = db.aiMemory[key].bucket;
             
             let isValid = false;
-            if (memBucket === 'needs') isValid = userNeeds.some(n => n.toLowerCase() === memCat || memCat.includes(n.toLowerCase()) || n.toLowerCase().includes(memCat));
-            else if (memBucket === 'wants') isValid = userWants.some(w => w.toLowerCase() === memCat || memCat.includes(w.toLowerCase()) || w.toLowerCase().includes(memCat));
-            else if (memBucket === 'investments') isValid = userInvests.some(i => i.toLowerCase() === memCat || memCat.includes(i.toLowerCase()) || i.toLowerCase().includes(memCat));
+            const matchCat = (cat, list) => {
+                const lc = cat.toLowerCase().trim();
+                if (lc.length < 2) return false;
+                return list.some(item => {
+                    const li = item.toLowerCase();
+                    return li === lc || (lc.length >= 4 && li.includes(lc)) || (li.length >= 4 && lc.includes(li));
+                });
+            };
+            if (memBucket === 'needs') isValid = matchCat(memCat, userNeeds);
+            else if (memBucket === 'wants') isValid = matchCat(memCat, userWants);
+            else if (memBucket === 'investments') isValid = matchCat(memCat, userInvests);
+
+            if (isValid && e.type === 'spend' && memBucket === 'investments') isValid = false;
+            if (isValid && e.type === 'investment' && memBucket !== 'investments') isValid = false;
 
             if (isValid) {
                 preAllocated.push({ id: e.id, category: db.aiMemory[key].category, bucket: db.aiMemory[key].bucket });
@@ -970,115 +990,168 @@ async function aiAllocateToCategories() {
         return;
     }
 
-    const prompt = `You are a personal finance assistant. Allocate each entry to ONE of the user's custom categories:
+    const btn = document.getElementById('ai-classify-btn');
+
+    async function parseAIResponse(raw) {
+        const extracted = extractJSON(raw);
+        if (!extracted) return null;
+        const parsed = JSON.parse(extracted);
+        if (!parsed || !Array.isArray(parsed.allocations)) return null;
+        return parsed.allocations;
+    }
+
+    function extractJSON(text) {
+        if (!text) return null;
+        let cleaned = text.trim();
+        const codeBlock = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlock) cleaned = codeBlock[1].trim();
+        const braceMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (braceMatch) cleaned = braceMatch[0];
+        cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+        try { const p = JSON.parse(cleaned); return JSON.stringify(p); } catch (e) {}
+        try { const p = JSON.parse(cleaned.replace(/'/g, '"')); return JSON.stringify(p); } catch (e) {}
+        return null;
+    }
+
+    async function processBatch(batch, batchIdx, totalBatches) {
+        const prompt = `You are a personal finance assistant. Allocate each entry to ONE of the user's custom categories:
 ${allCategories.join('\n')}
 
 Rules:
 1. For entries with type="spend", map them ONLY to a category from the "Needs" or "Wants" list.
 2. For entries with type="investment", map them ONLY to a category from the "Investments" list.
 3. If an entry does not clearly match, pick the closest existing category in the allowed lists.
+4. Return EVERY entry in the data — do not skip any.
 
 Return ONLY JSON with the shape: {"allocations":[{"id":"...","category":"...","bucket":"needs|wants|investments"}]}. No markdown.
 
-Data:
-${JSON.stringify(needsAiData)}`;
+Data (batch ${batchIdx + 1}/${totalBatches}):
+${JSON.stringify(batch)}`;
 
-    const btn = document.getElementById('ai-classify-btn');
+        let responseText = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const raw = await callAI(prompt, 'You are a financial allocator assigning spend and investments to custom budget categories.');
+                const allocs = await parseAIResponse(raw);
+                if (!allocs) {
+                    if (attempt === 0) {
+                        const fixPrompt = prompt + `\n\nYour previous response was not valid JSON. Fix it:\n${raw}`;
+                        const fixed = await callAI(fixPrompt, 'You are a financial allocator. Fix the JSON response.');
+                        const fixedAllocs = await parseAIResponse(fixed);
+                        if (fixedAllocs) return fixedAllocs;
+                    }
+                    return null;
+                }
+                responseText = allocs;
+                break;
+            } catch (e) {
+                if (attempt === 1) return null;
+            }
+        }
+        return responseText;
+    }
+
+    const BATCH_SIZE = 40;
+    const batches = [];
+    for (let i = 0; i < needsAiData.length; i += BATCH_SIZE) {
+        batches.push(needsAiData.slice(i, i + BATCH_SIZE));
+    }
+
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">autorenew</span>'; }
 
-    async function tryAllocate(previousResponse) {
-        let currentPrompt = prompt;
-        if (previousResponse) {
-            currentPrompt = `The previous AI returned invalid or incomplete JSON. Fix it.
-Original instructions:
-${prompt}
+    try {
+        const allAllocations = [];
+        const totalBatches = batches.length;
 
-Previous (broken) response:
-${previousResponse}
-
-Return ONLY valid JSON: {"allocations":[{"id":"...","category":"...","bucket":"needs|wants|investments"}]}. No markdown.`;
-        }
-        return await callAI(currentPrompt, 'You are a financial allocator assigning spend and investments to custom budget categories. Return ONLY valid JSON.');
-    }
-
-    let lastError = null;
-    let raw, parsed, allocationMap, categoryTotals, allocationEntries;
-
-    for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-            raw = await (attempt === 0 ? tryAllocate() : tryAllocate(raw));
-            parsed = extractJSONFromAI(raw);
-            if (Array.isArray(parsed)) parsed = { allocations: parsed };
-            if (!parsed || !Array.isArray(parsed.allocations)) {
-                throw new Error('Invalid AI response');
+        for (let b = 0; b < totalBatches; b++) {
+            if (totalBatches > 1) {
+                const pct = Math.round(((b + 1) / totalBatches) * 100);
+                document.getElementById('ai-batch-label').textContent = 'AI processing batch ' + (b + 1) + '/' + totalBatches;
+                document.getElementById('ai-batch-count').textContent = pct + '%';
+                document.getElementById('ai-batch-bar').style.width = pct + '%';
+                document.getElementById('ai-batch-progress').style.display = 'block';
             }
+            const batchAllocs = await processBatch(batches[b], b, totalBatches);
+            if (!batchAllocs) {
+                throw new Error(`Batch ${b + 1}/${totalBatches} failed — AI returned invalid JSON`);
+            }
+            allAllocations.push(...batchAllocs);
+        }
 
-            allocationMap = {};
-            categoryTotals = { needs: {}, wants: {}, investments: {} };
-            const validBuckets = ['needs', 'wants', 'investments'];
-            const validNeeds = userNeeds.map(n => n.toLowerCase());
-            const validWants = userWants.map(w => w.toLowerCase());
-            const validInvests = userInvests.map(i => i.toLowerCase());
-
-            [...preAllocated, ...parsed.allocations].forEach(a => {
-                if (!a || !a.id) return;
-                const bucket = String(a.bucket || '').toLowerCase().trim();
-                if (!validBuckets.includes(bucket)) return;
-                let categoryName = String(a.category || '').trim();
-                if (!categoryName) return;
-                // Fuzzy-match category to user's actual category names
-                const validList = bucket === 'needs' ? validNeeds : bucket === 'wants' ? validWants : validInvests;
-                const match = validList.find(v => v === categoryName.toLowerCase() || v.includes(categoryName.toLowerCase()) || categoryName.toLowerCase().includes(v));
-                if (match) categoryName = bucket === 'needs' ? userNeeds[validNeeds.indexOf(match)] : bucket === 'wants' ? userWants[validWants.indexOf(match)] : userInvests[validInvests.indexOf(match)];
-
-                allocationMap[a.id] = { category: categoryName, bucket: bucket };
+        const allocationMap = {};
+        const categoryTotals = { needs: {}, wants: {}, investments: {} };
+        
+        const sentIds = new Set(needsAiData.map(e => e.id));
+        const receivedIds = new Set();
+        
+        [...preAllocated, ...allAllocations].forEach(a => {
+            if (a.id && a.category && a.bucket) {
+                const categoryName = String(a.category).trim();
+                const bucket = String(a.bucket).toLowerCase().trim();
+                
+                if (bucket !== 'needs' && bucket !== 'wants' && bucket !== 'investments') return;
+                
                 const origEntry = allData.find(e => e.id === a.id);
-                if (origEntry) {
-                    if (!categoryTotals[bucket]) categoryTotals[bucket] = {};
+                if (origEntry && origEntry.type === 'spend' && bucket === 'investments') return;
+                if (origEntry && origEntry.type === 'investment' && bucket !== 'investments') return;
+
+                const isPreAlloc = sentIds.has(a.id);
+                receivedIds.add(a.id);
+                allocationMap[a.id] = { category: categoryName, bucket: bucket };
+                
+                if (origEntry && categoryTotals[bucket]) {
                     categoryTotals[bucket][categoryName] = (categoryTotals[bucket][categoryName] || 0) + origEntry.amount;
                 }
-            });
-
-            // If too many items unallocated, treat as failure
-            const unallocatedCount = allData.filter(e => !allocationMap[e.id]).length;
-            if (unallocatedCount > allData.length * 0.3 && attempt === 0) {
-                throw new Error('Too many unallocated items, retrying...');
             }
+        });
 
-            allocationEntries = allData.map(e => {
-                const alloc = allocationMap[e.id];
-                const fallbackBucket = e.type === 'investment' ? 'investments' : 'needs';
-                const fallbackCategory = e.current_category || 'Other';
-                return {
-                    id: e.id,
-                    bucket: alloc ? alloc.bucket : fallbackBucket,
-                    comment: e.comment || e.current_category || 'Entry',
-                    amount: e.amount || 0,
-                    category: alloc ? alloc.category : fallbackCategory
-                };
-            });
-
-            lastError = null;
-            break;
-        } catch (e) {
-            lastError = e;
-            console.warn('AI allocation attempt ' + (attempt + 1) + ' failed:', e.message);
+        const missingIds = [...sentIds].filter(id => !receivedIds.has(id) && !preAllocated.some(p => p.id === id));
+        if (missingIds.length > 0 && totalBatches > 1) {
+            const retryBatch = needsAiData.filter(e => missingIds.includes(e.id));
+            const retryAllocs = await processBatch(retryBatch, 0, 1);
+            if (retryAllocs) {
+                retryAllocs.forEach(a => {
+                    if (a.id && a.category && a.bucket) {
+                        const categoryName = String(a.category).trim();
+                        const bucket = String(a.bucket).toLowerCase().trim();
+                        if (bucket !== 'needs' && bucket !== 'wants' && bucket !== 'investments') return;
+                        const origEntry = allData.find(e => e.id === a.id);
+                        if (origEntry && origEntry.type === 'spend' && bucket === 'investments') return;
+                        if (origEntry && origEntry.type === 'investment' && bucket !== 'investments') return;
+                        allocationMap[a.id] = { category: categoryName, bucket: bucket };
+                        if (origEntry && categoryTotals[bucket]) {
+                            categoryTotals[bucket][categoryName] = (categoryTotals[bucket][categoryName] || 0) + origEntry.amount;
+                        }
+                    }
+                });
+            }
         }
-    }
 
-    if (lastError) {
-        console.warn('AI allocation failed:', lastError);
-        snack('AI allocation failed: ' + (lastError.message || 'unknown'), 'error');
-        if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
-        return;
-    }
+        const allocationEntries = allData.map(e => {
+            const alloc = allocationMap[e.id];
+            return {
+                id: e.id,
+                bucket: alloc ? alloc.bucket : (e.type === 'spend' ? 'uncategorized' : 'investments'),
+                comment: e.comment || e.current_category || 'Entry',
+                amount: e.amount || 0,
+                category: alloc ? alloc.category : (e.current_category || 'Uncategorized')
+            };
+        });
 
-    showAllocationPreview(allocationEntries, categoryTotals, () => {
-        applyClassificationResult(allocationMap);
+        showAllocationPreview(allocationEntries, categoryTotals, () => {
+            document.getElementById('ai-batch-progress').style.display = 'none';
+            applyClassificationResult(allocationMap);
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
+        }, () => {
+            document.getElementById('ai-batch-progress').style.display = 'none';
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
+        });
+    } catch (e) {
+        console.warn('AI allocation failed:', e);
+        document.getElementById('ai-batch-progress').style.display = 'none';
+        snack('AI allocation failed: ' + (e.message || 'unknown'), 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
-    }, () => {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded">auto_awesome</span>'; }
-    });
+    }
 }
 
 function showAllocationPreview(entries, totals, onApply, onCancel) {
@@ -1177,7 +1250,14 @@ function applyClassificationResult(allocationMap) {
     
     const isValidCategory = (cat, allowedList) => {
         const c = String(cat).toLowerCase().trim();
-        return allowedList.some(item => item === c || item.includes(c) || c.includes(item));
+        if (c.length < 2) return false;
+        const exact = allowedList.find(item => item === c);
+        if (exact) return true;
+        return allowedList.some(item => {
+            if (c.length >= 4 && item.includes(c)) return true;
+            if (item.length >= 4 && c.includes(item)) return true;
+            return false;
+        });
     };
 
     if (!db.aiMemory) db.aiMemory = {};
@@ -1186,7 +1266,8 @@ function applyClassificationResult(allocationMap) {
     spendEntries.forEach(entry => {
         const alloc = allocationMap[entry.id];
         if (alloc) {
-            const allowedList = alloc.bucket === 'needs' ? validNeeds : (alloc.bucket === 'wants' ? validWants : [...validNeeds, ...validWants]);
+            if (alloc.bucket !== 'needs' && alloc.bucket !== 'wants') return;
+            const allowedList = alloc.bucket === 'needs' ? validNeeds : validWants;
             if (alloc.category && entry.category !== alloc.category && isValidCategory(alloc.category, allowedList)) {
                 entry.category = alloc.category;
                 const commentKey = String(entry.comment || '').toLowerCase().trim();
@@ -1200,9 +1281,12 @@ function applyClassificationResult(allocationMap) {
     investEntries.forEach(entry => {
         const alloc = allocationMap[entry.id];
         if (alloc && alloc.bucket === 'investments') {
-            if (alloc.category && entry.type !== alloc.category && isValidCategory(alloc.category, validInvests)) {
-                entry.type = alloc.category;
-                investmentsModified = true;
+            if (alloc.category && isValidCategory(alloc.category, validInvests)) {
+                if (!entry.originalType) entry.originalType = entry.type;
+                if (entry.type !== alloc.category) {
+                    entry.type = alloc.category;
+                    investmentsModified = true;
+                }
                 const noteKey = String(entry.note || '').toLowerCase().trim();
                 if (noteKey) db.aiMemory[noteKey] = { category: alloc.category, bucket: 'investments' };
             }
