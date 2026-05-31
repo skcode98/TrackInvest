@@ -23,6 +23,12 @@
     <style>
         body { padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
 
+        /* ── Bottom sheet (matching spend_tracker) ── */
+        .import-sheet { position:fixed; bottom:0; left:0; right:0; margin:0 auto; max-width:600px; background:var(--md-surface-container-low); border-radius:28px 28px 0 0; padding:24px 24px 32px; z-index:1001; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.1,0.7,0.1,1); max-height:75vh; overflow-y:auto; box-shadow:0 -8px 32px rgba(0,0,0,0.18); }
+        .import-sheet.open { transform:translateY(0); }
+        .import-scrim { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:1000; opacity:0; visibility:hidden; transition:0.3s; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+        .import-scrim.open { opacity:1; visibility:visible; }
+
         /* ── Tab bar ── */
         .ao-tabs { display:flex; gap:4px; padding:4px; background:var(--md-surface-container-high); border-radius:14px; margin-bottom:16px; overflow-x:auto; scrollbar-width:none; }
         .ao-tab { flex:1; flex-shrink:0; padding:10px 12px; border:none; background:transparent; border-radius:10px; font-size:12px; font-weight:500; cursor:pointer; color:var(--md-on-surface-variant); transition:0.2s; white-space:nowrap; display:flex; align-items:center; gap:4px; justify-content:center; }
@@ -64,6 +70,7 @@
         .detail-value { font-size:14px; font-weight:500; color:var(--md-on-surface); text-align:right; }
 
         @media(max-width:480px) {
+            .import-sheet { max-width:100%; border-radius:20px 20px 0 0; padding:16px; }
             .vc-card { padding:18px 16px; min-height:150px; border-radius:16px; }
             .vc-card .vc-number { font-size:16px; letter-spacing:2px; }
             .vc-card .vc-balance { font-size:20px; }
@@ -118,7 +125,7 @@
         <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker"><span class="material-symbols-rounded">receipt_long</span></button>
     </header>
 
-    <main class="container" style="padding-top:0;">
+    <main class="container" style="padding-top:16px;">
         <!-- Tabs -->
         <div class="ao-tabs">
             <button class="ao-tab active" data-tab="cards" onclick="switchTab('cards',this)"><span class="material-symbols-rounded">credit_card</span> Cards</button>
@@ -360,8 +367,9 @@
         }
 
         function editFromDetail() {
+            const id = editId;
             closeDetailSheet();
-            openAddSheet(editId);
+            openAddSheet(id);
         }
 
         // ── Form ──
@@ -395,6 +403,15 @@
 
             document.getElementById('form-sheet').classList.add('open');
             document.getElementById('form-scrim').classList.add('open');
+
+            // Toggle credit fields when card type changes
+            const typeEl = document.getElementById('f-type');
+            if (typeEl) {
+                typeEl.onchange = function() {
+                    const cf = document.getElementById('f-credit-fields');
+                    if (cf) cf.style.display = this.value === 'debit' ? 'none' : '';
+                };
+            }
         }
 
         function closeFormSheet() {
@@ -412,7 +429,6 @@
                 + '<div class="input-container"><label>Last 4 Digits</label><input type="text" id="f-cardNumber" class="md-input" maxlength="4" value="' + esc(i.cardNumber||'') + '" placeholder="4532" inputmode="numeric"></div>'
                 + '<div style="display:flex;gap:8px;"><div class="input-container" style="flex:1;"><label>Expiry Month</label><input type="text" id="f-expiryMonth" class="md-input" maxlength="2" value="' + esc(i.expiryMonth||'') + '" placeholder="MM" inputmode="numeric"></div>'
                 + '<div class="input-container" style="flex:1;"><label>Expiry Year</label><input type="text" id="f-expiryYear" class="md-input" maxlength="2" value="' + esc(i.expiryYear||'') + '" placeholder="YY" inputmode="numeric"></div></div>'
-                + (i.type !== 'debit' && !item ? '' : '')
                 + '<div class="input-container"' + (i.type==='debit'?' style="display:none;"':'') + ' id="f-credit-fields"><label>Credit Limit (₹)</label><input type="number" id="f-creditLimit" class="md-input" value="' + (i.creditLimit||'') + '" placeholder="500000"></div>'
                 + '<div class="input-container" id="f-outstanding-container"><label>Outstanding Amount (₹)</label><input type="number" id="f-outstandingAmount" class="md-input" value="' + (i.outstandingAmount||'') + '" placeholder="0"></div>'
                 + '<div class="input-container"><label>Billing Date (day of month)</label><input type="number" id="f-billingDate" class="md-input" min="1" max="31" value="' + (i.billingDate||'') + '" placeholder="5"></div>'
@@ -519,6 +535,7 @@
         }
 
         // ── Init ──
+        document.getElementById('fab-btn').innerHTML = '<span class="material-symbols-rounded">add</span> Add Card';
         renderAll();
     </script>
 </body>
