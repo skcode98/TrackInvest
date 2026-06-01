@@ -1053,24 +1053,67 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
 
         // ── SANKEY ──
         function renderSankey() {
-            const entries=getMonthEntries(); const svg=document.getElementById('sankey-svg');
-            const cats={}; entries.forEach(e=>{const c=e.category||'Uncategorized';if(!cats[c])cats[c]=0;cats[c]+=e.amount;});
-            const total=Object.values(cats).reduce((s,v)=>s+v,0);
-            if(total===0){svg.innerHTML='<text x="50%" y="50%" text-anchor="middle" fill="var(--md-outline)" font-size="13">No data</text>';return;}
-            const w=Math.max(400,svg.clientWidth||600), h=180, barW=14; let y=20;
-            const vals=Object.values(cats), colors=Object.keys(cats).map(c=>CAT_COLORS[c]||'#8E9099');
-            const totalPx=h-40, gap=Math.min(14,(h-40)/vals.length);
-            let html=`<rect width="${w}" height="${h}" fill="none"/><text x="10" y="16" fill="var(--md-on-surface-variant)" font-size="11">Total: ₹${total.toLocaleString('en-IN')}</text>`;
-            const cx=w/2;
-            Object.keys(cats).forEach((cat,i)=>{const pct=vals[i]/total;const barH=Math.max(8,pct*totalPx);const color=colors[i];
-                html+=`<rect x="20" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${color}" opacity="0.9"/>
-                <text x="42" y="${y+Math.min(barH/2+4,14)}" fill="var(--md-on-surface)" font-size="9">${cat}</text>
-                <text x="${w-10}" y="${y+Math.min(barH/2+4,14)}" fill="var(--md-on-surface)" font-size="9" text-anchor="end">₹${vals[i].toLocaleString('en-IN')}</text>
-                <path d="M${20+barW} ${y+barH/2} Q${cx} ${y+barH/2} ${cx} ${h/2}" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.15"/>`;
-                y+=barH+gap;
+            const entries = getMonthEntries();
+            const svg = document.getElementById('sankey-svg');
+            const cats = {};
+            entries.forEach(e => { const c = e.category || 'Uncategorized'; if (!cats[c]) cats[c] = 0; cats[c] += e.amount; });
+            const total = Object.values(cats).reduce((s, v) => s + v, 0);
+            if (total === 0) {
+                svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="var(--md-outline)" font-size="13">No data</text>';
+                return;
+            }
+
+            const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+            const w = Math.max(300, svg.clientWidth || 400);
+            const h = 180;
+            const labelW = 72;
+            const rightLabelW = 64;
+            const flowX1 = labelW;
+            const flowX2 = w - rightLabelW;
+            const gap = 4;
+            const totalRows = sorted.length;
+            const barSpace = h - 30 - gap * (totalRows - 1);
+            const minBarH = 8;
+
+            // Calculate proportional heights
+            const totalPct = sorted.reduce((s, [, amt]) => s + amt / total, 0);
+            let y = 20;
+            let html = `<rect width="${w}" height="${h}" fill="none"/>`;
+
+            sorted.forEach(([cat, amt], i) => {
+                const pct = amt / total;
+                const barH = Math.max(minBarH, (pct / totalPct) * barSpace);
+                const yCenter = y + barH / 2;
+                const color = CAT_COLORS[cat] || '#8E9099';
+                const isLast = i === sorted.length - 1;
+
+                // Left source bar
+                html += `<rect x="${flowX1 - 8}" y="${y}" width="8" height="${barH}" rx="2" fill="${color}" opacity="0.9"/>`;
+
+                // Category label
+                html += `<text x="${flowX1 - 12}" y="${yCenter + 3}" text-anchor="end" fill="var(--md-on-surface)" font-size="9" font-weight="500">${cat}</text>`;
+
+                // Right label + amount
+                html += `<text x="${flowX2 + 10}" y="${yCenter + 3}" fill="var(--md-on-surface)" font-size="9">₹${amt.toLocaleString('en-IN')}</text>`;
+                html += `<text x="${flowX2 + 10}" y="${yCenter + 13}" fill="var(--md-outline)" font-size="8">${(pct * 100).toFixed(1)}%</text>`;
+
+                // Flow curve: cubic bezier from source to target
+                const flowW = Math.max(2, barH * 0.6);
+                const cx1 = flowX1 + (flowX2 - flowX1) * 0.4;
+                const cx2 = flowX1 + (flowX2 - flowX1) * 0.6;
+                // Target Y: collected at center total
+                const targetY = h / 2;
+                html += `<path d="M${flowX1} ${yCenter} C${cx1} ${yCenter}, ${cx2} ${targetY}, ${flowX2} ${targetY}" fill="none" stroke="${color}" stroke-width="${flowW}" opacity="0.2" stroke-linecap="round"/>`;
+
+                y += barH + gap;
             });
-            html+=`<rect x="${cx-barW/2}" y="${h/2-10}" width="${barW}" height="20" rx="4" fill="var(--md-primary)" opacity="0.8"/><text x="${cx}" y="${h/2+4}" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">TOTAL</text>`;
-            svg.innerHTML=html;
+
+            // Right total bar
+            html += `<rect x="${flowX2}" y="${h/2 - 16}" width="8" height="32" rx="3" fill="var(--md-primary)" opacity="0.9"/>`;
+            html += `<text x="${flowX2 + 10}" y="${h/2 + 4}" fill="var(--md-primary)" font-size="11" font-weight="700">₹${total.toLocaleString('en-IN')}</text>`;
+            html += `<text x="${flowX2 + 10}" y="${h/2 + 15}" fill="var(--md-outline)" font-size="8">TOTAL</text>`;
+
+            svg.innerHTML = html;
         }
 
         // ── BIGGEST ITEM ──
