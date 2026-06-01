@@ -828,7 +828,8 @@ const SUB_SHEET_IDS = new Set([
     'ai-predict-sheet', 'history-sync-sheet',
     'chat-history-sheet', 'wealth-blueprint-sheet', 'ai-sheet',
     'maturity-calendar-sheet', 'ai-chat-sheet', 'monthly-target-sheet',
-    'projection-sheet', 'month-sheet', 'notif-sheet'
+    'projection-sheet', 'month-sheet', 'notif-sheet',
+    'note-month-sheet'
 ]);
 
 function openSubSheet(sheetId) {

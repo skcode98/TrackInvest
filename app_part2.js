@@ -970,7 +970,8 @@ function openCategoryDetails(type) {
     let assetHtml = "";
     Object.keys(assets).sort((a, b) => assets[b] - assets[a]).forEach(k => {
         let perc = totalInvested > 0 ? ((assets[k] / totalInvested) * 100).toFixed(1) : 0;
-        assetHtml += `<div class="unified-item"><div class="unified-title" style="flex:1;"><span class="title-text">${escapeHtml(k)}</span> <span style="font-size:11px;color:var(--md-outline);margin-left:6px;flex-shrink:0;">${perc}%</span></div><div class="price">${formatMoney(assets[k])}</div></div>`;
+        let safeNote = escapeHtml(k);
+        assetHtml += `<div class="unified-item" onclick="showNoteMonthHistory(this.dataset.cat,this.dataset.note)" data-cat="${escapeHtml(type)}" data-note="${safeNote}" style="cursor:pointer;"><div class="unified-title" style="flex:1;"><span class="title-text">${safeNote}</span> <span style="font-size:11px;color:var(--md-outline);margin-left:6px;flex-shrink:0;">${perc}%</span></div><div class="price">${formatMoney(assets[k])}</div></div>`;
     });
     document.getElementById('cat-asset-list').innerHTML = assetHtml || '<div style="color:var(--md-outline);font-size:14px;text-align:center;padding:16px;">No assets found.</div>';
     renderListToContainer(filtered.sort((a, b) => parseDate(b.date) - parseDate(a.date)), 'cat-history-list');
@@ -1012,6 +1013,100 @@ function saveCatSettings() {
     db.categoryDetails[window.activeCategory].fields = fields;
 
     saveData(); renderAll(); showSnackbar("Settings Saved", "check_circle"); closeOverlays();
+}
+
+function showNoteMonthHistory(type, note) {
+    const entries = db.investments.filter(i =>
+        i.type === type && (i.note || 'General') === note &&
+        (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter));
+    if (entries.length === 0) return;
+
+    document.getElementById('note-month-title').innerHTML = `<span style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-rounded" style="font-size:18px;">history</span> ${escapeHtml(note)}</span>`;
+
+    // Build month map for last 15 months only
+    const now = new Date();
+    const monthLabels = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+    const monthMap = {};
+    entries.forEach(e => {
+        const d = parseDate(e.date);
+        const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        monthMap[key] = (monthMap[key] || 0) + e.amount;
+    });
+
+    // Generate last 15 months as (year, month) pairs, newest first
+    const months = [];
+    for (let i = 14; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({ y: d.getFullYear(), m: d.getMonth(), key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') });
+    }
+
+    // Grid: 3 rows × 5 months (oldest top-left to newest bottom-right)
+    let gridHtml = '<div style="display:flex;flex-direction:column;gap:6px;">';
+    for (let row = 0; row < 3; row++) {
+        gridHtml += '<div style="display:flex;gap:6px;justify-content:center;">';
+        for (let col = 0; col < 5; col++) {
+            const idx = row * 5 + col;
+            if (idx >= months.length) { gridHtml += '<div style="width:56px;"></div>'; continue; }
+            const m = months[idx];
+            const amt = monthMap[m.key];
+            const hasEntry = amt !== undefined;
+            const isFuture = m.y > now.getFullYear() || (m.y === now.getFullYear() && m.m > now.getMonth());
+            const fill = hasEntry ? 'var(--md-success)' : (isFuture ? 'transparent' : 'var(--md-surface-container-highest)');
+            const border = isFuture ? '1px dashed var(--md-outline-variant)' : (hasEntry ? '2px solid var(--md-success)' : '1px solid var(--md-outline-variant)');
+            const txt = hasEntry ? 'var(--md-on-success)' : 'var(--md-outline)';
+            const tooltip = hasEntry ? `${monthLabels[m.m]} ${m.y}: ${fmt(amt)}` : (isFuture ? '' : `${monthLabels[m.m]} ${m.y}: Skipped`);
+            gridHtml += `<div title="${tooltip}" style="width:56px;text-align:center;">
+                <div style="font-size:9px;color:var(--md-outline);margin-bottom:2px;">${monthLabels[m.m]}</div>
+                <div style="width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:${fill};color:${txt};border:${border};margin:0 auto;">
+                    ${hasEntry ? '✓' : ''}
+                </div>
+                <div style="font-size:8px;color:var(--md-outline);margin-top:1px;">${String(m.y).slice(2)}</div>
+            </div>`;
+        }
+        gridHtml += '</div>';
+    }
+    gridHtml += '</div>';
+    document.getElementById('note-month-grid').innerHTML = gridHtml;
+
+    // Stats
+    const invested = Object.keys(monthMap).length;
+    const totalAmt = entries.reduce((s, e) => s + e.amount, 0);
+    const avgAmt = Math.round(totalAmt / invested);
+    const skipped = 15 - invested;
+    const hasSkip = skipped > 0;
+    document.getElementById('note-month-stats').innerHTML = `
+        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--md-success);">${invested}</div>
+            <div style="font-size:11px;color:var(--md-on-surface-variant);">Months Invested</div>
+        </div>
+        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:${hasSkip ? 'var(--md-error)' : 'var(--md-success)'};">${skipped}</div>
+            <div style="font-size:11px;color:var(--md-on-surface-variant);">Skipped</div>
+        </div>
+        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--md-primary);">${fmt(totalAmt)}</div>
+            <div style="font-size:11px;color:var(--md-on-surface-variant);">Total Invested</div>
+        </div>
+        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--md-on-surface);">${fmt(avgAmt)}</div>
+            <div style="font-size:11px;color:var(--md-on-surface-variant);">Avg / Month</div>
+        </div>`;
+
+    // Entry list
+    const sorted = [...entries].sort((a, b) => parseDate(b.date) - parseDate(a.date));
+    const sym = window.currencySymbol || '₹';
+    document.getElementById('note-month-entries').innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--md-on-surface-variant);margin-bottom:8px;">All Entries</div>'
+        + sorted.map(e => {
+            const d = parseDate(e.date);
+            return `<div class="unified-item" style="padding:8px 12px;">
+                <div class="unified-title" style="flex:1;">
+                    <span class="title-text">${d.getDate()} ${d.toLocaleString('default',{month:'short'})} ${d.getFullYear()}</span>
+                </div>
+                <div class="price" style="color:var(--md-success);">${sym}${fmt(e.amount)}</div>
+            </div>`;
+        }).join('');
+
+    openSheet('note-month-sheet');
 }
 
 // Call this function when loading the settings UI tab panel
