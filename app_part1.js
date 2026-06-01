@@ -856,8 +856,7 @@ let _overlayBusy = false;
 
 window.closeTopmost = function () {
     // Close only the topmost overlay — sub-sheet first, then main sheet
-    const openSub = document.querySelector('.sheet.sub-sheet.active');
-    if (openSub) {
+    if (activeSubStack.length > 0) {
         closeSubSheet();
     } else {
         document.querySelectorAll('.sheet.active:not(.sub-sheet)').forEach(el => el.classList.remove('active'));

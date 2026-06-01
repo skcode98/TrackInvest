@@ -1704,7 +1704,7 @@ window.showMilestoneDetail = function (val) {
         <div style="font-size:13px;font-weight:600;color:var(--md-on-surface);margin-bottom:6px;">${fact.description}</div>
         <div style="font-size:12px;color:var(--md-on-surface-variant);line-height:1.5;">${fact.fact}</div>
     </div>
-    <button class="btn-primary" style="width:100%;" onclick="closeMilestoneDetail()">${unlocked ? 'Celebrate! 🎉' : 'Keep Investing!'}</button>`;
+    <button class="btn-primary" style="width:100%;" onclick="fireConfetti({particleCount:80,spread:50,origin:{y:0.5},colors:['#4559A4','#186D33','#BF360C','#FFD700']});closeMilestoneDetail()">${unlocked ? 'Celebrate! 🎉' : 'Keep Investing!'}</button>`;
 
     let body = document.getElementById('milestone-detail-body');
     let sheet = document.getElementById('milestone-detail-sheet');
@@ -1717,10 +1717,7 @@ window.showMilestoneDetail = function (val) {
     }
 };
 window.closeMilestoneDetail = function () {
-    let sheet = document.getElementById('milestone-detail-sheet');
-    let scrim = document.getElementById('milestone-detail-scrim');
-    if (sheet) sheet.classList.remove('open');
-    if (scrim) scrim.classList.remove('open');
+    closeSubSheet();
 };
 
 function changeAccountFilter(val) {

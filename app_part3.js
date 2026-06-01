@@ -362,13 +362,13 @@ function updatePortfolioCalculations() {
                         let pDate = new Date(); pDate.setMonth(pDate.getMonth() + pessimisticMonths);
                         let oDate = new Date(); oDate.setMonth(oDate.getMonth() + optimisticMonths);
 
-                        forecastHtml = `<div style="font-size:11px;color:var(--md-primary);margin-top:8px;font-weight:500;">🎯 ${fDateStr}`;
+                        forecastHtml = `<span style="font-size:11px;color:var(--md-primary);font-weight:500;">🎯 ${fDateStr}`;
                         if (growthRate > 0) {
                             forecastHtml += ` <span style="opacity:0.7;">(${oDate.toLocaleString('default', { month: 'short' })}-${pDate.toLocaleString('default', { month: 'short' })})</span>`;
                         }
-                        forecastHtml += `</div>`;
+                        forecastHtml += `</span>`;
                     } else if (monthsLeft > 600) {
-                        forecastHtml = `<div style="font-size:11px;color:var(--md-outline);margin-top:8px;">⏳ 50+ years to reach</div>`;
+                        forecastHtml = `<span style="font-size:11px;color:var(--md-outline);">⏳ 50+ years</span>`;
                     }
                 } else if (savedAmt > 0 && g.linkedCategory) {
                     // No monthly contribution but has existing value with growth
@@ -380,15 +380,15 @@ function updatePortfolioCalculations() {
                     if (yearsToTarget > 0 && yearsToTarget <= 50) {
                         let fDate = new Date();
                         fDate.setFullYear(fDate.getFullYear() + Math.ceil(yearsToTarget));
-                        forecastHtml = `<div style="font-size:11px;color:var(--md-primary);margin-top:8px;font-weight:500;">📈 Growth only: ${fDate.getFullYear()} @ ${(growthRate * 100).toFixed(1)}%</div>`;
+                        forecastHtml = `<span style="font-size:11px;color:var(--md-primary);font-weight:500;">📈 ${fDate.getFullYear()}</span>`;
                     }
                 } else {
-                    forecastHtml = `<div style="font-size:11px;color:var(--md-outline);margin-top:8px;">⚠️ Add SIP to reach goal</div>`;
+                    forecastHtml = `<span style="font-size:11px;color:var(--md-outline);">⚠️ Add SIP</span>`;
                 }
             } else {
-                forecastHtml = `<div style="font-size:11px;color:var(--md-success);margin-top:8px;font-weight:500;">✅ Goal Achieved!</div>`;
+                forecastHtml = `<span style="font-size:11px;color:var(--md-success);font-weight:500;">✅ Achieved!</span>`;
             }
-            return `<div class="goal-card"><div class="goal-header"><div class="goal-title">${escapeHtml(g.name)} ${linkTag}</div><div class="goal-amt" style="font-size:14px;">${formatMoney(savedAmt)} / ${formatMoney(g.target)}</div></div><div class="goal-track"><div class="goal-fill" style="width:${perc}%;"></div></div><div class="goal-footer" style="font-size:12px; color:var(--md-on-surface-variant);"><span>${perc.toFixed(1)}% Achieved</span>${forecastHtml}</div><div style="display:flex;gap:6px;margin-top:10px;"><button onclick="openGoalSheet(this.dataset.gid)" data-gid="${g.id}" style="flex:1;padding:8px;border:1px solid var(--md-outline);border-radius:8px;background:transparent;color:var(--md-on-surface);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;"><span class="material-symbols-rounded" style="font-size:13px;">edit</span> Edit</button>${isLinked ? `<button onclick="showGoalMonthHistory(this.dataset.gid2)" data-gid2="${g.id}" style="flex:1;padding:8px;border:1px solid var(--md-outline);border-radius:8px;background:transparent;color:var(--md-on-surface);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;"><span class="material-symbols-rounded" style="font-size:13px;">history</span> History</button>` : ''}</div></div>`;
+            return `<div class="goal-card"><div class="goal-header"><div class="goal-title">${escapeHtml(g.name)} ${linkTag}</div><div style="display:flex;align-items:center;gap:6px;"><div class="goal-amt">${formatMoney(savedAmt)} / ${formatMoney(g.target)}</div><button onclick="event.stopPropagation();openGoalSheet(this.dataset.gid)" data-gid="${g.id}" style="width:28px;height:28px;border:none;border-radius:8px;background:var(--md-surface-container-high);color:var(--md-on-surface-variant);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Edit Goal"><span class="material-symbols-rounded" style="font-size:14px;">edit</span></button></div></div><div class="goal-track"><div class="goal-fill" style="width:${perc}%;"></div></div><div class="goal-footer" style="font-size:12px; color:var(--md-on-surface-variant);display:flex;align-items:center;justify-content:space-between;"><span>${perc.toFixed(1)}% Achieved</span><div style="display:flex;align-items:center;gap:4px;">${forecastHtml}${isLinked ? `<button onclick="event.stopPropagation();showGoalMonthHistory(this.dataset.gid2)" data-gid2="${g.id}" style="width:28px;height:28px;border:none;border-radius:8px;background:var(--md-surface-container-high);color:var(--md-on-surface-variant);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Monthly History"><span class="material-symbols-rounded" style="font-size:14px;">history</span></button>` : ''}</div></div></div>`;
         }).join('');
     }
 
