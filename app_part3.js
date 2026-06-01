@@ -510,6 +510,9 @@ function renderFrequentActions() {
 })();
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Apply saved theme & layout before any rendering
+    applyTheme();
+    applyCompactLayout();
     // Register service worker for PWA offline support
     if ('serviceWorker' in navigator) {
         registerSW();

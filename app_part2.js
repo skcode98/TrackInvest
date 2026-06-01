@@ -1344,6 +1344,8 @@ function saveProfileSettings() {
     if (aiToggle) { db.aiEnabled = aiToggle.checked; window.__aiEnabled = db.aiEnabled; }
     const webToggle = document.getElementById('settings-web-toggle');
     if (webToggle) { db.webEnabled = webToggle.checked; window.__webEnabled = db.webEnabled; }
+    const layoutToggle = document.getElementById('settings-compact-layout');
+    if (layoutToggle) { db.compactLayout = layoutToggle.checked; applyCompactLayout(); }
 
     saveData(); renderAll(); showSnackbar("Profile & Preferences Updated", "check_circle");
 }
@@ -1423,7 +1425,8 @@ function openSettings() {
         'settings-enable-spend-tracker': db.enableSpendTracker !== false,
         'settings-enable-account-overview': db.enableAccountOverview !== false,
         'settings-ai-toggle': db.aiEnabled !== false,
-        'settings-web-toggle': db.webEnabled !== false
+        'settings-web-toggle': db.webEnabled !== false,
+        'settings-compact-layout': db.compactLayout || false
     };
 
     for (const [id, checked] of Object.entries(toggles)) {
@@ -1433,6 +1436,9 @@ function openSettings() {
 
     // Refresh manage sections
     renderSettingsSections();
+
+    // Sync theme & scheme active highlights
+    applyTheme();
 
     // Load notification preferences
     loadNotificationPrefs();

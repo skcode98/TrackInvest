@@ -1167,19 +1167,49 @@
 
                 <div
                     style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
-                    Theme</div>
-                <div class="theme-picker" id="theme-picker" style="margin-bottom:24px;">
-                    <div class="theme-swatch ts-indigo active" style="background: #415F91;"
-                        onclick="setTheme('indigo')"></div>
-                    <div class="theme-swatch ts-emerald" style="background: #186D33;" onclick="setTheme('emerald')">
-                    </div>
-                    <div class="theme-swatch ts-sunset" style="background: #924C00;" onclick="setTheme('sunset')"></div>
-                    <div class="theme-swatch ts-amethyst" style="background: #744AAC;" onclick="setTheme('amethyst')">
-                    </div>
+                    Color Scheme</div>
+                <div class="scheme-options" style="display:flex; gap:8px; margin-bottom:20px;">
+                    <button class="scheme-option scheme-auto active" onclick="setColorScheme('auto')">
+                        <span class="material-symbols-rounded" style="font-size:20px;">brightness_auto</span>
+                        <span>System</span>
+                    </button>
+                    <button class="scheme-option scheme-light" onclick="setColorScheme('light')">
+                        <span class="material-symbols-rounded" style="font-size:20px;">light_mode</span>
+                        <span>Light</span>
+                    </button>
+                    <button class="scheme-option scheme-dark" onclick="setColorScheme('dark')">
+                        <span class="material-symbols-rounded" style="font-size:20px;">dark_mode</span>
+                        <span>Dark</span>
+                    </button>
                 </div>
 
                 <div
                     style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                    App Theme</div>
+                <div class="theme-picker" id="theme-picker" style="margin-bottom:20px;">
+                    <div class="theme-swatch ts-indigo active" style="background: #415F91;" onclick="setTheme('indigo')" title="Indigo"></div>
+                    <div class="theme-swatch ts-emerald" style="background: #186D33;" onclick="setTheme('emerald')" title="Emerald"></div>
+                    <div class="theme-swatch ts-sunset" style="background: #924C00;" onclick="setTheme('sunset')" title="Sunset"></div>
+                    <div class="theme-swatch ts-amethyst" style="background: #744AAC;" onclick="setTheme('amethyst')" title="Amethyst"></div>
+                    <div class="theme-swatch ts-ocean" style="background: #006B8A;" onclick="setTheme('ocean')" title="Ocean"></div>
+                    <div class="theme-swatch ts-ruby" style="background: #A13042;" onclick="setTheme('ruby')" title="Ruby"></div>
+                    <div class="theme-swatch ts-forest" style="background: #2D6E40;" onclick="setTheme('forest')" title="Forest"></div>
+                    <div class="theme-swatch ts-slate" style="background: #4D5C73;" onclick="setTheme('slate')" title="Slate"></div>
+                    <div class="theme-swatch ts-rose" style="background: #A13069;" onclick="setTheme('rose')" title="Rose"></div>
+                </div>
+
+                <div
+                    style="margin-top:8px;display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px;">
+                    <div>
+                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Compact Layout</div>
+                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Tighter spacing & smaller text</div>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="settings-compact-layout" onchange="toggleCompactLayout(this.checked)"><span
+                            class="slider"></span></label>
+                </div>
+
+                <div
+                    style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
                     Milestone Badges</div>
                 <div class="badge-grid" id="badge-grid"></div>
             </div>
