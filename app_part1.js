@@ -1775,6 +1775,7 @@ function togglePrivacy() {
     const pi = document.getElementById('privacy-icon');
     if (pi) pi.innerText = db.privacyMode ? 'visibility_off' : 'visibility';
     renderAll();
+    if (window.renderHistory) renderHistory();
 }
 
 function setTheme(themeName) {
