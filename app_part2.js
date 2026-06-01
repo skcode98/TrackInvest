@@ -379,10 +379,114 @@ function deleteInvestment() {
     });
 }
 
+function copyInvestmentToCurrentMonth(id) {
+    haptic(30);
+    const src = db.investments.find(i => String(i.id) === String(id));
+    if (!src) return;
+    openInvestSheet(src.id);
+    document.getElementById('inv-date').value = getLocalYYYYMMDD(new Date());
+    editInvId = null;
+    const sheetTitle = document.getElementById('invest-sheet-title');
+    if (sheetTitle) sheetTitle.innerText = 'Copy Entry';
+    const delBtn = document.getElementById('del-inv-btn');
+    if (delBtn) delBtn.style.display = 'none';
+    const tplWrap = document.getElementById('tpl-switch-wrap');
+    if (tplWrap) tplWrap.style.display = 'flex';
+    const tplToggle = document.getElementById('inv-template');
+    if (tplToggle) tplToggle.checked = false;
+    const recCheck = document.getElementById('inv-recurring');
+    if (recCheck) recCheck.checked = false;
+    clearFormDraft();
+    showSnackbar('Edit and save the copy', 'content_copy');
+}
+
 
 let _qlSaving = false;
 function executeQuickLog(idx) { if (_qlSaving) return; _qlSaving = true; haptic(40); try { let tpl = db.templates[idx]; if (!tpl) return; db.investments.push({ id: generateUniqueId(), date: getLocalYYYYMMDD(new Date()), type: tpl.type, amount: tpl.amount, note: tpl.note, tags: tpl.tags, account: tpl.account }); saveData(); renderAll(); showSnackbar(`Quick Logged ${formatMoney(tpl.amount)}`); } finally { _qlSaving = false; } }
 function deleteQuickLog(event, idx) { event.stopPropagation(); haptic(40); Swal.fire({ title: 'Delete Template?', showCancelButton: true }).then((res) => { if (res.isConfirmed) { db.templates.splice(idx, 1); saveData(); renderAll(); } }); }
+
+// ==========================================
+// 7. BATCH SELECTION
+// ==========================================
+window._ledgerSelection = new Set();
+window._ledgerSelectMode = false;
+
+function toggleLedgerSelection() {
+    window._ledgerSelectMode = !window._ledgerSelectMode;
+    if (!window._ledgerSelectMode) window._ledgerSelection.clear();
+    const bar = document.getElementById('ledger-batch-bar');
+    if (bar) bar.style.display = window._ledgerSelectMode ? 'flex' : 'none';
+    const btn = document.getElementById('ledger-select-btn');
+    if (btn) btn.style.background = window._ledgerSelectMode ? 'var(--md-primary-container)' : '';
+    renderHistory();
+}
+
+function toggleLedgerItem(id) {
+    if (!window._ledgerSelection) return;
+    if (window._ledgerSelection.has(id)) window._ledgerSelection.delete(id);
+    else window._ledgerSelection.add(id);
+    // Toggle checkbox visual state directly
+    const wrapper = document.querySelector('.swipe-wrapper[data-id="' + id.replace(/"/g, '') + '"]');
+    if (wrapper) {
+        const cb = wrapper.querySelector('.ledger-check');
+        if (cb) cb.checked = window._ledgerSelection.has(id);
+    }
+    updateLedgerBatchBar();
+}
+
+function selectAllLedgerEntries() {
+    const container = document.getElementById('ledger-history-list');
+    if (!container) return;
+    const ids = container.querySelectorAll('.swipe-wrapper');
+    const allSelected = ids.length > 0 && Array.from(ids).every(w => window._ledgerSelection.has(w.dataset.id));
+    ids.forEach(w => {
+        if (allSelected) window._ledgerSelection.delete(w.dataset.id);
+        else window._ledgerSelection.add(w.dataset.id);
+    });
+    renderHistory();
+    updateLedgerBatchBar();
+}
+
+function updateLedgerBatchBar() {
+    const bar = document.getElementById('ledger-batch-bar');
+    if (!bar) return;
+    const count = window._ledgerSelection ? window._ledgerSelection.size : 0;
+    const label = document.getElementById('ledger-select-count');
+    if (label) label.textContent = count + ' selected';
+    if (!window._ledgerSelectMode || count === 0) {
+        bar.style.display = 'none';
+    } else {
+        bar.style.display = 'flex';
+    }
+}
+
+function deleteSelectedInvestments() {
+    const ids = window._ledgerSelection;
+    if (!ids || ids.size === 0) return;
+    haptic(40);
+    Swal.fire({
+        title: `Delete ${ids.size} entries?`,
+        text: "This cannot be undone.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete All',
+        confirmButtonColor: 'var(--md-error)'
+    }).then((r) => {
+        if (r.isConfirmed) {
+            const count = ids.size;
+            db.investments = db.investments.filter(i => !ids.has(String(i.id)));
+            ids.clear();
+            window._ledgerSelectMode = false;
+            const bar = document.getElementById('ledger-batch-bar');
+            if (bar) bar.style.display = 'none';
+            const btn = document.getElementById('ledger-select-btn');
+            if (btn) btn.style.background = '';
+            saveData();
+            renderAll();
+            showSnackbar(`Deleted ${count} entries`, 'delete');
+        }
+    });
+}
 
 // ==========================================
 // 6. LIST BUILDING & SWIPE LOGIC
@@ -395,9 +499,17 @@ function buildUnifiedItemHTML(inv) {
     let safeType = escapeHtml(inv.type);
     let tagsHtml = ""; if (inv.tags) { inv.tags.split(',').forEach(t => { if (t.trim()) tagsHtml += `<span class="roi-tag" style="background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);font-size:10px;margin:0 2px;">#${escapeHtml(t.trim())}</span> `; }); }
     let intHtml = inv.interestRate ? `<span style="font-size:10px;color:var(--md-primary);font-weight:500;">${escapeHtml(inv.interestRate)}%</span>` : '';
+    let checked = window._ledgerSelection && window._ledgerSelection.has(inv.id) ? ' checked' : '';
+    let selectBox = window._ledgerSelectMode
+        ? `<label class="ledger-check-wrap" onclick="event.stopPropagation();toggleLedgerItem('${inv.id}')" style="display:inline-flex;align-items:center;justify-content:center;width:40px;flex-shrink:0;cursor:pointer;">
+            <input type="checkbox" class="ledger-check"${checked} style="width:18px;height:18px;accent-color:var(--md-primary);cursor:pointer;">
+           </label>`
+        : '';
+    let clickAction = window._ledgerSelectMode ? '' : `openInvestSheet('${inv.id}')`;
     return `
             <div class="swipe-wrapper" data-id="${inv.id}">
-                <div class="unified-item" onclick="openInvestSheet('${inv.id}')">
+                <div class="unified-item"${clickAction ? ` onclick="${clickAction}"` : ''} style="${window._ledgerSelectMode ? 'cursor:default;' : ''}">
+                    ${selectBox}
                     <div class="unified-icon" style="background:${escapeHtml(meta.color)};"><span class="material-symbols-rounded">${escapeHtml(meta.icon)}</span></div>
                     <div class="unified-content">
                         <div class="unified-title">
@@ -407,6 +519,9 @@ function buildUnifiedItemHTML(inv) {
                         <span class="unified-subtitle">${dateStr} • ${safeType}</span>
                         ${intHtml || tagsHtml ? `<div style="margin-top:2px;display:flex;gap:4px;align-items:center;flex-wrap:wrap;">${intHtml}${tagsHtml}</div>` : ''}
                     </div>
+                    <button class="icon-btn-sm" onclick="event.stopPropagation();copyInvestmentToCurrentMonth('${inv.id}')" title="Copy to this month" style="flex-shrink:0;width:32px;height:32px;border:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;color:var(--md-on-surface-variant);transition:background .15s;" onmouseover="this.style.background='var(--md-surface-container-highest)'" onmouseout="this.style.background='transparent'">
+                        <span class="material-symbols-rounded" style="font-size:18px;">content_copy</span>
+                    </button>
                 </div>
             </div>`;
 }
@@ -597,7 +712,7 @@ function renderHistory() {
         html = filtered.map(buildUnifiedItemHTML).join('');
     }
 
-    let container = document.getElementById('ledger-history-list'); if (container) { container.innerHTML = html; attachSwipeListeners(container); }
+    let container = document.getElementById('ledger-history-list'); if (container) { container.innerHTML = html; if (!window._ledgerSelectMode) attachSwipeListeners(container); }
 
     // Update insights bar
     const countEl = document.getElementById('li-count');
@@ -606,6 +721,7 @@ function renderHistory() {
     if (countEl) countEl.textContent = liCount;
     if (totalEl) totalEl.textContent = '₹' + liTotal.toLocaleString('en-IN');
     if (avgEl) avgEl.textContent = liCount > 0 ? '₹' + Math.round(liTotal / liCount).toLocaleString('en-IN') : '₹0';
+    updateLedgerBatchBar();
 }
 window.renderHistory = renderHistory;
 window.buildUnifiedItemHTML = buildUnifiedItemHTML;

@@ -1884,6 +1884,7 @@ function initUI() {
         if (filterType) filterType.insertAdjacentHTML('beforeend', `<option value="${safeC}">${safeC}</option>`);
     });
     window.currentInvType = Object.keys(db.categories)[0];
+    setInvestType(window.currentInvType);
 
     let gl = document.getElementById('goal-link');
     if (gl) { gl.innerHTML = `<option value="">None (Manual Tracking)</option>`; }
@@ -2717,8 +2718,7 @@ function getSmartDefault(key, fallback = '') {
 function setInvestType(type) {
     haptic(20); window.currentInvType = type;
     document.querySelectorAll('#type-chips .quick-chip').forEach(el => {
-        if (el.innerText === type) el.classList.add('active');
-        else el.classList.remove('active');
+        el.classList.toggle('active', el.dataset.cat === type);
     });
 
     const config = db.categoryDetails[type]?.fields || {};
