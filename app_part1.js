@@ -766,6 +766,22 @@ function showSnackbar(msg, icon = "info", type = "info") {
  */
 let _overlayBusy = false;
 
+window.closeTopmost = function () {
+    // Close only the topmost overlay — sub-sheet first, then main sheet
+    const openSub = document.querySelector('.sheet.sub-sheet.active');
+    if (openSub) {
+        closeSubSheet();
+    } else {
+        document.querySelectorAll('.sheet.active:not(.sub-sheet)').forEach(el => el.classList.remove('active'));
+        document.getElementById('scrim')?.classList.remove('active');
+        document.getElementById('scrim-sub')?.classList.remove('active');
+        document.body.classList.remove('lock-scroll');
+        activeMain = null;
+        activeSubStack = [];
+        try { sessionStorage.removeItem('currentSheet'); } catch (e) {}
+    }
+};
+
 function closeOverlays(fromPopState = false) {
     if (_overlayBusy) return;
     _overlayBusy = true;
@@ -899,6 +915,10 @@ function openSheet(sheetId, fromRestore = false) {
 }
 
 function closeSubSheet(fromPopState = false) {
+    // Identify the topmost sub-sheet before popping
+    const topId = activeSubStack.length > 0 ? activeSubStack[activeSubStack.length - 1] : null;
+    const topEl = topId ? document.getElementById(topId) : null;
+
     // Pop the topmost sub-sheet from the stack
     activeSubStack.pop();
 
@@ -906,17 +926,12 @@ function closeSubSheet(fromPopState = false) {
     const mainSheetEl = activeMain ? document.getElementById(activeMain) : null;
     const savedScrollTop = mainSheetEl ? mainSheetEl.scrollTop : 0;
 
-    // Close all sub-sheets, then re-open the previous one (if any)
-    document.querySelectorAll('.sheet.sub-sheet').forEach(el => el.classList.remove('active'));
+    // Close only the topmost sub-sheet (previous ones stay active)
+    if (topEl) topEl.classList.remove('active');
 
     if (activeSubStack.length > 0) {
-        // Restore the previous sub-sheet
-        const prevSub = activeSubStack[activeSubStack.length - 1];
-        const prevEl = document.getElementById(prevSub);
-        if (prevEl) {
-            setTimeout(() => { prevEl.classList.add('active'); }, 50);
-            document.getElementById('scrim-sub')?.classList.add('active');
-        }
+        // Previous sub-sheet stays active — already visible beneath
+        document.getElementById('scrim-sub')?.classList.add('active');
     } else {
         // No more sub-sheets — hide sub-scrim
         document.getElementById('scrim-sub')?.classList.remove('active');
@@ -1150,7 +1165,7 @@ document.addEventListener('keydown', e => {
     // Map shortcuts to actions with descriptions
     const shortcuts = {
         'n|N': { action: () => openInvestSheet(), desc: 'New Investment' },
-        'Escape': { action: () => { closeOverlays(); closeSubSheet(); }, desc: 'Close/Go Back' },
+        'Escape': { action: () => { closeTopmost(); }, desc: 'Close/Go Back' },
         '1': { action: () => switchTab('dashboard'), desc: 'Dashboard Tab' },
         '2': { action: () => switchTab('portfolio'), desc: 'Portfolio Tab' },
         '3': { action: () => switchTab('ledger'), desc: 'Ledger Tab' },
