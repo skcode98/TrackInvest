@@ -427,6 +427,13 @@
             'income': ['Income']
         };
 
+        // Maps spend tracker budget buckets to actual transaction categories
+        const BUDGET_BUCKET_MAP = {
+            'dailySpend': ['Food & Dining', 'Groceries', 'Transport'],
+            'fixedExpenses': ['Bills & Utilities', 'Rent', 'Health & Medical'],
+            'familyShare': ['Entertainment', 'Shopping', 'Travel', 'Education']
+        };
+
         // ── SPEND ENTRY SHEET ──
         let spendEditId = null;
 
@@ -665,20 +672,32 @@
 
             // Build budget categories → spend mapping
             const rows = [];
-            let rowBudget = 0, totalTarget = 0, totalActual = 0;
+            let totalTarget = 0, totalActual = 0;
 
             // Calculate aggregated targets from plan items
             function getTargetForCategories(planArr) {
-                return (planArr||[]).reduce((s, i) => s + (parseFloat(i.target)||0), 0);
+                return (planArr||[]).reduce((s, i) => s + (parseFloat(i.amount)||0), 0);
             }
 
             if (totalBudget > 0) {
                 let b = db.spendTracker.budget || {};
                 let lbl = b.labels || {};
-                if (b.dailySpend > 0) rows.push({ label: lbl.dailySpend || 'Daily Spend', budget: b.dailySpend, target: 0, actual: 0, color: '#4F46E5' });
-                if (b.fixedExpenses > 0) rows.push({ label: lbl.fixedExpenses || 'Fixed Expenses', budget: b.fixedExpenses, target: 0, actual: 0, color: '#7C3AED' });
-                if (b.familyShare > 0) rows.push({ label: lbl.familyShare || 'Family Share', budget: b.familyShare, target: 0, actual: 0, color: '#E91E63' });
-                rowBudget = totalBudget;
+                if (b.dailySpend > 0) {
+                    const actual = sumOfCategories(totals, BUDGET_BUCKET_MAP.dailySpend);
+                    rows.push({ label: lbl.dailySpend || 'Daily Spend', budget: b.dailySpend, target: 0, actual, color: '#4F46E5' });
+                }
+                if (b.fixedExpenses > 0) {
+                    const actual = sumOfCategories(totals, BUDGET_BUCKET_MAP.fixedExpenses);
+                    rows.push({ label: lbl.fixedExpenses || 'Fixed Expenses', budget: b.fixedExpenses, target: 0, actual, color: '#7C3AED' });
+                }
+                if (b.familyShare > 0) {
+                    const actual = sumOfCategories(totals, BUDGET_BUCKET_MAP.familyShare);
+                    rows.push({ label: lbl.familyShare || 'Family Share', budget: b.familyShare, target: 0, actual, color: '#E91E63' });
+                }
+                // Uncategorized spend not covered by bucketed budgets
+                const mappedCats = [...BUDGET_BUCKET_MAP.dailySpend, ...BUDGET_BUCKET_MAP.fixedExpenses, ...BUDGET_BUCKET_MAP.familyShare];
+                const otherBudgets = entries.filter(e => !mappedCats.includes(e.category || 'Other') && (e.category || 'Other') !== 'Uncategorized').reduce((s,e) => s+e.amount, 0);
+                if (otherBudgets > 0) rows.push({ label: 'Other', budget: 0, target: 0, actual: otherBudgets, color: '#8E9099' });
             }
 
             if (hasPlan) {
@@ -701,13 +720,15 @@
                 if (invBudget > 0 || invActual > 0 || invTarget > 0) rows.push({ label: 'Investments', budget: invBudget, target: invTarget, actual: invActual, color: '#F57C00' });
             }
 
-            // Other (uncategorized spend)
-            const otherActual = entries.filter(e => !e.category || e.category==='Uncategorized').reduce((s,e) => s+e.amount, 0);
-            if (otherActual > 0) rows.push({ label: 'Uncategorized', budget: 0, target: 0, actual: otherActual, color: '#8E9099' });
+            // Uncategorized spend (only if no budget buckets)
+            if (totalBudget === 0) {
+                const otherActual = entries.filter(e => !e.category || e.category==='Uncategorized').reduce((s,e) => s+e.amount, 0);
+                if (otherActual > 0) rows.push({ label: 'Uncategorized', budget: 0, target: 0, actual: otherActual, color: '#8E9099' });
+            }
 
             totalActual = entries.reduce((s,e) => s+e.amount, 0);
             totalTarget = rows.filter(r => !r.isIncome).reduce((s,r) => s+r.target, 0);
-            const budgetForCalc = totalBudget > 0 ? totalBudget : rows.filter(r => !r.isIncome).reduce((s,r) => s+r.budget, 0);
+            const totalBudgetDisplay = totalBudget > 0 ? totalBudget : rows.filter(r => !r.isIncome).reduce((s,r) => s+r.budget, 0);
 
             // Header
             let html = `<div class="budget-header">
@@ -733,11 +754,11 @@
             });
 
             // Total row
-            const totalDiff = totalTarget > 0 ? totalTarget - totalActual : totalBudget - totalActual;
+            const totalDiff = totalTarget > 0 ? totalTarget - totalActual : totalBudgetDisplay - totalActual;
             html += `<div class="budget-row" style="border-top:2px solid var(--md-surface-container-highest);padding-top:12px;margin-top:4px;font-weight:700;">
                 <div class="cat-dot" style="background:var(--md-primary)"></div>
                 <div class="b-label">Total Spend</div>
-                <div class="b-budget">₹${totalBudget.toLocaleString('en-IN')}</div>
+                <div class="b-budget">₹${totalBudgetDisplay.toLocaleString('en-IN')}</div>
                 <div class="b-target">${totalTarget > 0 ? '₹' + totalTarget.toLocaleString('en-IN') : ''}</div>
                 <div class="b-actual" style="color:${totalDiff < 0 ? 'var(--md-error)' : 'var(--md-success)'}">₹${totalActual.toLocaleString('en-IN')}</div>
                 <div class="b-status">${totalDiff >= 0 ? `<span class="status-ok">✓ ${totalDiff.toLocaleString('en-IN')}</span>` : `<span class="status-over">+${Math.abs(totalDiff).toLocaleString('en-IN')}</span>`}</div>
@@ -765,20 +786,7 @@
                         + '<div style="font-size:10px;color:var(--md-outline);">' + pct.toFixed(1) + '%</div></div></div>';
                 });
                 // Budget progress bar
-                const budget = (() => {
-                    try {
-                        if (totalBudget > 0) return totalBudget;
-                        const key = currentYear + '-' + String(currentMonth + 1).padStart(2, '0');
-                        if (db.monthlyPlans && db.monthlyPlans[key]) {
-                            const plan = db.monthlyPlans[key];
-                            let b = 0;
-                            if (plan.needs) b += plan.needs.reduce((s, i) => s + i.amount, 0);
-                            if (plan.wants) b += plan.wants.reduce((s, i) => s + i.amount, 0);
-                            return b;
-                        }
-                    } catch (e) {}
-                    return 0;
-                })();
+                const budget = totalBudgetDisplay;
                 if (budget > 0) {
                     const bpct = Math.min(totalActual / budget * 100, 100);
                     bHtml += '<div style="margin-top:10px;padding:8px 10px;background:var(--md-surface-container-highest);border-radius:12px;">'
@@ -794,10 +802,14 @@
 
             // Update hero with budget info
             const heroBudget = document.getElementById('hero-vs-budget');
-            const budgetForHero = totalBudget > 0 ? totalBudget : (totalTarget > 0 ? totalTarget : 0);
-            if (budgetForHero > 0) {
-                heroBudget.innerText = totalActual <= budgetForHero ? `✓ Under budget by ₹${(budgetForHero-totalActual).toLocaleString('en-IN')}` : `⚠ Over budget by ₹${(totalActual-budgetForHero).toLocaleString('en-IN')}`;
-                heroBudget.style.color = totalActual <= budgetForHero ? 'rgba(255,255,255,0.8)' : 'rgba(255,200,200,0.9)';
+            if (totalBudgetDisplay > 0) {
+                heroBudget.innerText = totalActual <= totalBudgetDisplay
+                    ? `✓ Under budget by ₹${(totalBudgetDisplay-totalActual).toLocaleString('en-IN')}`
+                    : `⚠ Over budget by ₹${(totalActual-totalBudgetDisplay).toLocaleString('en-IN')}`;
+                heroBudget.style.color = totalActual <= totalBudgetDisplay ? 'rgba(255,255,255,0.8)' : 'rgba(255,200,200,0.9)';
+            } else {
+                heroBudget.innerText = 'No budget set';
+                heroBudget.style.color = 'rgba(255,255,255,0.5)';
             }
         }
         function sumOfCategories(totals, cats) { return Array.isArray(cats) ? cats.reduce((s,c) => s + (totals[c]||0), 0) : 0; }
