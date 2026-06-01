@@ -1816,18 +1816,12 @@ function setChartRange(months, el) {
 function updateProjectionSlider() {
     let slider = document.getElementById('proj-slider'); if (!slider) return;
     let months = parseInt(slider.value, 10) || 12;
-    let lbl = document.getElementById('proj-month-label'); if (lbl) lbl.innerText = months;
 
     let projected = currentTotalNW + (currentAvgMonthly * months);
     let conservative = currentTotalNW + (currentAvgMonthly * 0.7 * months);
     let optimistic = currentTotalNW + (currentAvgMonthly * 1.4 * months);
 
-    let eoy = document.getElementById('projected-eoy'); if (eoy) eoy.innerText = formatMoney(projected);
-    let cons = document.getElementById('proj-conservative'); if (cons) cons.innerText = formatMoney(conservative);
-    let opti = document.getElementById('proj-optimistic'); if (opti) opti.innerText = formatMoney(optimistic);
-    let avg = document.getElementById('proj-monthly-avg'); if (avg) avg.innerText = formatMoney(currentAvgMonthly);
-
-    // Update second card projection chart and stats
+    // Update slide 2 stats
     let ceoy = document.getElementById('proj-card-eoy'); if (ceoy) ceoy.innerText = formatMoney(projected);
     let ccons = document.getElementById('proj-card-conservative'); if (ccons) ccons.innerText = formatMoney(conservative);
     let copti = document.getElementById('proj-card-optimistic'); if (copti) copti.innerText = formatMoney(optimistic);
@@ -2449,7 +2443,13 @@ function renderHeroProjectionChart() {
     const displayData = db.privacyMode ? data.map(() => 1) : data;
 
     const ctx = canvas.getContext('2d');
-    if (heroProjectionChartInstance) heroProjectionChartInstance.destroy();
+
+    if (heroProjectionChartInstance) {
+        heroProjectionChartInstance.data.labels = labels;
+        heroProjectionChartInstance.data.datasets[0].data = displayData;
+        heroProjectionChartInstance.update('default');
+        return;
+    }
 
     heroProjectionChartInstance = new Chart(ctx, {
         type: 'bar',

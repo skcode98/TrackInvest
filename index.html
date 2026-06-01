@@ -106,41 +106,9 @@
                         <div class="chart-tooltip" id="chart-tooltip"></div>
                         <div class="chart-point" id="chart-point"></div>
                     </div>
-
-                    <div class="hero-projected" style="margin-top:8px;background:var(--md-surface-container);border-radius:16px;padding:14px 16px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                            <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--md-on-surface-variant);">
-                                <span class="material-symbols-rounded" style="font-size:16px;">trending_up</span>
-                                Projection
-                            </div>
-                            <div style="display:flex;align-items:baseline;gap:4px;">
-                                <span style="font-size:11px;color:var(--md-outline);"><span id="proj-month-label">12</span>mo</span>
-                                <span id="projected-eoy" style="font-size:20px;font-weight:700;color:var(--md-primary);">0</span>
-                            </div>
-                        </div>
-                        <div style="display:flex;gap:12px;margin-bottom:8px;">
-                            <div style="flex:1;background:var(--md-surface-container-highest);border-radius:10px;padding:8px 10px;">
-                                <div style="font-size:10px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.3px;">Conservative</div>
-                                <div id="proj-conservative" style="font-size:14px;font-weight:600;color:var(--md-on-surface);margin-top:2px;">—</div>
-                            </div>
-                            <div style="flex:1;background:var(--md-primary-container);border-radius:10px;padding:8px 10px;">
-                                <div style="font-size:10px;color:var(--md-on-primary-container);text-transform:uppercase;letter-spacing:0.3px;opacity:0.7;">Optimistic</div>
-                                <div id="proj-optimistic" style="font-size:14px;font-weight:600;color:var(--md-on-primary-container);margin-top:2px;">—</div>
-                            </div>
-                            <div style="flex:1;background:var(--md-surface-container-highest);border-radius:10px;padding:8px 10px;">
-                                <div style="font-size:10px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.3px;">Monthly</div>
-                                <div id="proj-monthly-avg" style="font-size:14px;font-weight:600;color:var(--md-on-surface);margin-top:2px;">—</div>
-                            </div>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <span style="font-size:11px;color:var(--md-outline);min-width:20px;text-align:right;" id="proj-range-min">1</span>
-                            <input type="range" id="proj-slider" min="1" max="24" value="12" oninput="updateProjectionSlider()" onchange="haptic(10)" style="flex:1;">
-                            <span style="font-size:11px;color:var(--md-outline);min-width:20px;">24</span>
-                        </div>
-                    </div>
                 </div>
 
-                <div class="hero-slide" id="hero-slide-projection">
+                <div class="hero-slide">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;opacity:0.75;">
                             <span class="material-symbols-rounded" style="font-size:16px;">query_stats</span> Wealth Projection
@@ -166,6 +134,11 @@
                             <div style="font-size:9px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.2px;">Optimistic</div>
                             <div id="proj-card-optimistic" style="font-size:15px;font-weight:700;color:var(--md-on-surface);margin-top:2px;">—</div>
                         </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                        <span style="font-size:10px;color:var(--md-on-primary-container);opacity:0.6;min-width:16px;text-align:right;">1m</span>
+                        <input type="range" id="proj-slider" min="1" max="24" value="12" oninput="updateProjectionSlider()" onchange="haptic(10)" style="flex:1;accent-color:var(--md-primary);">
+                        <span style="font-size:10px;color:var(--md-on-primary-container);opacity:0.6;min-width:20px;">24m</span>
                     </div>
                 </div>
             </div>
