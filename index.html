@@ -1395,10 +1395,15 @@
 
     <div class="sheet sub-sheet" id="monthly-target-sheet">
         <div class="drag-handle"></div>
-        <h3 class="sheet-title">Monthly Investment Target</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+            <h3 class="sheet-title" style="margin-bottom:0;">Monthly Investment Target</h3>
+            <button class="icon-btn" onclick="closeSubSheet()"><span class="material-symbols-rounded">close</span></button>
+        </div>
         <div class="input-container"><label>Target Amount (₹)</label><input type="number" id="monthly-target-amt"
                 class="md-input"></div>
-        <button class="btn-primary" onclick="saveMonthlyTarget()">Set Target</button>
+        <button class="btn-primary" onclick="saveMonthlyTarget()" style="margin-bottom:16px;">Set Target</button>
+        <button class="btn-secondary" onclick="aiPredictNextMonth()" style="width:100%;"><span class="material-symbols-rounded">auto_awesome</span> AI Predict Next Month</button>
+        <div id="ai-prediction-result" style="margin-top:16px;display:none;"></div>
     </div>
 
     <div class="sheet sub-sheet" id="maturity-calendar-sheet">

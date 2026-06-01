@@ -974,7 +974,7 @@ function updateAdvisorWidget() {
 
     // Status badge
     html += `<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-        <span style="font-size:11px; padding:4px 12px; border-radius:12px; background:${health.statusColor}20; color:${health.statusColor}; font-weight:500;">${health.status}</span>`;
+        <span style="font-size:11px; padding:4px 12px; border-radius:12px; background:color-mix(in srgb, ${health.statusColor} 20%, transparent); color:${health.statusColor}; font-weight:500;">${health.status}</span>`;
 
     if (health.issues.length > 0) {
         html += `<span style="font-size:11px; padding:4px 12px; border-radius:12px; background:var(--md-error-container); color:var(--md-error);">${health.issues.length} issue${health.issues.length > 1 ? 's' : ''}</span>`;
