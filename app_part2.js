@@ -1023,9 +1023,7 @@ function showNoteMonthHistory(type, note) {
 
     document.getElementById('note-month-title').innerHTML = `<span style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-rounded" style="font-size:18px;">history</span> ${escapeHtml(note)}</span>`;
 
-    // Build month map for last 15 months only
-    const now = new Date();
-    const monthLabels = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+    const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const monthMap = {};
     entries.forEach(e => {
         const d = parseDate(e.date);
@@ -1033,38 +1031,54 @@ function showNoteMonthHistory(type, note) {
         monthMap[key] = (monthMap[key] || 0) + e.amount;
     });
 
-    // Generate last 15 months as (year, month) pairs, newest first
+    // Determine range: first entry year to current year
+    const allKeys = Object.keys(monthMap).sort();
+    const firstYear = parseInt(allKeys[0]);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Build all months from January of firstYear through currentYear/currentMonth
     const months = [];
-    for (let i = 14; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        months.push({ y: d.getFullYear(), m: d.getMonth(), key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') });
+    for (let y = firstYear; y <= currentYear; y++) {
+        const maxM = (y === currentYear) ? currentMonth : 11;
+        for (let m = 0; m <= maxM; m++) {
+            const key = y + '-' + String(m + 1).padStart(2, '0');
+            months.push({ y, m, key });
+        }
     }
 
-    // Grid: 3 rows × 5 months (oldest top-left to newest bottom-right)
-    let gridHtml = '<div style="display:flex;flex-direction:column;gap:6px;">';
-    for (let row = 0; row < 3; row++) {
-        gridHtml += '<div style="display:flex;gap:6px;justify-content:center;">';
-        for (let col = 0; col < 5; col++) {
-            const idx = row * 5 + col;
-            if (idx >= months.length) { gridHtml += '<div style="width:56px;"></div>'; continue; }
-            const m = months[idx];
+    // Group by year
+    const yearGroups = {};
+    months.forEach(m => {
+        if (!yearGroups[m.y]) yearGroups[m.y] = [];
+        yearGroups[m.y].push(m);
+    });
+    const years = Object.keys(yearGroups).sort();
+
+    let gridHtml = '<div style="display:flex;flex-direction:column;gap:10px;">';
+    years.forEach(y => {
+        const ym = yearGroups[y];
+        gridHtml += `<div style="font-size:11px;font-weight:600;color:var(--md-on-surface-variant);padding:0 4px;">${y}</div>`;
+        gridHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 4px;">';
+        ym.forEach(m => {
             const amt = monthMap[m.key];
             const hasEntry = amt !== undefined;
             const isFuture = m.y > now.getFullYear() || (m.y === now.getFullYear() && m.m > now.getMonth());
             const fill = hasEntry ? 'var(--md-success)' : (isFuture ? 'transparent' : 'var(--md-surface-container-highest)');
             const border = isFuture ? '1px dashed var(--md-outline-variant)' : (hasEntry ? '2px solid var(--md-success)' : '1px solid var(--md-outline-variant)');
             const txt = hasEntry ? 'var(--md-on-success)' : 'var(--md-outline)';
-            const tooltip = hasEntry ? `${monthLabels[m.m]} ${m.y}: ${fmt(amt)}` : (isFuture ? '' : `${monthLabels[m.m]} ${m.y}: Skipped`);
-            gridHtml += `<div title="${tooltip}" style="width:56px;text-align:center;">
+            const cursor = hasEntry ? 'pointer' : 'default';
+            const onclick = hasEntry ? `onclick="showNoteMonthDetail(this.dataset.mt,this.dataset.mn,this.dataset.mk)" data-mt="${escapeHtml(type)}" data-mn="${escapeHtml(note)}" data-mk="${m.key}"` : '';
+            gridHtml += `<div ${onclick} title="${monthLabels[m.m]} ${m.y}" style="width:52px;text-align:center;cursor:${cursor};">
                 <div style="font-size:9px;color:var(--md-outline);margin-bottom:2px;">${monthLabels[m.m]}</div>
-                <div style="width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:${fill};color:${txt};border:${border};margin:0 auto;">
+                <div style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${fill};color:${txt};border:${border};margin:0 auto;">
                     ${hasEntry ? '✓' : ''}
                 </div>
-                <div style="font-size:8px;color:var(--md-outline);margin-top:1px;">${String(m.y).slice(2)}</div>
             </div>`;
-        }
+        });
         gridHtml += '</div>';
-    }
+    });
     gridHtml += '</div>';
     document.getElementById('note-month-grid').innerHTML = gridHtml;
 
@@ -1072,7 +1086,8 @@ function showNoteMonthHistory(type, note) {
     const invested = Object.keys(monthMap).length;
     const totalAmt = entries.reduce((s, e) => s + e.amount, 0);
     const avgAmt = Math.round(totalAmt / invested);
-    const skipped = 15 - invested;
+    const totalMonths = months.length;
+    const skipped = totalMonths - invested;
     const hasSkip = skipped > 0;
     document.getElementById('note-month-stats').innerHTML = `
         <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
@@ -1092,21 +1107,43 @@ function showNoteMonthHistory(type, note) {
             <div style="font-size:11px;color:var(--md-on-surface-variant);">Avg / Month</div>
         </div>`;
 
-    // Entry list
-    const sorted = [...entries].sort((a, b) => parseDate(b.date) - parseDate(a.date));
-    const sym = window.currencySymbol || '₹';
-    document.getElementById('note-month-entries').innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--md-on-surface-variant);margin-bottom:8px;">All Entries</div>'
-        + sorted.map(e => {
-            const d = parseDate(e.date);
-            return `<div class="unified-item" style="padding:8px 12px;">
-                <div class="unified-title" style="flex:1;">
-                    <span class="title-text">${d.getDate()} ${d.toLocaleString('default',{month:'short'})} ${d.getFullYear()}</span>
-                </div>
-                <div class="price" style="color:var(--md-success);">${sym}${fmt(e.amount)}</div>
-            </div>`;
-        }).join('');
-
     openSheet('note-month-sheet');
+}
+
+function showNoteMonthDetail(type, note, monthKey) {
+    const entries = db.investments.filter(i =>
+        i.type === type && (i.note || 'General') === note &&
+        (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter) &&
+        i.date && i.date.startsWith(monthKey));
+    if (entries.length === 0) return;
+
+    const d = new Date(parseInt(monthKey), parseInt(monthKey.split('-')[1]) - 1);
+    const monthLabel = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const sym = window.currencySymbol || '₹';
+    const total = entries.reduce((s, e) => s + e.amount, 0);
+
+    let html = `<div style="font-size:15px;font-weight:600;margin-bottom:12px;">${escapeHtml(monthLabel)}</div>`;
+    html += `<div style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:12px;">Total: <strong style="color:var(--md-success);">${sym}${fmt(total)}</strong> · ${entries.length} entries</div>`;
+    html += entries.map(e => {
+        const ed = parseDate(e.date);
+        return `<div class="unified-item" style="padding:8px 12px;">
+            <div class="unified-title" style="flex:1;">
+                <span class="title-text">${ed.getDate()} ${ed.toLocaleString('default',{month:'short'})}</span>
+                ${e.note ? `<span style="font-size:11px;color:var(--md-outline);margin-left:6px;">${escapeHtml(e.note)}</span>` : ''}
+            </div>
+            <div class="price" style="color:var(--md-success);">${sym}${fmt(e.amount)}</div>
+        </div>`;
+    }).join('');
+
+    Swal.fire({
+        html: `<div style="text-align:left;max-height:400px;overflow-y:auto;">${html}</div>`,
+        showConfirmButton: true,
+        confirmButtonText: 'Close',
+        confirmButtonColor: 'var(--md-primary)',
+        background: 'var(--md-surface-container)',
+        color: 'var(--md-on-surface)',
+        padding: '20px'
+    });
 }
 
 // Call this function when loading the settings UI tab panel
