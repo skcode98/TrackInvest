@@ -1643,8 +1643,8 @@ window.showMilestoneDetail = function (val) {
     if (body) body.innerHTML = html;
     openSubSheet('milestone-detail-sheet');
 
-    if (unlocked && typeof confetti !== 'undefined') {
-        confetti({ zIndex: 99999, particleCount: 80, spread: 50, origin: { y: 0.5 } });
+    if (unlocked) {
+        fireConfetti({ particleCount: 80, spread: 50, origin: { y: 0.5 }, colors: ['#4559A4', '#186D33', '#BF360C', '#FFD700'] });
     }
 };
 window.closeMilestoneDetail = function () {

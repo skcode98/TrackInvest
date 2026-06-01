@@ -1829,11 +1829,67 @@ function updateProjectionSlider() {
     renderHeroProjectionChart();
 }
 
+window.fireConfetti = function (opts) {
+    try {
+        var count = opts.particleCount || 80;
+        var spread = opts.spread || 70;
+        var ox = opts.origin && opts.origin.x != null ? opts.origin.x : 0.5;
+        var oy = opts.origin && opts.origin.y != null ? opts.origin.y : 0.6;
+        var colors = opts.colors || ['#4559A4', '#186D33', '#BF360C', '#FFD700'];
+        var c = document.createElement('canvas');
+        c.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:99999;';
+        c.width = window.innerWidth;
+        c.height = window.innerHeight;
+        document.body.appendChild(c);
+        var ctx = c.getContext('2d');
+        var particles = [];
+        for (var i = 0; i < count; i++) {
+            particles.push({
+                x: c.width * ox, y: c.height * oy,
+                vx: (Math.random() - 0.5) * spread * 1.5,
+                vy: -Math.random() * spread * 1.2 - 10,
+                size: Math.random() * 8 + 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                rotation: Math.random() * 360,
+                rotV: (Math.random() - 0.5) * 10,
+                opacity: 1, gravity: 0.25 + Math.random() * 0.15
+            });
+        }
+        var start = performance.now();
+
+        function animate() {
+            var elapsed = (performance.now() - start) / 1000;
+            ctx.clearRect(0, 0, c.width, c.height);
+            var alive = false;
+            for (var p of particles) {
+                if (p.opacity <= 0) continue;
+                p.x += p.vx;
+                p.vy += p.gravity;
+                p.y += p.vy;
+                p.rotation += p.rotV;
+                p.vx *= 0.99;
+                if (p.y > c.height + 50) p.opacity = 0;
+                if (elapsed > 2) p.opacity -= 0.02;
+                if (p.opacity <= 0) continue;
+                alive = true;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation * Math.PI / 180);
+                ctx.globalAlpha = Math.max(0, p.opacity);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+                ctx.restore();
+            }
+            if (alive) requestAnimationFrame(animate);
+            else c.remove();
+        }
+        animate();
+    } catch (e) { /* confetti silent fallback */ }
+};
+
 window.fireMilestoneConfetti = function () {
     haptic([50, 100, 50, 100]);
-    if (typeof confetti !== 'undefined') {
-        confetti({ zIndex: 99999, particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#4559A4', '#186D33', '#BF360C', '#FFD700'] });
-    }
+    fireConfetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#4559A4', '#186D33', '#BF360C', '#FFD700'] });
 };
 
 function getThemeColor() {

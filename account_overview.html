@@ -12,13 +12,15 @@
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         connect-src 'self' https://api.mfapi.in https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
-        img-src 'self' data:;
+        img-src 'self' data: blob:;
+        worker-src 'self' blob:;
         manifest-src 'self';
     ">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="./version.js"></script>
     <script src="./shared_ai.js"></script>
     <style>
@@ -85,6 +87,24 @@
             .vc-card .vc-number { font-size:14px; }
             .vc-card .vc-balance { font-size:18px; }
         }
+
+        /* ── Theme picker ── */
+        .theme-picker { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+        .theme-swatch { width:36px; height:36px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:0.2s; flex-shrink:0; position:relative; }
+        .theme-swatch:active { transform:scale(0.9); }
+        .theme-swatch.selected { border-color:#fff; box-shadow:0 0 0 2px var(--md-primary); }
+        .theme-swatch .check { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; color:#fff; opacity:0; text-shadow:0 1px 2px rgba(0,0,0,0.5); }
+        .theme-swatch.selected .check { opacity:1; }
+        .theme-swatch-custom { background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red); }
+        .theme-picker-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+        .theme-picker-row label { font-size:11px; color:var(--md-outline); }
+        .theme-picker-row input[type=color] { width:32px; height:32px; border:none; border-radius:50%; padding:0; cursor:pointer; background:none; }
+
+        /* ── Scan button ── */
+        .scan-btn { display:flex; align-items:center; gap:6px; justify-content:center; width:100%; padding:12px; border:1px dashed var(--md-outline); border-radius:12px; background:transparent; color:var(--md-on-surface-variant); font-size:13px; cursor:pointer; transition:0.2s; margin-top:8px; }
+        .scan-btn:active { background:var(--md-surface-container-highest); transform:scale(0.98); }
+        .scan-btn .material-symbols-rounded { font-size:20px; }
+        .scan-btn:disabled { opacity:0.4; pointer-events:none; }
     </style>
 </head>
 <body>
@@ -183,6 +203,79 @@
         function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
         const sym = '₹';
 
+        // ── Card Themes ──
+        const CARD_THEMES = {
+            midnight: { bg: 'linear-gradient(135deg,#1a1a3e,#2d1b69)', label: 'Midnight', icon: 'dark_mode' },
+            ocean: { bg: 'linear-gradient(135deg,#0d3b66,#1a6d8a)', label: 'Ocean', icon: 'water_drop' },
+            forest: { bg: 'linear-gradient(135deg,#0f4c3a,#1b7a5a)', label: 'Forest', icon: 'forest' },
+            amber: { bg: 'linear-gradient(135deg,#5c2e0a,#8B5E1A)', label: 'Amber', icon: 'wb_sunny' },
+            charcoal: { bg: 'linear-gradient(135deg,#2c2c2c,#4a4a4a)', label: 'Charcoal', icon: 'bedtime' },
+            ruby: { bg: 'linear-gradient(135deg,#5c1010,#8b1a1a)', label: 'Ruby', icon: 'favorite' },
+            indigo: { bg: 'linear-gradient(135deg,#1a1a5c,#3a3a8b)', label: 'Indigo', icon: 'star' },
+            slate: { bg: 'linear-gradient(135deg,#2c3e50,#4a6274)', label: 'Slate', icon: 'cloud' },
+            emerald: { bg: 'linear-gradient(135deg,#0a3d1a,#1a6b3a)', label: 'Emerald', icon: 'eco' },
+            rose: { bg: 'linear-gradient(135deg,#4a1a2c,#7a2d4a)', label: 'Rose', icon: 'spa' }
+        };
+        const DEFAULT_THEMES = { credit: 'midnight', debit: 'ocean', bank: 'forest', pf: 'amber' };
+
+        function getThemeGradient(key) {
+            if (!key || key === 'custom') return null;
+            if (key.startsWith('custom_')) return key.replace('custom_', '');
+            let t = CARD_THEMES[key];
+            return t ? t.bg : null;
+        }
+
+        function getThemeForItem(item, type) {
+            if (!item || !item.theme) {
+                if (type === 'cards') return DEFAULT_THEMES[item?.type] || DEFAULT_THEMES.credit;
+                if (type === 'banks') return DEFAULT_THEMES.bank;
+                return DEFAULT_THEMES.pf;
+            }
+            return item.theme;
+        }
+
+        function resolveCardBg(item, type) {
+            let themeKey = getThemeForItem(item, type);
+            let g = getThemeGradient(themeKey);
+            if (g) return g;
+            // fallback by type
+            if (type === 'pf') return CARD_THEMES.amber.bg;
+            if (type === 'banks') return CARD_THEMES.forest.bg;
+            return (item && item.type === 'debit') ? CARD_THEMES.ocean.bg : CARD_THEMES.midnight.bg;
+        }
+
+        function renderThemeSwatches(containerId, selectedKey, onChangeFn) {
+            let container = document.getElementById(containerId);
+            if (!container) return;
+            let html = '';
+            for (let [key, t] of Object.entries(CARD_THEMES)) {
+                let sel = key === selectedKey ? ' selected' : '';
+                html += '<div class="theme-swatch' + sel + '" style="background:' + t.bg + ';" onclick="selectTheme(\'' + key + '\',this,\'' + containerId + '\')" title="' + t.label + '"><span class="material-symbols-rounded check">check</span></div>';
+            }
+            // custom color swatch
+            let isCustom = selectedKey && selectedKey.startsWith('custom_');
+            let customSel = isCustom ? ' selected' : '';
+            html += '<div class="theme-swatch theme-swatch-custom' + customSel + '" onclick="document.getElementById(\'f-customColor\').click()" title="Custom Color"><span class="material-symbols-rounded check">check</span></div>';
+            html += '<input type="color" id="f-customColor" value="' + (isCustom ? selectedKey.replace('custom_', '') : '#1a1a3e') + '" onchange="applyCustomColor(this.value,\'' + containerId + '\')" style="width:0;height:0;padding:0;border:none;position:absolute;opacity:0;pointer-events:none;">';
+            container.innerHTML = html;
+        }
+
+        window.selectTheme = function(key, el, containerId) {
+            document.querySelectorAll('#' + containerId + ' .theme-swatch').forEach(s => s.classList.remove('selected'));
+            el.classList.add('selected');
+            window._selectedTheme = key;
+        };
+
+        window.applyCustomColor = function(color, containerId) {
+            document.querySelectorAll('#' + containerId + ' .theme-swatch').forEach(s => s.classList.remove('selected'));
+            let customSwatch = document.querySelector('#' + containerId + ' .theme-swatch-custom');
+            if (customSwatch) {
+                customSwatch.classList.add('selected');
+                customSwatch.style.background = color;
+            }
+            window._selectedTheme = 'custom_' + color;
+        };
+
         // ── Tabs ──
         function switchTab(tab, btn) {
             currentTab = tab;
@@ -223,10 +316,10 @@
         function buildCardHTML(item) {
             let num = item.cardNumber || '••••';
             let networkLogo = item.cardNetwork || '';
-            let typeClass = item.type === 'debit' ? 'vc-debit' : 'vc-credit';
+            let cardBg = resolveCardBg(item, 'cards');
             let chipIcon = item.type === 'debit' ? '<span class="material-symbols-rounded" style="font-size:14px;color:#fff;position:absolute;top:20px;left:20px;">account_balance</span>' : '<div class="vc-chip"></div>';
             let network = item.cardNetwork === 'RuPay' ? 'RUPAY' : (item.cardNetwork === 'AmEx' ? 'AMEX' : (item.cardNetwork === 'Mastercard' ? 'MC' : 'VISA'));
-            return '<div class="vc-card ' + typeClass + '" onclick="showDetail(\'' + item.id + '\',\'cards\')">'
+            return '<div class="vc-card" style="background:' + cardBg + ';" onclick="showDetail(\'' + item.id + '\',\'cards\')">'
                 + chipIcon
                 + '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;margin-top:16px;">'
                 + '<div class="vc-number">' + ('xxxx xxxx xxxx ' + num) + '</div>'
@@ -240,7 +333,8 @@
 
         function buildBankHTML(item) {
             let typeLabel = {savings:'Savings',current:'Current',salary:'Salary',fixed_deposit:'Fixed Deposit'}[item.accountType] || item.accountType;
-            return '<div class="vc-card vc-bank" onclick="showDetail(\'' + item.id + '\',\'banks\')">'
+            let cardBg = resolveCardBg(item, 'banks');
+            return '<div class="vc-card" style="background:' + cardBg + ';" onclick="showDetail(\'' + item.id + '\',\'banks\')">'
                 + '<div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:space-between;">'
                 + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + typeLabel + '</div>'
                 + '<div style="font-size:15px;font-weight:600;margin-top:2px;">' + (item.bankName || 'Bank') + '</div></div>'
@@ -253,7 +347,8 @@
         }
 
         function buildPFHTML(item) {
-            return '<div class="vc-card vc-pf" onclick="showDetail(\'' + item.id + '\',\'pf\')">'
+            let cardBg = resolveCardBg(item, 'pf');
+            return '<div class="vc-card" style="background:' + cardBg + ';" onclick="showDetail(\'' + item.id + '\',\'pf\')">'
                 + '<div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:space-between;">'
                 + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + (item.provider || 'PF') + '</div>'
                 + '<div style="font-size:13px;font-weight:500;margin-top:2px;opacity:0.85;">' + (item.accountNumber || '') + '</div></div>'
@@ -307,8 +402,8 @@
 
             if (type === 'cards') {
                 let network = item.cardNetwork || '';
-                let typeClass = item.type === 'debit' ? 'vc-debit' : 'vc-credit';
-                html += '<div class="vc-card ' + typeClass + '" style="cursor:default;margin-bottom:16px;min-height:160px;">'
+                let cardBg = resolveCardBg(item, 'cards');
+                html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:160px;background:' + cardBg + ';">'
                     + (item.type === 'debit' ? '<span class="material-symbols-rounded" style="position:absolute;top:20px;left:20px;font-size:14px;z-index:1;">account_balance</span>' : '<div class="vc-chip"></div>')
                     + '<div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;padding-top:10px;">'
                     + '<div class="vc-number">' + ('xxxx xxxx xxxx ' + (item.cardNumber||'••••')) + '</div>'
@@ -326,7 +421,8 @@
                 }
                 if (item.notes) html += '<div class="detail-row"><div class="detail-label">Notes</div><div class="detail-value" style="font-weight:400;max-width:180px;word-break:break-word;">' + item.notes + '</div></div>';
             } else if (type === 'banks') {
-                html += '<div class="vc-card vc-bank" style="cursor:default;margin-bottom:16px;min-height:120px;">'
+                let bankBg = resolveCardBg(item, 'banks');
+                html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:120px;background:' + bankBg + ';">'
                     + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">'
                     + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + ({savings:'Savings',current:'Current',salary:'Salary',fixed_deposit:'Fixed Deposit'}[item.accountType]||item.accountType) + '</div>'
                     + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + (item.bankName||'Bank') + '</div></div>'
@@ -338,7 +434,8 @@
                     + '<div class="detail-row"><div class="detail-label">Type</div><div class="detail-value" style="text-transform:capitalize;">' + (item.accountType||'—') + '</div></div>';
                 if (item.notes) html += '<div class="detail-row"><div class="detail-label">Notes</div><div class="detail-value" style="font-weight:400;max-width:180px;word-break:break-word;">' + item.notes + '</div></div>';
             } else if (type === 'pf') {
-                html += '<div class="vc-card vc-pf" style="cursor:default;margin-bottom:16px;min-height:120px;">'
+                let pfBg = resolveCardBg(item, 'pf');
+                html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:120px;background:' + pfBg + ';">'
                     + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">'
                     + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + (item.provider||'PF') + '</div>'
                     + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + sym + fmt(item.balance) + '</div></div>'
@@ -397,9 +494,19 @@
             }
 
             let fields = document.getElementById('form-fields');
-            if (type === 'cards') fields.innerHTML = getCardForm(item);
-            else if (type === 'banks') fields.innerHTML = getBankForm(item);
-            else fields.innerHTML = getPFForm(item);
+            if (type === 'cards') {
+                fields.innerHTML = getCardForm(item);
+                window._selectedTheme = getThemeForItem(item, 'cards');
+                renderThemeSwatches('fp-cards-theme', window._selectedTheme);
+            } else if (type === 'banks') {
+                fields.innerHTML = getBankForm(item);
+                window._selectedTheme = getThemeForItem(item, 'banks');
+                renderThemeSwatches('fp-banks-theme', window._selectedTheme);
+            } else {
+                fields.innerHTML = getPFForm(item);
+                window._selectedTheme = getThemeForItem(item, 'pf');
+                renderThemeSwatches('fp-pf-theme', window._selectedTheme);
+            }
 
             document.getElementById('form-sheet').classList.add('open');
             document.getElementById('form-scrim').classList.add('open');
@@ -410,6 +517,9 @@
                 typeEl.onchange = function() {
                     const cf = document.getElementById('f-credit-fields');
                     if (cf) cf.style.display = this.value === 'debit' ? 'none' : '';
+                    // Update default theme for the selected card type
+                    window._selectedTheme = DEFAULT_THEMES[this.value] || DEFAULT_THEMES.credit;
+                    renderThemeSwatches('fp-cards-theme', window._selectedTheme);
                 };
             }
         }
@@ -432,7 +542,9 @@
                 + '<div class="input-container"' + (i.type==='debit'?' style="display:none;"':'') + ' id="f-credit-fields"><label>Credit Limit (₹)</label><input type="number" id="f-creditLimit" class="md-input" value="' + (i.creditLimit||'') + '" placeholder="500000"></div>'
                 + '<div class="input-container" id="f-outstanding-container"><label>Outstanding Amount (₹)</label><input type="number" id="f-outstandingAmount" class="md-input" value="' + (i.outstandingAmount||'') + '" placeholder="0"></div>'
                 + '<div class="input-container"><label>Billing Date (day of month)</label><input type="number" id="f-billingDate" class="md-input" min="1" max="31" value="' + (i.billingDate||'') + '" placeholder="5"></div>'
-                + '<div class="input-container"><label>Notes</label><input type="text" id="f-notes" class="md-input" value="' + esc(i.notes||'') + '" placeholder="Optional"></div>';
+                + '<div class="input-container"><label>Card Theme</label><div class="theme-picker" id="fp-cards-theme"></div></div>'
+                + '<div class="input-container"><label>Notes</label><input type="text" id="f-notes" class="md-input" value="' + esc(i.notes||'') + '" placeholder="Optional"></div>'
+                + '<button class="scan-btn" id="scan-btn" onclick="scanCard()" type="button"><span class="material-symbols-rounded">scan</span> Scan Card from Photo</button>';
         }
 
         function getBankForm(item) {
@@ -443,6 +555,7 @@
                 + '<div class="input-container"><label>IFSC Code</label><input type="text" id="f-ifscCode" class="md-input" value="' + esc(i.ifscCode||'') + '" placeholder="SBIN0001234"></div>'
                 + '<div class="input-container"><label>Branch Name</label><input type="text" id="f-branchName" class="md-input" value="' + esc(i.branchName||'') + '" placeholder="Main Branch"></div>'
                 + '<div class="input-container"><label>Balance (₹)</label><input type="number" id="f-balance" class="md-input" value="' + (i.balance||'') + '" placeholder="0"></div>'
+                + '<div class="input-container"><label>Card Theme</label><div class="theme-picker" id="fp-banks-theme"></div></div>'
                 + '<div class="input-container"><label>Notes</label><input type="text" id="f-notes" class="md-input" value="' + esc(i.notes||'') + '" placeholder="Optional"></div>';
         }
 
@@ -456,9 +569,9 @@
                 + '<div class="input-container"><label>Interest Rate (%)</label><input type="number" step="0.01" id="f-interestRate" class="md-input" value="' + (i.interestRate||'') + '" placeholder="8.15"></div>'
                 + '<div class="input-container"><label>Start Date</label><input type="date" id="f-startDate" class="md-input" value="' + (i.startDate||'') + '"></div>'
                 + '<div class="input-container"><label>Nominee</label><input type="text" id="f-nominee" class="md-input" value="' + esc(i.nominee||'') + '" placeholder="Spouse"></div>'
+                + '<div class="input-container"><label>Card Theme</label><div class="theme-picker" id="fp-pf-theme"></div></div>'
                 + '<div class="input-container"><label>Notes</label><input type="text" id="f-notes" class="md-input" value="' + esc(i.notes||'') + '" placeholder="Optional"></div>';
         }
-
         function g(id) { return document.getElementById(id); }
         function gv(id) { let el = g(id); return el ? el.value : ''; }
         function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -504,6 +617,7 @@
                 data.notes = gv('f-notes');
                 if (!data.accountNumber) { Swal.fire({icon:'error',title:'Account number required',timer:1200,showConfirmButton:false}); return; }
             }
+            data.theme = window._selectedTheme || '';
 
             if (editId) {
                 let idx = items.findIndex(i => i.id === editId);
@@ -532,6 +646,137 @@
                 renderAll();
                 Swal.fire({icon:'info',title:'Deleted',timer:1200,showConfirmButton:false});
             });
+        }
+
+        // ── Scan Card via OCR ──
+        function scanCard() {
+            if (typeof Tesseract === 'undefined') {
+                Swal.fire({icon:'error',title:'OCR library not loaded',text:'Please check your internet connection',timer:2000,showConfirmButton:false});
+                return;
+            }
+            let input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = function(e) {
+                let file = e.target.files[0];
+                if (!file) return;
+                Swal.fire({title:'Scanning card...',text:'This may take a moment (fully offline)',allowOutsideClick:false,allowEscapeKey:false,didOpen:()=>Swal.showLoading()});
+                let reader = new FileReader();
+                reader.onload = function(ev) {
+                    let img = new Image();
+                    img.onload = function() {
+                        // Downscale large images for faster OCR
+                        let MAX = 1600;
+                        let scale = Math.min(1, MAX / Math.max(img.width, img.height));
+                        let cvs = document.createElement('canvas');
+                        cvs.width = Math.round(img.width * scale);
+                        cvs.height = Math.round(img.height * scale);
+                        let ctx = cvs.getContext('2d');
+                        ctx.drawImage(img, 0, 0, cvs.width, cvs.height);
+                        Tesseract.recognize(cvs, 'eng', { logger: m => {} }).then(res => {
+                            let text = res.data.text;
+                            let lines = text.split('\n').map(l => l.trim()).filter(l => l);
+                            let allText = lines.join(' ');
+                            let parsed = parseCardOCR(text, allText);
+                            Swal.close();
+                            if (parsed.cardNumber || parsed.cardHolderName || parsed.expiryMonth) {
+                                applyOCRResults(parsed);
+                                Swal.fire({icon:'success',title:'Card detected!',text:'Review & save',timer:1500,showConfirmButton:false});
+                            } else {
+                                let preview = document.createElement('div');
+                                preview.style.cssText = 'max-height:200px;overflow-y:auto;font-size:11px;background:var(--md-surface-container);border-radius:8px;padding:8px;margin-top:8px;white-space:pre-wrap;text-align:left;color:var(--md-on-surface);';
+                                preview.textContent = text.slice(0,1000);
+                                Swal.fire({icon:'warning',title:'Could not detect card fields',html:'<div style="font-size:12px;opacity:0.7;">Raw OCR output:</div>',didOpen:()=>{let el=Swal.getContent()||Swal.getHtmlContainer();if(el)el.appendChild(preview);},confirmButtonText:'OK'});
+                            }
+                        }).catch(err => {
+                            Swal.close();
+                            Swal.fire({icon:'error',title:'OCR failed',text:'Try a clearer photo',timer:2000,showConfirmButton:false});
+                        });
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        function parseCardOCR(text, allText) {
+            let res = { cardNumber: '', cardHolderName: '', expiryMonth: '', expiryYear: '', cardNetwork: '' };
+            // Card number: 13-16 digits (possibly with spaces/hyphens)
+            let numMatch = allText.match(/(?:\d[ -]*?){13,19}/);
+            if (numMatch) {
+                let raw = numMatch[0].replace(/[^0-9]/g, '');
+                if (raw.length >= 13 && raw.length <= 19) {
+                    res.cardNumber = raw.slice(-4);
+                    res.cardNetwork = guessCardNetwork(raw);
+                }
+            }
+            // Expiry: MM/YY or MM/YYYY
+            let expMatch = allText.match(/(\d{2})\s*[\/\s.]\s*(\d{2,4})/);
+            if (expMatch) {
+                let m = parseInt(expMatch[1], 10);
+                if (m >= 1 && m <= 12) {
+                    res.expiryMonth = String(m).padStart(2, '0');
+                    let y = expMatch[2];
+                    res.expiryYear = y.length === 4 ? y.slice(-2) : y;
+                }
+            }
+            // Cardholder name: all caps name (2-4 words, each 3+ chars) near bottom of card
+            let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
+            // Score lines for name-likeness
+            let bestName = '';
+            let bestScore = 0;
+            for (let line of lines) {
+                let clean = line.replace(/[^A-Za-z ]/g, '').trim();
+                let words = clean.split(/\s+/).filter(w => w.length >= 2);
+                if (words.length >= 2 && words.length <= 4) {
+                    let allAlpha = words.every(w => /^[A-Za-z]+$/.test(w));
+                    let allCaps = words.every(w => w === w.toUpperCase());
+                    let score = (allCaps ? 3 : 1) + words.length + (clean.length > 8 && clean.length < 30 ? 2 : 0);
+                    // Prefer lines that are alpha-only and not too short/long
+                    if (allAlpha && score > bestScore) {
+                        bestScore = score;
+                        bestName = words.join(' ');
+                    }
+                }
+            }
+            if (bestName) res.cardHolderName = bestName.toUpperCase();
+            return res;
+        }
+
+        function guessCardNetwork(num) {
+            let first = num[0];
+            let firstTwo = parseInt(num.slice(0,2), 10);
+            let firstFour = parseInt(num.slice(0,4), 10);
+            if (first === '4') return 'Visa';
+            if (firstTwo >= 51 && firstTwo <= 55) return 'Mastercard';
+            if (firstTwo === 34 || firstTwo === 37) return 'AmEx';
+            if (first === '6' || firstTwo === 81 || firstTwo === 82 || firstTwo === 83) return 'RuPay';
+            return 'Visa';
+        }
+
+        function applyOCRResults(parsed) {
+            if (parsed.cardNumber) {
+                let el = document.getElementById('f-cardNumber');
+                if (el) el.value = parsed.cardNumber;
+            }
+            if (parsed.cardHolderName) {
+                let el = document.getElementById('f-cardHolderName');
+                if (el) el.value = parsed.cardHolderName;
+            }
+            if (parsed.expiryMonth) {
+                let el = document.getElementById('f-expiryMonth');
+                if (el) el.value = parsed.expiryMonth;
+            }
+            if (parsed.expiryYear) {
+                let el = document.getElementById('f-expiryYear');
+                if (el) el.value = parsed.expiryYear;
+            }
+            if (parsed.cardNetwork) {
+                let el = document.getElementById('f-cardNetwork');
+                if (el) { let opts = Array.from(el.options); for (let o of opts) { if (o.value.toLowerCase() === parsed.cardNetwork.toLowerCase()) { el.value = o.value; break; } } }
+            }
         }
 
         // ── Init ──
