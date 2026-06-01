@@ -718,9 +718,9 @@ function renderHistory() {
     const countEl = document.getElementById('li-count');
     const totalEl = document.getElementById('li-total');
     const avgEl = document.getElementById('li-avg');
-    if (countEl) countEl.textContent = liCount;
-    if (totalEl) totalEl.textContent = '₹' + liTotal.toLocaleString('en-IN');
-    if (avgEl) avgEl.textContent = liCount > 0 ? '₹' + Math.round(liTotal / liCount).toLocaleString('en-IN') : '₹0';
+    if (countEl) countEl.textContent = db.privacyMode ? '•' : liCount;
+    if (totalEl) totalEl.textContent = formatMoney(liTotal);
+    if (avgEl) avgEl.textContent = liCount > 0 ? formatMoney(Math.round(liTotal / liCount)) : formatMoney(0);
     updateLedgerBatchBar();
 }
 window.renderHistory = renderHistory;
