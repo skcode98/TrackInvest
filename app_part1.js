@@ -265,7 +265,7 @@ let currentTotalNW = 0, currentAvgMonthly = 0, currentTypeTotals = {};
 let currentTax80c = 0;
 let chartMonthsRange = 3;
 let chartDataPoints = [];
-let portfolioChartInstance = null, rollingChartInstance = null, categoryChartInstance = null;
+let portfolioChartInstance = null, rollingChartInstance = null, categoryChartInstance = null, heroProjectionChartInstance = null;
 let aiReportCharts = { pie: null, bar: null };
 
 // Chart data cache to prevent unnecessary re-renders
@@ -829,7 +829,7 @@ const SUB_SHEET_IDS = new Set([
     'chat-history-sheet', 'wealth-blueprint-sheet', 'ai-sheet',
     'maturity-calendar-sheet', 'ai-chat-sheet', 'monthly-target-sheet',
     'projection-sheet', 'month-sheet', 'notif-sheet',
-    'note-month-sheet'
+    'note-month-sheet', 'goal-month-sheet'
 ]);
 
 function openSubSheet(sheetId) {
@@ -1439,10 +1439,13 @@ async function resetCorruptedSettings() {
 
 async function createEmergencyBackup() {
     try {
+        let ao = null;
+        try { ao = JSON.parse(localStorage.getItem('appHubInvestDb_ao') || 'null'); } catch(e) {}
         const emergencyData = {
-            version: '1.0-emergency',
+            version: '1.1-emergency',
             timestamp: new Date().toISOString(),
             data: db,
+            accountOverview: ao,
             checksum: await generateDataChecksum(db),
             metadata: {
                 userAgent: navigator.userAgent,
@@ -1575,10 +1578,13 @@ async function checkStorageQuota(sanitizedDb) {
 // Automatic backup system
 async function autoBackupData() {
     try {
+        let ao = null;
+        try { ao = JSON.parse(localStorage.getItem('appHubInvestDb_ao') || 'null'); } catch(e) {}
         const backupData = {
-            version: '1.0',
+            version: '1.1',
             timestamp: new Date().toISOString(),
             data: db,
+            accountOverview: ao,
             checksum: await generateDataChecksum(db)
         };
 
@@ -1771,7 +1777,7 @@ function performTabSwitch(tabId, fromPopState = false) {
 
     renderAll();
     if (tabId === 'portfolio') renderDonutChart(currentTypeTotals, currentTotalNW);
-    if (tabId === 'dashboard') { renderNWChart(); renderRollingChart(); }
+    if (tabId === 'dashboard') { renderNWChart(); renderRollingChart(); renderHeroProjectionChart(); initHeroScrollSync(); }
     if (tabId !== 'portfolio') {
         const catChartCanvas = document.getElementById('categoryHistoryChart');
         if (catChartCanvas && categoryChartInstance) {
@@ -1820,6 +1826,13 @@ function updateProjectionSlider() {
     let cons = document.getElementById('proj-conservative'); if (cons) cons.innerText = formatMoney(conservative);
     let opti = document.getElementById('proj-optimistic'); if (opti) opti.innerText = formatMoney(optimistic);
     let avg = document.getElementById('proj-monthly-avg'); if (avg) avg.innerText = formatMoney(currentAvgMonthly);
+
+    // Update second card projection chart and stats
+    let ceoy = document.getElementById('proj-card-eoy'); if (ceoy) ceoy.innerText = formatMoney(projected);
+    let ccons = document.getElementById('proj-card-conservative'); if (ccons) ccons.innerText = formatMoney(conservative);
+    let copti = document.getElementById('proj-card-optimistic'); if (copti) copti.innerText = formatMoney(optimistic);
+
+    renderHeroProjectionChart();
 }
 
 window.fireMilestoneConfetti = function () {
@@ -2410,6 +2423,103 @@ function renderRollingChart() {
         });
         chartDataCache.rolling = { key: cacheKey, data: displayData, labels: chartLabels };
     }
+}
+
+function renderHeroProjectionChart() {
+    const canvas = document.getElementById('hero-projection-chart');
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    const slider = document.getElementById('proj-slider');
+    const months = slider ? parseInt(slider.value, 10) || 12 : 12;
+
+    const labels = [];
+    const data = [];
+    const now = new Date();
+    for (let i = 0; i < months; i++) {
+        const m = now.getMonth() + i;
+        let y = now.getFullYear() + Math.floor(m / 12);
+        const monthIdx = m % 12;
+        labels.push(new Date(y, monthIdx).toLocaleString('default', { month: 'short' }));
+        const projected = currentTotalNW + (currentAvgMonthly * (i + 1));
+        data.push(Math.max(0, projected));
+    }
+
+    const displayData = db.privacyMode ? data.map(() => 1) : data;
+
+    const ctx = canvas.getContext('2d');
+    if (heroProjectionChartInstance) heroProjectionChartInstance.destroy();
+
+    heroProjectionChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Projected Wealth',
+                data: displayData,
+                backgroundColor: 'rgba(255,255,255,0.25)',
+                borderColor: 'rgba(255,255,255,0.7)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 400 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (c) {
+                            return db.privacyMode ? '••••••' : '₹' + Number(c.raw).toLocaleString('en-IN');
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 9 } },
+                    grid: { display: false }
+                },
+                y: {
+                    display: false,
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function initHeroScrollSync() {
+    const scroll = document.getElementById('hero-scroll');
+    if (!scroll) return;
+    const dots = document.querySelectorAll('.hero-dot');
+    if (!dots.length) return;
+
+    // Remove old listener to avoid duplicates
+    scroll._heroScrollHandler && scroll.removeEventListener('scroll', scroll._heroScrollHandler);
+
+    scroll._heroScrollHandler = function () {
+        const slideW = scroll.children[0]?.offsetWidth || 1;
+        const idx = Math.round(scroll.scrollLeft / slideW);
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    };
+    scroll.addEventListener('scroll', scroll._heroScrollHandler, { passive: true });
+
+    // Also allow clicking dots to navigate
+    dots.forEach((d, i) => {
+        d._heroClickHandler && d.removeEventListener('click', d._heroClickHandler);
+        d._heroClickHandler = function () {
+            scroll.scrollTo({ left: i * (scroll.children[0]?.offsetWidth || scroll.offsetWidth), behavior: 'smooth' });
+        };
+        d.addEventListener('click', d._heroClickHandler);
+    });
+
+    // Set initial active dot
+    dots.forEach((d, i) => d.classList.toggle('active', i === 0));
 }
 
 function showMonthDetailSheet(label, totalAmt, idx) {

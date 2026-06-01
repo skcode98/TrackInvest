@@ -1146,6 +1146,145 @@ function showNoteMonthDetail(type, note, monthKey) {
     });
 }
 
+function showGoalMonthHistory(goalId) {
+    const goal = db.goals.find(g => String(g.id) === String(goalId));
+    if (!goal || !goal.linkedCategory) return showSnackbar("No linked investment data", "info");
+
+    const cat = goal.linkedCategory;
+    const entries = db.investments.filter(i =>
+        i.type === cat &&
+        (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter));
+    if (entries.length === 0) return showSnackbar("No entries for this category", "info");
+
+    document.getElementById('goal-month-title').innerHTML = `<span style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-rounded" style="font-size:18px;">history</span> ${escapeHtml(goal.name)}</span>`;
+
+    const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthMap = {};
+    entries.forEach(e => {
+        const d = parseDate(e.date);
+        const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        monthMap[key] = (monthMap[key] || 0) + e.amount;
+    });
+
+    const allKeys = Object.keys(monthMap).sort();
+    const firstYear = parseInt(allKeys[0]);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const months = [];
+    for (let y = firstYear; y <= currentYear; y++) {
+        const maxM = (y === currentYear) ? currentMonth : 11;
+        for (let m = 0; m <= maxM; m++) {
+            const key = y + '-' + String(m + 1).padStart(2, '0');
+            months.push({ y, m, key });
+        }
+    }
+
+    // Determine max monthly contribution for opacity scaling
+    const maxMonthly = Math.max(...Object.values(monthMap), 1);
+
+    const yearGroups = {};
+    months.forEach(m => {
+        if (!yearGroups[m.y]) yearGroups[m.y] = [];
+        yearGroups[m.y].push(m);
+    });
+    const years = Object.keys(yearGroups).sort();
+
+    let gridHtml = '<div style="display:flex;flex-direction:column;gap:10px;">';
+    years.forEach(y => {
+        const ym = yearGroups[y];
+        gridHtml += `<div style="font-size:11px;font-weight:600;color:var(--md-on-surface-variant);padding:0 4px;">${y}</div>`;
+        gridHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 4px;">';
+        ym.forEach(m => {
+            const amt = monthMap[m.key];
+            const hasEntry = amt !== undefined;
+            const isFuture = m.y > now.getFullYear() || (m.y === now.getFullYear() && m.m > now.getMonth());
+            const intensity = hasEntry ? Math.max(0.15, amt / maxMonthly) : 0;
+            const fill = hasEntry ? `rgba(67,160,71,${intensity})` : (isFuture ? 'transparent' : 'var(--md-surface-container-highest)');
+            const border = isFuture ? '1px dashed var(--md-outline-variant)' : (hasEntry ? '1px solid rgba(67,160,71,0.5)' : '1px solid var(--md-outline-variant)');
+            const txt = hasEntry ? '#fff' : 'var(--md-outline)';
+            const cursor = hasEntry ? 'pointer' : 'default';
+            const onclick = hasEntry ? `onclick="showGoalMonthDetail(this.dataset.gid3,this.dataset.mk)" data-gid3="${escapeHtml(String(goalId))}" data-mk="${m.key}"` : '';
+            gridHtml += `<div ${onclick} title="${monthLabels[m.m]} ${m.y}" style="width:52px;text-align:center;cursor:${cursor};">
+                <div style="font-size:9px;color:var(--md-outline);margin-bottom:2px;">${monthLabels[m.m]}</div>
+                <div style="width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:${fill};color:${txt};border:${border};margin:0 auto;">
+                    ${hasEntry ? fmt(amt) : ''}
+                </div>
+            </div>`;
+        });
+        gridHtml += '</div>';
+    });
+    gridHtml += '</div>';
+    document.getElementById('goal-month-grid').innerHTML = gridHtml;
+
+    // Stats
+    const invested = Object.keys(monthMap).length;
+    const totalAmt = entries.reduce((s, e) => s + e.amount, 0);
+    const avgAmt = Math.round(totalAmt / invested);
+    const totalMonths = months.length;
+    const skipped = totalMonths - invested;
+    const hasSkip = skipped > 0;
+    document.getElementById('goal-month-stats').innerHTML = `
+        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--md-success);">${invested}</div>
+            <div style="font-size:11px;color:var(--md-on-surface-variant);">Months Invested</div>
+        </div>
+        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:${hasSkip ? 'var(--md-error)' : 'var(--md-success)'};">${skipped}</div>
+            <div style="font-size:11px;color:var(--md-on-surface-variant);">Skipped</div>
+        </div>
+        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--md-primary);">${fmt(totalAmt)}</div>
+            <div style="font-size:11px;color:var(--md-on-surface-variant);">Total Invested</div>
+        </div>
+        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:var(--md-on-surface);">${fmt(avgAmt)}</div>
+            <div style="font-size:11px;color:var(--md-on-surface-variant);">Avg / Month</div>
+        </div>`;
+
+    openSheet('goal-month-sheet');
+}
+
+function showGoalMonthDetail(goalId, monthKey) {
+    const goal = db.goals.find(g => String(g.id) === String(goalId));
+    if (!goal || !goal.linkedCategory) return;
+
+    const entries = db.investments.filter(i =>
+        i.type === goal.linkedCategory &&
+        (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter) &&
+        i.date && i.date.startsWith(monthKey));
+    if (entries.length === 0) return;
+
+    const d = new Date(parseInt(monthKey), parseInt(monthKey.split('-')[1]) - 1);
+    const monthLabel = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const sym = window.currencySymbol || '₹';
+    const total = entries.reduce((s, e) => s + e.amount, 0);
+
+    let html = `<div style="font-size:15px;font-weight:600;margin-bottom:12px;">${escapeHtml(goal.name)} — ${escapeHtml(monthLabel)}</div>`;
+    html += `<div style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:12px;">Total: <strong style="color:var(--md-success);">${sym}${fmt(total)}</strong> · ${entries.length} entries</div>`;
+    html += entries.map(e => {
+        const ed = parseDate(e.date);
+        return `<div class="unified-item" style="padding:8px 12px;">
+            <div class="unified-title" style="flex:1;">
+                <span class="title-text">${ed.getDate()} ${ed.toLocaleString('default',{month:'short'})}</span>
+                ${e.note ? `<span style="font-size:11px;color:var(--md-outline);margin-left:6px;">${escapeHtml(e.note)}</span>` : ''}
+            </div>
+            <div class="price" style="color:var(--md-success);">${sym}${fmt(e.amount)}</div>
+        </div>`;
+    }).join('');
+
+    Swal.fire({
+        html: `<div style="text-align:left;max-height:400px;overflow-y:auto;">${html}</div>`,
+        showConfirmButton: true,
+        confirmButtonText: 'Close',
+        confirmButtonColor: 'var(--md-primary)',
+        background: 'var(--md-surface-container)',
+        color: 'var(--md-on-surface)',
+        padding: '20px'
+    });
+}
+
 // Call this function when loading the settings UI tab panel
 function loadUserProfileSettings() {
     if (db.userProfile) {
@@ -2009,7 +2148,11 @@ async function exportData() {
     let encrypt = document.getElementById('encrypt-backup-toggle') ? document.getElementById('encrypt-backup-toggle').checked : false;
     if (encrypt && !db.appPin) { showSnackbar("Please set a PIN first to encrypt", "warning"); return; }
 
-    let dataStr = JSON.stringify(db, null, 2);
+    let exportPayload = { ...db };
+    try { exportPayload._accountOverview = JSON.parse(localStorage.getItem('appHubInvestDb_ao') || 'null'); } catch(e) {}
+    if (exportPayload._accountOverview === null) delete exportPayload._accountOverview;
+
+    let dataStr = JSON.stringify(exportPayload, null, 2);
     let finalData = encrypt ? await encryptData(dataStr, db.appPin) : dataStr;
     let ext = encrypt ? '.enc' : '.json';
 
@@ -2091,6 +2234,11 @@ function restoreData(e) {
 
             if (parsed.categories && Object.keys(parsed.categories).length > 0) { db.categories = parsed.categories; }
             if (!db.settingsTable) db.settingsTable = { lastResetMonth: '' };
+
+            // Restore account overview data
+            if (parsed._accountOverview) {
+                try { localStorage.setItem('appHubInvestDb_ao', JSON.stringify(parsed._accountOverview)); } catch(e) {}
+            }
 
             saveData(); initUI(); renderAll(); closeOverlays();
             showSnackbar("Data Restored Successfully", "check_circle");

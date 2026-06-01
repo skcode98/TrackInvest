@@ -417,6 +417,22 @@
             'Groceries':'#388E3C','Rent':'#5C6BC0','Travel':'#00ACC1','Education':'#7B1FA2',
             'Investment':'#F57C00','Income':'#2E7D32','Other':'#8E9099'
         };
+        const CAT_PALETTE = [
+            '#E3724A','#415F91','#186D33','#9C27B0','#D96200','#E91E63','#388E3C','#5C6BC0',
+            '#00ACC1','#7B1FA2','#F57C00','#2E7D32','#8E9099','#FF6F00','#00695C','#AD1457',
+            '#283593','#006064','#4E342E','#558B2F','#C2185B','#4527A0','#00838F','#D84315',
+            '#37474F','#3E2723','#1A237E','#004D40','#880E4F','#33691E','#0D47A1','#4A148C'
+        ];
+        function getCatColor(cat) {
+            if (CAT_COLORS[cat]) return CAT_COLORS[cat];
+            const palette = CAT_PALETTE;
+            let hash = 0;
+            for (let i = 0; i < cat.length; i++) {
+                hash = ((hash << 5) - hash) + cat.charCodeAt(i);
+                hash |= 0;
+            }
+            return palette[Math.abs(hash) % palette.length];
+        }
 
         function getPlanMonthKey(y, m) { return y + '-' + String(m + 1).padStart(2, '0'); }
 
@@ -442,8 +458,11 @@
             const sel = document.getElementById('spend-category-select');
             if (!sel) return;
             const current = sel.value || 'Uncategorized';
+            const existing = new Set();
+            (db.spendTracker.entries || []).forEach(e => { if (e.category && e.category !== 'Uncategorized') existing.add(e.category); });
+            const allCats = [...new Set([...Object.keys(CAT_COLORS), ...existing])];
             sel.innerHTML = '<option value="Uncategorized">Auto-detect</option>'
-                + Object.keys(CAT_COLORS).map(c => `<option value="${c}">${c}</option>`).join('');
+                + allCats.map(c => `<option value="${c}">${c}</option>`).join('');
             sel.value = current;
         }
 
@@ -464,7 +483,7 @@
                     document.getElementById('spend-comment-input').value = e.comment || '';
                     document.getElementById('spend-date-input').value = new Date(e.date).toISOString().split('T')[0];
                     const catSel = document.getElementById('spend-category-select');
-                    if (catSel && e.category && CAT_COLORS[e.category]) catSel.value = e.category;
+                    if (catSel && e.category && e.category !== 'Uncategorized') catSel.value = e.category;
                 }
             } else {
                 if (title) title.innerText = 'Add Expense';
@@ -745,7 +764,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
                 // Uncategorized spend not covered by bucketed budgets
                 const mappedCats = [...BUDGET_BUCKET_MAP.dailySpend, ...BUDGET_BUCKET_MAP.fixedExpenses, ...BUDGET_BUCKET_MAP.familyShare];
                 const otherBudgets = entries.filter(e => !mappedCats.includes(e.category || 'Other') && (e.category || 'Other') !== 'Uncategorized').reduce((s,e) => s+e.amount, 0);
-                if (otherBudgets > 0) rows.push({ label: 'Other', budget: 0, target: 0, actual: otherBudgets, color: '#8E9099' });
+                if (otherBudgets > 0) rows.push({ label: 'Other', budget: 0, target: 0, actual: otherBudgets, color: getCatColor('Other') });
             }
 
             if (hasPlan) {
@@ -771,7 +790,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             // Uncategorized spend (only if no budget buckets)
             if (totalBudget === 0) {
                 const otherActual = entries.filter(e => !e.category || e.category==='Uncategorized').reduce((s,e) => s+e.amount, 0);
-                if (otherActual > 0) rows.push({ label: 'Uncategorized', budget: 0, target: 0, actual: otherActual, color: '#8E9099' });
+                if (otherActual > 0) rows.push({ label: 'Uncategorized', budget: 0, target: 0, actual: otherActual, color: getCatColor('Uncategorized') });
             }
 
             totalActual = entries.reduce((s,e) => s+e.amount, 0);
@@ -824,7 +843,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
                     + '<span class="material-symbols-rounded" style="font-size:16px;">donut_small</span> Category Breakdown</div>';
                 sorted.forEach(([cat, amt]) => {
                     const pct = totalActual > 0 ? (amt / totalActual * 100) : 0;
-                    const color = CAT_COLORS[cat] || '#8E9099';
+                    const color = getCatColor(cat);
                     bHtml += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--md-surface-container);margin-bottom:4px;">'
                         + '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:' + color + ';"></div>'
                         + '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:500;color:var(--md-on-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + cat + '</div>'
@@ -940,15 +959,16 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             const uncat = db.spendTracker.entries.filter(e => !e.category || e.category==='Uncategorized');
             if(uncat.length===0){Swal.fire('Info','Nothing to categorize','info');return;}
             const btn=document.getElementById('ai-cat-btn'); btn.disabled=true; btn.innerHTML='<span class="material-symbols-rounded ai-loading-icon">autorenew</span> Categorizing...';
-            const prompt = `You are a financial categorizer. Categorize each expense into: ${Object.keys(CAT_COLORS).join(', ')}. Respond ONLY with valid JSON array: [{"comment":"exact match","category":"..."}]. No markdown.\n\n${JSON.stringify(uncat.map(e=>({comment:e.comment,amount:e.amount})))}`;
+            const prompt = `You are a financial categorizer. Categorize each expense. Prefer categories from: ${Object.keys(CAT_COLORS).join(', ')}. You may also create a new short category name if none fit. Respond ONLY with valid JSON array: [{"comment":"exact match","category":"..."}]. No markdown.\n\n${JSON.stringify(uncat.map(e=>({comment:e.comment,amount:e.amount})))}`;
             try {
                 const resp = await callAI(prompt, 'spend_categorize_2');
                 const cats = JSON.parse(resp.replace(/```json|```/gi,'').trim());
                 if(!Array.isArray(cats)) throw new Error('Not array');
                 let suggestions = [];
-                uncat.forEach(e=>{const x=cats.find(c=>c.comment===e.comment); if(x&&CAT_COLORS[x.category]) suggestions.push({entry:e,suggested:x.category});});
+                uncat.forEach(e=>{const x=cats.find(c=>c.comment===e.comment); if(x&&x.category&&x.category!=='Uncategorized') suggestions.push({entry:e,suggested:x.category});});
                 if (suggestions.length === 0) { Swal.fire('Info','AI could not categorize any items','info'); btn.disabled=false; btn.innerHTML='<span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize'; return; }
-                const catsList = Object.keys(CAT_COLORS);
+                const allSuggested = [...new Set(suggestions.map(s => s.suggested).filter(Boolean))];
+                const catsList = [...new Set([...Object.keys(CAT_COLORS), ...allSuggested])];
                 const reviewCats = ['all', ...catsList];
                 let html = '<div style="max-height:55vh;overflow-y:auto;">';
                 let currentFilter = 'all';
@@ -988,7 +1008,9 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
         }
 
         function showManualCategoryPicker(entries) {
-            const cats=Object.keys(CAT_COLORS);
+            const existing = new Set();
+            (db.spendTracker.entries || []).forEach(e => { if (e.category && e.category !== 'Uncategorized') existing.add(e.category); });
+            const cats=[...new Set([...Object.keys(CAT_COLORS),...existing])];
             const opts=cats.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
             let h='<div style="max-height:50vh;overflow-y:auto;">';
             entries.forEach((e,i)=>{
@@ -1014,9 +1036,9 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;animation:spin 1s linear infinite;">autorenew</span>'; }
             try {
                 const cats = Object.keys(CAT_COLORS).join(', ');
-                const r = await callAI(`Expense: "${comment.slice(0,100)}". Categories: ${cats}. Which category fits best? Return category name only, no explanation.`, 'spend_categorize_2');
+                const r = await callAI(`Expense: "${comment.slice(0,100)}". Categories: ${cats}. Which category fits best? You can also suggest a new short category. Return category name only, no explanation.`, 'spend_categorize_2');
                 const cat = r.trim().replace(/["'.]/g, '');
-                if (CAT_COLORS[cat]) {
+                if (cat && cat.length > 0) {
                     const catSel = document.getElementById('spend-category-select');
                     if (catSel) catSel.value = cat;
                     showSnackbar(`Suggested: ${cat}`, 'auto_awesome');
@@ -1043,7 +1065,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             entries.forEach(e=>{const c=e.category||'Uncategorized';if(!cats[c])cats[c]=0;cats[c]+=e.amount;const d=fmtDate(new Date(e.date));if(!daily[d])daily[d]=0;daily[d]+=e.amount;});
 
             const ctx1=document.getElementById('catPieChart').getContext('2d'); if(catPieChart)catPieChart.destroy();
-            catPieChart=new Chart(ctx1,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:Object.keys(cats).map(c=>CAT_COLORS[c]||'#8E9099'),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{padding:6,font:{size:10},boxWidth:10}}}}});
+            catPieChart=new Chart(ctx1,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:Object.keys(cats).map(c=>getCatColor(c)),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{padding:6,font:{size:10},boxWidth:10}}}}});
 
             const ctx2=document.getElementById('dailyTrendChart').getContext('2d'); if(dailyTrendChart)dailyTrendChart.destroy();
             const days=Object.keys(daily).sort();
@@ -1084,7 +1106,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
                 const pct = amt / total;
                 const barH = Math.max(minBarH, (pct / totalPct) * barSpace);
                 const yCenter = y + barH / 2;
-                const color = CAT_COLORS[cat] || '#8E9099';
+                const color = getCatColor(cat);
                 const isLast = i === sorted.length - 1;
 
                 // Left source bar
@@ -1138,7 +1160,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             if(entries.length===0){container.innerHTML='<div class="spend-empty"><span class="material-symbols-rounded">receipt_long</span><div>No transactions this month</div></div>';return;}
             entries.sort((a,b)=>new Date(b.date)-new Date(a.date));
             let html='';
-            entries.forEach(e=>{const d=new Date(e.date);const cat=e.category||'Uncategorized';const color=CAT_COLORS[cat]||'#8E9099';
+            entries.forEach(e=>{const d=new Date(e.date);const cat=e.category||'Uncategorized';const color=getCatColor(cat);
                 html+=`<div class="spend-card" onclick="openSpendSheet('${e.id}')" style="cursor:pointer;">
                     <div class="spend-cat-dot" style="background:${color};"></div>
                     <div class="spend-date">${d.getDate()} ${d.toLocaleString('default',{month:'short'})}</div>
@@ -1152,7 +1174,9 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
 
         function changeCategory(id) {
             const e=db.spendTracker.entries.find(x=>x.id===id); if(!e) return;
-            const cats=Object.keys(CAT_COLORS);
+            const existing = new Set();
+            (db.spendTracker.entries || []).forEach(x => { if (x.category && x.category !== 'Uncategorized') existing.add(x.category); });
+            const cats=[...new Set([...Object.keys(CAT_COLORS),...existing])];
             Swal.fire({title:'Category',input:'select',inputOptions:cats.reduce((o,c)=>{o[c]=c;return o},{}),inputValue:e.category==='Uncategorized'?cats[0]:e.category,showCancelButton:true,preConfirm:v=>{e.category=v;saveDB();renderAll();}});
         }
 

@@ -209,7 +209,7 @@ function updatePortfolioCalculations() {
     updateAdvisorWidget();
 
     let activeTab = document.querySelector('.tab-content.active');
-    if (activeTab && activeTab.id === 'tab-dashboard') { renderNWChart(); renderRollingChart(); }
+    if (activeTab && activeTab.id === 'tab-dashboard') { renderNWChart(); renderRollingChart(); renderHeroProjectionChart(); initHeroScrollSync(); }
     if (activeTab && activeTab.id === 'tab-portfolio') renderDonutChart(typeTotals, totalMarketValue);
 
     // Portfolio summary card
@@ -388,7 +388,7 @@ function updatePortfolioCalculations() {
             } else {
                 forecastHtml = `<div style="font-size:11px;color:var(--md-success);margin-top:8px;font-weight:500;">✅ Goal Achieved!</div>`;
             }
-            return `<div class="goal-card" onclick="openGoalSheet('${g.id}')"><div class="goal-header"><div class="goal-title">${escapeHtml(g.name)} ${linkTag}</div><div class="goal-amt" style="font-size:14px;">${formatMoney(savedAmt)} / ${formatMoney(g.target)}</div></div><div class="goal-track"><div class="goal-fill" style="width:${perc}%;"></div></div><div class="goal-footer" style="font-size:12px; color:var(--md-on-surface-variant);"><span>${perc.toFixed(1)}% Achieved</span>${forecastHtml}</div></div>`;
+            return `<div class="goal-card"><div class="goal-header"><div class="goal-title">${escapeHtml(g.name)} ${linkTag}</div><div class="goal-amt" style="font-size:14px;">${formatMoney(savedAmt)} / ${formatMoney(g.target)}</div></div><div class="goal-track"><div class="goal-fill" style="width:${perc}%;"></div></div><div class="goal-footer" style="font-size:12px; color:var(--md-on-surface-variant);"><span>${perc.toFixed(1)}% Achieved</span>${forecastHtml}</div><div style="display:flex;gap:6px;margin-top:10px;"><button onclick="openGoalSheet(this.dataset.gid)" data-gid="${g.id}" style="flex:1;padding:8px;border:1px solid var(--md-outline);border-radius:8px;background:transparent;color:var(--md-on-surface);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;"><span class="material-symbols-rounded" style="font-size:13px;">edit</span> Edit</button>${isLinked ? `<button onclick="showGoalMonthHistory(this.dataset.gid2)" data-gid2="${g.id}" style="flex:1;padding:8px;border:1px solid var(--md-outline);border-radius:8px;background:transparent;color:var(--md-on-surface);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;"><span class="material-symbols-rounded" style="font-size:13px;">history</span> History</button>` : ''}</div></div>`;
         }).join('');
     }
 

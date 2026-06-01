@@ -70,81 +70,108 @@
     <main class="container">
         <div id="tab-dashboard" class="tab-content active">
 
-            <div class="hero-card">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                    <div>
-                        <div class="hero-subtitle">Total Wealth (<span id="active-acc-label">All Accounts</span>)</div>
-                        <div class="hero-title"><span id="networth-val">0</span></div>
-                        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
-                            <span id="hero-roi-badge" class="badge-pill badge-neutral">—</span>
-                            <span style="font-size:13px;opacity:0.7;">Est. Tax: <span
-                                    id="dash-tax-liab">₹0</span></span>
+            <div class="hero-scroll" id="hero-scroll">
+                <div class="hero-slide">
+                    <div class="hero-subtitle">Total Wealth (<span id="active-acc-label">All Accounts</span>)</div>
+                    <div class="hero-title"><span id="networth-val">0</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
+                        <span id="hero-roi-badge" class="badge-pill badge-neutral">—</span>
+                        <span style="font-size:13px;opacity:0.7;">Est. Tax: <span
+                                id="dash-tax-liab">₹0</span></span>
+                    </div>
+
+                    <div class="chart-filters">
+                        <div class="chart-chip active" onclick="setChartRange(3, this)">3M</div>
+                        <div class="chart-chip" onclick="setChartRange(6, this)">6M</div>
+                        <div class="chart-chip" onclick="setChartRange(12, this)">1Y</div>
+                        <div class="chart-chip" onclick="setChartRange(99, this)">MAX</div>
+                    </div>
+
+                    <div class="chart-container" id="nw-chart-container">
+                        <svg class="chart-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="chart-gradient" x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stop-color="var(--md-primary)" stop-opacity="0.8" />
+                                    <stop offset="100%" stop-color="var(--md-primary)" stop-opacity="0" />
+                                </linearGradient>
+                            </defs>
+                            <path id="chart-fill-path" class="chart-fill" d="M0 40 L100 40" />
+                            <path id="chart-line-path" class="chart-line chart-animate" d="M0 40 L100 40" />
+                        </svg>
+                        <div class="chart-labels">
+                            <span class="chart-lbl" id="chart-label-start"> </span>
+                            <span class="chart-lbl chart-lbl--mid" id="chart-label-mid"> </span>
+                            <span class="chart-lbl chart-lbl--end" id="chart-label-end"> </span>
+                        </div>
+                        <div class="chart-tooltip" id="chart-tooltip"></div>
+                        <div class="chart-point" id="chart-point"></div>
+                    </div>
+
+                    <div class="hero-projected" style="margin-top:8px;background:var(--md-surface-container);border-radius:16px;padding:14px 16px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--md-on-surface-variant);">
+                                <span class="material-symbols-rounded" style="font-size:16px;">trending_up</span>
+                                Projection
+                            </div>
+                            <div style="display:flex;align-items:baseline;gap:4px;">
+                                <span style="font-size:11px;color:var(--md-outline);"><span id="proj-month-label">12</span>mo</span>
+                                <span id="projected-eoy" style="font-size:20px;font-weight:700;color:var(--md-primary);">0</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:12px;margin-bottom:8px;">
+                            <div style="flex:1;background:var(--md-surface-container-highest);border-radius:10px;padding:8px 10px;">
+                                <div style="font-size:10px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.3px;">Conservative</div>
+                                <div id="proj-conservative" style="font-size:14px;font-weight:600;color:var(--md-on-surface);margin-top:2px;">—</div>
+                            </div>
+                            <div style="flex:1;background:var(--md-primary-container);border-radius:10px;padding:8px 10px;">
+                                <div style="font-size:10px;color:var(--md-on-primary-container);text-transform:uppercase;letter-spacing:0.3px;opacity:0.7;">Optimistic</div>
+                                <div id="proj-optimistic" style="font-size:14px;font-weight:600;color:var(--md-on-primary-container);margin-top:2px;">—</div>
+                            </div>
+                            <div style="flex:1;background:var(--md-surface-container-highest);border-radius:10px;padding:8px 10px;">
+                                <div style="font-size:10px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.3px;">Monthly</div>
+                                <div id="proj-monthly-avg" style="font-size:14px;font-weight:600;color:var(--md-on-surface);margin-top:2px;">—</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:11px;color:var(--md-outline);min-width:20px;text-align:right;" id="proj-range-min">1</span>
+                            <input type="range" id="proj-slider" min="1" max="24" value="12" oninput="updateProjectionSlider()" onchange="haptic(10)" style="flex:1;">
+                            <span style="font-size:11px;color:var(--md-outline);min-width:20px;">24</span>
                         </div>
                     </div>
-                    <button class="icon-btn" onclick="copyNetWorth()" title="Copy Net Worth"
-                        style="color:var(--md-on-primary-container);opacity:0.7;">
-                        <span class="material-symbols-rounded" style="font-size:20px;">content_copy</span>
-                    </button>
                 </div>
 
-                <div class="chart-filters">
-                    <div class="chart-chip active" onclick="setChartRange(3, this)">3M</div>
-                    <div class="chart-chip" onclick="setChartRange(6, this)">6M</div>
-                    <div class="chart-chip" onclick="setChartRange(12, this)">1Y</div>
-                    <div class="chart-chip" onclick="setChartRange(99, this)">MAX</div>
-                </div>
-
-                <div class="chart-container" id="nw-chart-container">
-                    <svg class="chart-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id="chart-gradient" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stop-color="var(--md-primary)" stop-opacity="0.8" />
-                                <stop offset="100%" stop-color="var(--md-primary)" stop-opacity="0" />
-                            </linearGradient>
-                        </defs>
-                        <path id="chart-fill-path" class="chart-fill" d="M0 40 L100 40" />
-                        <path id="chart-line-path" class="chart-line chart-animate" d="M0 40 L100 40" />
-                    </svg>
-                    <div class="chart-labels">
-                        <span class="chart-lbl" id="chart-label-start"> </span>
-                        <span class="chart-lbl chart-lbl--mid" id="chart-label-mid"> </span>
-                        <span class="chart-lbl chart-lbl--end" id="chart-label-end"> </span>
+                <div class="hero-slide" id="hero-slide-projection">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;opacity:0.75;">
+                            <span class="material-symbols-rounded" style="font-size:16px;">query_stats</span> Wealth Projection
+                        </div>
+                        <button class="icon-btn" onclick="copyNetWorth()" title="Copy Net Worth"
+                            style="color:var(--md-on-primary-container);opacity:0.7;">
+                            <span class="material-symbols-rounded" style="font-size:20px;">content_copy</span>
+                        </button>
                     </div>
-                    <div class="chart-tooltip" id="chart-tooltip"></div>
-                    <div class="chart-point" id="chart-point"></div>
-                </div>
-
-                <div class="hero-projected" style="margin-top:8px;background:var(--md-surface-container);border-radius:16px;padding:14px 16px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--md-on-surface-variant);">
-                            <span class="material-symbols-rounded" style="font-size:16px;">trending_up</span>
-                            Projection
-                        </div>
-                        <div style="display:flex;align-items:baseline;gap:4px;">
-                            <span style="font-size:11px;color:var(--md-outline);"><span id="proj-month-label">12</span>mo</span>
-                            <span id="projected-eoy" style="font-size:20px;font-weight:700;color:var(--md-primary);">0</span>
-                        </div>
+                    <div style="flex:1;min-height:0;position:relative;height:140px;">
+                        <canvas id="hero-projection-chart" style="width:100%;height:100%;"></canvas>
                     </div>
-                    <div style="display:flex;gap:12px;margin-bottom:8px;">
-                        <div style="flex:1;background:var(--md-surface-container-highest);border-radius:10px;padding:8px 10px;">
-                            <div style="font-size:10px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.3px;">Conservative</div>
-                            <div id="proj-conservative" style="font-size:14px;font-weight:600;color:var(--md-on-surface);margin-top:2px;">—</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
+                        <div style="background:var(--md-surface-container);border-radius:10px;padding:8px;text-align:center;">
+                            <div style="font-size:9px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.2px;">EOY Projected</div>
+                            <div id="proj-card-eoy" style="font-size:15px;font-weight:700;color:var(--md-on-surface);margin-top:2px;">—</div>
                         </div>
-                        <div style="flex:1;background:var(--md-primary-container);border-radius:10px;padding:8px 10px;">
-                            <div style="font-size:10px;color:var(--md-on-primary-container);text-transform:uppercase;letter-spacing:0.3px;opacity:0.7;">Optimistic</div>
-                            <div id="proj-optimistic" style="font-size:14px;font-weight:600;color:var(--md-on-primary-container);margin-top:2px;">—</div>
+                        <div style="background:var(--md-surface-container);border-radius:10px;padding:8px;text-align:center;">
+                            <div style="font-size:9px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.2px;">Conservative</div>
+                            <div id="proj-card-conservative" style="font-size:15px;font-weight:700;color:var(--md-on-surface);margin-top:2px;">—</div>
                         </div>
-                        <div style="flex:1;background:var(--md-surface-container-highest);border-radius:10px;padding:8px 10px;">
-                            <div style="font-size:10px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.3px;">Monthly</div>
-                            <div id="proj-monthly-avg" style="font-size:14px;font-weight:600;color:var(--md-on-surface);margin-top:2px;">—</div>
+                        <div style="background:var(--md-surface-container);border-radius:10px;padding:8px;text-align:center;">
+                            <div style="font-size:9px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.2px;">Optimistic</div>
+                            <div id="proj-card-optimistic" style="font-size:15px;font-weight:700;color:var(--md-on-surface);margin-top:2px;">—</div>
                         </div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="font-size:11px;color:var(--md-outline);min-width:20px;text-align:right;" id="proj-range-min">1</span>
-                        <input type="range" id="proj-slider" min="1" max="24" value="12" oninput="updateProjectionSlider()" onchange="haptic(10)" style="flex:1;">
-                        <span style="font-size:11px;color:var(--md-outline);min-width:20px;">24</span>
                     </div>
                 </div>
+            </div>
+            <div class="hero-dots" id="hero-dots">
+                <span class="hero-dot active" data-slide="0"></span>
+                <span class="hero-dot" data-slide="1"></span>
             </div>
 
             <div class="quick-templates-wrapper" id="quick-templates-list" style="display:none; margin-bottom:8px;">
@@ -844,6 +871,16 @@
         <div style="overflow-y:auto;flex:1;padding:0 4px 20px;">
             <div id="note-month-grid" style="padding:4px 0;"></div>
             <div id="note-month-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"></div>
+        </div>
+    </div>
+
+    <!-- Goal Month History Sheet -->
+    <div class="sheet sub-sheet" id="goal-month-sheet">
+        <div class="drag-handle"></div>
+        <h3 class="sheet-title" id="goal-month-title" style="font-size:15px;"></h3>
+        <div style="overflow-y:auto;flex:1;padding:0 4px 20px;">
+            <div id="goal-month-grid" style="padding:4px 0;"></div>
+            <div id="goal-month-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"></div>
         </div>
     </div>
 

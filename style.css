@@ -1033,6 +1033,61 @@ tr:last-child td {
     .hero-card {
         padding: 20px 16px;
     }
+    .hero-slide {
+        padding: 20px 16px;
+    }
+}
+
+.hero-scroll {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0;
+    margin-bottom: 8px;
+    border-radius: var(--radius-xl);
+}
+.hero-scroll::-webkit-scrollbar { display: none; }
+
+.hero-slide {
+    min-width: 100%;
+    scroll-snap-align: start;
+    background: linear-gradient(145deg, var(--md-primary-container) 0%, color-mix(in srgb, var(--md-primary-container) 85%, var(--md-tertiary-container)) 100%);
+    color: var(--md-on-primary-container);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    box-sizing: border-box;
+}
+.hero-slide:first-child {
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+}
+.hero-slide:last-child {
+    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+}
+
+.hero-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.hero-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--md-outline-variant);
+    transition: background 0.3s, transform 0.3s;
+    cursor: pointer;
+}
+.hero-dot.active {
+    background: var(--md-primary);
+    transform: scale(1.3);
 }
 
 .chart-filters {
