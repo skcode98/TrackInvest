@@ -260,7 +260,7 @@ window.activeCategory = null, window.activeAccountFilter = 'All';
 // restore the underlying main sheet to sessionStorage. Previously these were
 // implicit globals, which (a) tripped strict mode and (b) meant that early
 // reads (e.g. from initUI on reload) returned `undefined` instead of `null`.
-let activeMain = null, activeSub = null;
+let activeMain = null, activeSubStack = [];
 let currentTotalNW = 0, currentAvgMonthly = 0, currentTypeTotals = {};
 let currentTax80c = 0;
 let chartMonthsRange = 3;
@@ -788,7 +788,7 @@ function closeOverlays(fromPopState = false) {
             }
             document.body.classList.remove('lock-scroll');
         }
-        activeSub = null;
+        activeSubStack = [];
         if (!subSheet) activeMain = null;
     } else {
         // Save/close: close ALL sheets and scrims
@@ -812,7 +812,7 @@ function closeOverlays(fromPopState = false) {
             try { history.back(); } catch (e) { console.warn('[history]', e.message); }
         }
 
-        activeSub = null;
+        activeSubStack = [];
         activeMain = null;
     }
     } finally { _overlayBusy = false; }
@@ -861,18 +861,14 @@ function openSheet(sheetId, fromRestore = false) {
     }
 
     if (isSubSheet) {
-        document.querySelectorAll('.sheet.sub-sheet.active').forEach(el => {
-            el.classList.remove('active');
-        });
-
         document.getElementById('scrim')?.classList.add('active');
         document.getElementById('scrim-sub')?.classList.add('active');
-
+        // Don't hide existing sub-sheets — stack them
         setTimeout(() => {
             targetSheet.classList.add('active');
         }, 50);
 
-        activeSub = sheetId;
+        activeSubStack.push(sheetId);
     } else {
         // Close any existing sheet without race
         const existingSheets = document.querySelectorAll('.sheet.active');
@@ -889,7 +885,7 @@ function openSheet(sheetId, fromRestore = false) {
         }, 50);
 
         activeMain = sheetId;
-        activeSub = null;
+        activeSubStack = [];
     }
 
     document.body.classList.add('lock-scroll');
@@ -903,13 +899,28 @@ function openSheet(sheetId, fromRestore = false) {
 }
 
 function closeSubSheet(fromPopState = false) {
+    // Pop the topmost sub-sheet from the stack
+    activeSubStack.pop();
+
     // Save main sheet scroll position before closing sub-sheet
     const mainSheetEl = activeMain ? document.getElementById(activeMain) : null;
     const savedScrollTop = mainSheetEl ? mainSheetEl.scrollTop : 0;
 
-    document.getElementById('scrim-sub')?.classList.remove('active');
+    // Close all sub-sheets, then re-open the previous one (if any)
     document.querySelectorAll('.sheet.sub-sheet').forEach(el => el.classList.remove('active'));
-    activeSub = null;
+
+    if (activeSubStack.length > 0) {
+        // Restore the previous sub-sheet
+        const prevSub = activeSubStack[activeSubStack.length - 1];
+        const prevEl = document.getElementById(prevSub);
+        if (prevEl) {
+            setTimeout(() => { prevEl.classList.add('active'); }, 50);
+            document.getElementById('scrim-sub')?.classList.add('active');
+        }
+    } else {
+        // No more sub-sheets — hide sub-scrim
+        document.getElementById('scrim-sub')?.classList.remove('active');
+    }
 
     // If no main sheet remains, clean up main scrim + scroll lock too
     const mainSheet = document.querySelector('.sheet.active:not(.sub-sheet)');
