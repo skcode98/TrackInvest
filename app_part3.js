@@ -407,24 +407,7 @@ function updatePortfolioCalculations() {
     // Add Frequent Actions section for quick navigation
     renderFrequentActions();
 
-    // NEW: Show/Hide Monthly Planner Entry Card
-    let plannerEntry = document.getElementById('monthly-planner-entry');
-    if (plannerEntry) {
-        plannerEntry.style.display = db.enableMonthlyPlanner ? 'flex' : 'none';
-    }
-
-    // NEW: Show/Hide Spend Tracker Entry Card
-    let spendEntry = document.getElementById('spend-tracker-entry');
-    if (spendEntry) {
-        spendEntry.style.display = db.enableSpendTracker ? 'flex' : 'none';
-    }
-
-    // NEW: Show/Hide Account Overview Entry Card
-    let aoEntry = document.getElementById('account-overview-entry');
-    if (aoEntry) {
-        aoEntry.style.display = db.enableAccountOverview ? 'flex' : 'none';
-    }
-
+    renderDashboardMiniCards();
     renderHistory();
 
     let monthTarget = db.monthlyInvestmentTarget || 0; let pct = monthTarget > 0 ? Math.min(100, (thisMonthTotal / monthTarget) * 100) : 0;
@@ -1188,6 +1171,127 @@ function checkSpendAlerts() {
     if (dailyBudget > 0 && todayTotal > dailyBudget * 0.8 && todayTotal <= dailyBudget * 1.2) {
         addInAppNotification('Budget Warning', `₹${fmtNum(Math.max(0, dailyBudget - todayTotal))} left for today`, 'spend', 'trending_down');
     }
+}
+
+function renderDashboardMiniCards() {
+    const container = document.getElementById('dash-mini-cards');
+    if (!container) return;
+    container.style.display = 'flex';
+
+    const sym = window.currencySymbol || '₹';
+
+    // ── Monthly Budget Card ──
+    const monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+    const plan = db.monthlyPlans?.[monthKey];
+    const hasPlan = plan && (plan.income?.length || plan.needs?.length || plan.wants?.length || plan.investments?.length);
+    const incEl = document.getElementById('dmc-budget-income');
+    const budgetEl = document.getElementById('dmc-budget-total');
+    const barEl = document.getElementById('dmc-budget-bar');
+    const statusEl = document.getElementById('dmc-budget-status');
+
+    if (hasPlan) {
+        const income = (plan.income || []).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+        const needs = (plan.needs || []).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+        const wants = (plan.wants || []).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+        const inv = (plan.investments || []).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+        const totalBudget = needs + wants + inv;
+
+        if (incEl) incEl.innerText = sym + fmtNum(income);
+        if (budgetEl) budgetEl.innerText = sym + fmtNum(totalBudget);
+
+        // Calculate spend from tracker (if available)
+        const monthEntries = (db.spendTracker?.entries || []).filter(e => e.date && e.date.startsWith(monthKey));
+        const monthSpend = monthEntries.reduce((s, e) => s + Math.abs(e.amount || 0), 0);
+        const spendPct = totalBudget > 0 ? Math.min(100, (monthSpend / totalBudget) * 100) : 0;
+        if (barEl) barEl.style.width = spendPct + '%';
+        if (statusEl) {
+            const remaining = totalBudget - monthSpend;
+            statusEl.innerHTML = remaining >= 0
+                ? `<span class="dmc-val-positive">${sym}${fmtNum(remaining)}</span> left of budget`
+                : `<span class="dmc-val-negative">${sym}${fmtNum(Math.abs(remaining))}</span> over budget`;
+            barEl && (barEl.style.background = remaining >= 0 ? 'var(--md-success)' : 'var(--md-error)');
+        }
+    } else {
+        if (incEl) incEl.innerText = '—';
+        if (budgetEl) budgetEl.innerText = '—';
+        if (barEl) barEl.style.width = '0%';
+        if (statusEl) statusEl.innerText = db.enableMonthlyPlanner ? 'Set budget →' : 'Not enabled';
+    }
+
+    // ── Spend This Month Card ──
+    const totalEl = document.getElementById('dmc-spend-total');
+    const deltaEl = document.getElementById('dmc-spend-delta');
+    const topcatEl = document.getElementById('dmc-spend-topcat');
+
+    if (db.enableSpendTracker && db.spendTracker?.entries?.length) {
+        const now = new Date();
+        const ym = now.toISOString().slice(0, 7);
+        const pym = new Date(now.getFullYear(), now.getMonth() - 1).toISOString().slice(0, 7);
+        const mEntries = db.spendTracker.entries.filter(e => e.date && e.date.startsWith(ym));
+        const pEntries = db.spendTracker.entries.filter(e => e.date && e.date.startsWith(pym));
+        const mTotal = mEntries.reduce((s, e) => s + Math.abs(e.amount || 0), 0);
+        const pTotal = pEntries.reduce((s, e) => s + Math.abs(e.amount || 0), 0);
+
+        if (totalEl) totalEl.innerText = sym + fmtNum(mTotal);
+        if (deltaEl) {
+            const diff = mTotal - pTotal;
+            const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+            const cls = diff > 0 ? 'dmc-val-negative' : diff < 0 ? 'dmc-val-positive' : '';
+            deltaEl.innerHTML = `vs last month <span class="${cls}">${arrow} ${sym}${fmtNum(Math.abs(diff))}</span>`;
+        }
+        if (topcatEl) {
+            const cats = {};
+            mEntries.forEach(e => { const c = e.category || 'Uncategorized'; cats[c] = (cats[c] || 0) + Math.abs(e.amount || 0); });
+            const top = Object.entries(cats).sort((a, b) => b[1] - a[1])[0];
+            topcatEl.innerText = top ? `Top: ${top[0]} (${sym}${fmtNum(top[1])})` : '';
+        }
+    } else {
+        if (totalEl) totalEl.innerText = '—';
+        if (deltaEl) deltaEl.innerHTML = '';
+        if (topcatEl) topcatEl.innerText = db.enableSpendTracker ? 'No entries yet' : 'Not enabled';
+    }
+
+    // ── Accounts Overview Card ──
+    const cardsEl = document.getElementById('dmc-ao-cards');
+    const banksEl = document.getElementById('dmc-ao-banks');
+    const pfEl = document.getElementById('dmc-ao-pf');
+    const utilBarEl = document.getElementById('dmc-ao-util-bar');
+    const utilLabelEl = document.getElementById('dmc-ao-util-label');
+
+    if (db.enableAccountOverview) {
+        let aoData = null;
+        try { aoData = JSON.parse(localStorage.getItem('appHubInvestDb_ao') || 'null'); } catch(e) {}
+        const cards = aoData?.cards || [];
+        const banks = aoData?.banks || [];
+        const pf = aoData?.pf || [];
+
+        const cardTotal = cards.reduce((s, c) => s + (parseFloat(c.limit) || 0), 0);
+        const cardUsed = cards.reduce((s, c) => s + (parseFloat(c.used) || 0), 0);
+        const bankTotal = banks.reduce((s, b) => s + (parseFloat(b.balance) || 0), 0);
+        const pfTotal = pf.reduce((s, p) => s + (parseFloat(p.balance) || 0), 0);
+        const util = cardTotal > 0 ? Math.round((cardUsed / cardTotal) * 100) : 0;
+
+        if (cardsEl) cardsEl.innerText = sym + fmtNum(cardTotal);
+        if (banksEl) banksEl.innerText = sym + fmtNum(bankTotal);
+        if (pfEl) pfEl.innerText = sym + fmtNum(pfTotal);
+        if (utilBarEl) {
+            utilBarEl.style.width = Math.min(util, 100) + '%';
+            utilBarEl.style.background = util > 80 ? 'var(--md-error)' : 'var(--md-success)';
+        }
+        if (utilLabelEl) {
+            utilLabelEl.innerText = cards.length ? `Credit utilization: ${util}%` : 'No cards tracked';
+        }
+    } else {
+        if (cardsEl) cardsEl.innerText = '—';
+        if (banksEl) banksEl.innerText = '—';
+        if (pfEl) pfEl.innerText = '—';
+        if (utilBarEl) utilBarEl.style.width = '0%';
+        if (utilLabelEl) utilLabelEl.innerText = 'Not enabled';
+    }
+}
+
+function updateDashboardEntryCards() {
+    renderDashboardMiniCards();
 }
 
 function resolveBudgetValue(value) {

@@ -180,54 +180,46 @@
             <!-- Frequent Actions Quick Navigation -->
             <div id="frequent-actions" style="margin-bottom:16px;"></div>
 
-            <div class="md-card" id="monthly-planner-entry"
-                style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);"
-                onclick="window.location.href='monthly_plan.html'">
-                <div style="display:flex; align-items:center; gap:16px;">
-                    <div
-                        style="width:48px; height:48px; border-radius:16px; background:var(--md-primary-container); color:var(--md-on-primary-container); display:flex; align-items:center; justify-content:center;">
-                        <span class="material-symbols-rounded">account_balance_wallet</span>
-                    </div>
-                    <div>
-                        <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Monthly Planner</div>
-                        <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your
-                            salary & cash flow</div>
+            <!-- Dashboard Data Mini-Cards -->
+            <div class="dash-mini-cards" id="dash-mini-cards">
+                <div class="dash-mini-card" id="dash-card-budget" onclick="window.location.href='monthly_plan.html'">
+                    <div class="dmc-header"><span class="material-symbols-rounded" style="font-size:16px;">account_balance_wallet</span> Monthly Budget</div>
+                    <div class="dmc-body">
+                        <div class="dmc-row"><span>Income</span><span id="dmc-budget-income" class="dmc-val">—</span></div>
+                        <div class="dmc-row"><span>Budget</span><span id="dmc-budget-total" class="dmc-val">—</span></div>
+                        <div class="dmc-bar-track"><div class="dmc-bar-fill" id="dmc-budget-bar" style="width:0%;"></div></div>
+                        <div style="font-size:10px;color:var(--md-outline);margin-top:2px;" id="dmc-budget-status">No plan set</div>
                     </div>
                 </div>
-                <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
-            </div>
-
-            <div class="md-card" id="spend-tracker-entry"
-                style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);"
-                onclick="window.location.href='spend_tracker.html'">
-                <div style="display:flex; align-items:center; gap:16px;">
-                    <div
-                        style="width:48px; height:48px; border-radius:16px; background:var(--md-secondary-container); color:var(--md-on-secondary-container); display:flex; align-items:center; justify-content:center;">
-                        <span class="material-symbols-rounded">receipt_long</span>
-                    </div>
-                    <div>
-                        <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Spend Tracker</div>
-                        <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses,
-                            AI categorization & insights</div>
+                <div class="dash-mini-card" id="dash-card-spend" onclick="window.location.href='spend_tracker.html'">
+                    <div class="dmc-header"><span class="material-symbols-rounded" style="font-size:16px;">receipt_long</span> Spend This Month</div>
+                    <div class="dmc-body">
+                        <div class="dmc-big-val" id="dmc-spend-total">—</div>
+                        <div style="display:flex;gap:4px;align-items:center;font-size:11px;" id="dmc-spend-delta"></div>
+                        <div style="font-size:10px;color:var(--md-outline);margin-top:4px;" id="dmc-spend-topcat"></div>
                     </div>
                 </div>
-                <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
-            </div>
-
-            <div class="md-card" id="account-overview-entry"
-                style="display:none; align-items:center; justify-content:space-between; gap:16px; padding:20px; background:var(--md-surface-container-high);"
-                onclick="window.location.href='account_overview.html'">
-                <div style="display:flex; align-items:center; gap:16px;">
-                    <div
-                        style="width:48px; height:48px; border-radius:16px; background:var(--md-tertiary-container); color:var(--md-on-tertiary-container); display:flex; align-items:center; justify-content:center;">
-                        <span class="material-symbols-rounded">account_balance_wallet</span>
-                    </div>
-                    <div>
-                        <div style="font-weight:600; font-size:16px; color:var(--md-on-surface);">Account Overview</div>
-                        <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:2px;">Cards, bank accounts & PF details</div>
+                <div class="dash-mini-card" id="dash-card-ao" onclick="window.location.href='account_overview.html'">
+                    <div class="dmc-header"><span class="material-symbols-rounded" style="font-size:16px;">account_balance</span> Accounts</div>
+                    <div class="dmc-body">
+                        <div style="display:flex;gap:6px;margin-bottom:4px;">
+                            <div style="flex:1;background:var(--md-surface-container);border-radius:6px;padding:4px 6px;text-align:center;">
+                                <div style="font-size:8px;color:var(--md-outline);">Cards</div>
+                                <div id="dmc-ao-cards" style="font-size:12px;font-weight:600;">—</div>
+                            </div>
+                            <div style="flex:1;background:var(--md-surface-container);border-radius:6px;padding:4px 6px;text-align:center;">
+                                <div style="font-size:8px;color:var(--md-outline);">Bank</div>
+                                <div id="dmc-ao-banks" style="font-size:12px;font-weight:600;">—</div>
+                            </div>
+                            <div style="flex:1;background:var(--md-surface-container);border-radius:6px;padding:4px 6px;text-align:center;">
+                                <div style="font-size:8px;color:var(--md-outline);">PF</div>
+                                <div id="dmc-ao-pf" style="font-size:12px;font-weight:600;">—</div>
+                            </div>
+                        </div>
+                        <div class="dmc-bar-track" style="height:4px;"><div class="dmc-bar-fill" id="dmc-ao-util-bar" style="width:0%;background:var(--md-success);"></div></div>
+                        <div style="font-size:9px;color:var(--md-outline);margin-top:2px;" id="dmc-ao-util-label"></div>
                     </div>
                 </div>
-                <span class="material-symbols-rounded" style="color:var(--md-outline);">chevron_right</span>
             </div>
 
 
