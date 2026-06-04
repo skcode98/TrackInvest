@@ -8,12 +8,12 @@
     <title>Account Overview | TrackInvest</title>
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
+        script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
         font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
-        connect-src 'self' https://api.mfapi.in https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        connect-src 'self' https://api.mfapi.in https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://tessdata.projectnaptha.com;
         img-src 'self' data: blob:;
-        worker-src 'self' blob:;
+        worker-src 'self' blob: https://cdn.jsdelivr.net;
         manifest-src 'self';
     ">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -651,7 +651,7 @@
         // ── Scan Card via OCR ──
         function scanCard() {
             if (typeof Tesseract === 'undefined') {
-                Swal.fire({icon:'error',title:'OCR library not loaded',text:'Please check your internet connection',timer:2000,showConfirmButton:false});
+                Swal.fire({icon:'error',title:'OCR library not loaded',text:'Check internet connection',timer:2000,showConfirmButton:false});
                 return;
             }
             let input = document.createElement('input');
@@ -661,12 +661,11 @@
             input.onchange = function(e) {
                 let file = e.target.files[0];
                 if (!file) return;
-                Swal.fire({title:'Scanning card...',text:'This may take a moment (fully offline)',allowOutsideClick:false,allowEscapeKey:false,didOpen:()=>Swal.showLoading()});
+                Swal.fire({title:'Scanning card...',text:'Downloading OCR data (first time may be slow)',allowOutsideClick:false,allowEscapeKey:false,didOpen:()=>Swal.showLoading()});
                 let reader = new FileReader();
                 reader.onload = function(ev) {
                     let img = new Image();
                     img.onload = function() {
-                        // Downscale large images for faster OCR
                         let MAX = 1600;
                         let scale = Math.min(1, MAX / Math.max(img.width, img.height));
                         let cvs = document.createElement('canvas');
@@ -674,7 +673,12 @@
                         cvs.height = Math.round(img.height * scale);
                         let ctx = cvs.getContext('2d');
                         ctx.drawImage(img, 0, 0, cvs.width, cvs.height);
-                        Tesseract.recognize(cvs, 'eng', { logger: m => {} }).then(res => {
+                        let opts = {
+                            lang: 'eng',
+                            langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/4.0.0',
+                            logger: m => {}
+                        };
+                        Tesseract.recognize(cvs, 'eng', opts).then(res => {
                             let text = res.data.text;
                             let lines = text.split('\n').map(l => l.trim()).filter(l => l);
                             let allText = lines.join(' ');
@@ -687,14 +691,22 @@
                                 let preview = document.createElement('div');
                                 preview.style.cssText = 'max-height:200px;overflow-y:auto;font-size:11px;background:var(--md-surface-container);border-radius:8px;padding:8px;margin-top:8px;white-space:pre-wrap;text-align:left;color:var(--md-on-surface);';
                                 preview.textContent = text.slice(0,1000);
-                                Swal.fire({icon:'warning',title:'Could not detect card fields',html:'<div style="font-size:12px;opacity:0.7;">Raw OCR output:</div>',didOpen:()=>{let el=Swal.getContent()||Swal.getHtmlContainer();if(el)el.appendChild(preview);},confirmButtonText:'OK'});
+                                Swal.fire({icon:'warning',title:'Could not detect card fields',html:'<div style="font-size:12px;opacity:0.7;">Raw OCR output:</div>',didOpen:()=>{let el=Swal.getHtmlContainer();if(el)el.appendChild(preview);},confirmButtonText:'OK'});
                             }
                         }).catch(err => {
                             Swal.close();
-                            Swal.fire({icon:'error',title:'OCR failed',text:'Try a clearer photo',timer:2000,showConfirmButton:false});
+                            Swal.fire({icon:'error',title:'OCR failed',text:err.message||'Try a clearer photo',timer:3000,showConfirmButton:false});
                         });
                     };
+                    img.onerror = function() {
+                        Swal.close();
+                        Swal.fire({icon:'error',title:'Could not load image',timer:1500,showConfirmButton:false});
+                    };
                     img.src = ev.target.result;
+                };
+                reader.onerror = function() {
+                    Swal.close();
+                    Swal.fire({icon:'error',title:'Failed to read file',timer:1500,showConfirmButton:false});
                 };
                 reader.readAsDataURL(file);
             };
