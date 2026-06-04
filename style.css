@@ -1030,6 +1030,9 @@ tr:last-child td {
 .hero-slide:last-child {
     border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
 }
+#proj-slider {
+    touch-action: pan-y;
+}
 
 .dash-mini-cards {
     display: flex;

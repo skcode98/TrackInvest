@@ -177,7 +177,7 @@ function updatePortfolioCalculations() {
     db.investments.forEach(inv => {
         if (window.activeAccountFilter !== 'All' && inv.account !== window.activeAccountFilter) return;
         let d = parseDate(inv.date);
-        if (inv.maturityDate) { let mDate = new Date(inv.maturityDate); let diffDays = Math.ceil((mDate - now) / (1000 * 60 * 60 * 24)); if (diffDays >= 0 && diffDays <= 90) { maturities.push({ ...inv, days: diffDays, dateObj: mDate }); } }
+        if (inv.maturityDate) { let mDate = new Date(inv.maturityDate); let diffDays = Math.ceil((mDate - now) / (1000 * 60 * 60 * 24)); if (diffDays >= -90 && diffDays <= 90) { maturities.push({ ...inv, days: diffDays, dateObj: mDate }); } }
         if (d.getFullYear() === currentY && d.getMonth() === currentM) thisMonthTotal += inv.amount;
         if (d.getFullYear() === lastMY && d.getMonth() === lastM) lastMonthTotal += inv.amount;
         if (d.getFullYear() === currentY) yearTotal += inv.amount;

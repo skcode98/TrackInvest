@@ -2731,6 +2731,13 @@ function initHeroScrollSync() {
 
     // Set initial active dot
     dots.forEach((d, i) => d.classList.toggle('active', i === 0));
+
+    // Prevent hero-scroll swipe from hijacking slider drag
+    const slider = document.getElementById('proj-slider');
+    if (slider) {
+        slider.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+        slider.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
+    }
 }
 
 function showMonthDetailSheet(label, totalAmt, idx) {
