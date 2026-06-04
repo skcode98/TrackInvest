@@ -406,6 +406,11 @@
             };
             delete db.spendTracker.monthlyBudget;
         }
+        const DEFAULT_BUDGET_MAPPING = {
+            needs: ['Food & Dining','Groceries','Bills & Utilities','Rent','Health & Medical','Transport'],
+            wants: ['Entertainment','Shopping','Travel','Education'],
+            investments: ['Investment']
+        };
         if (!db.spendTracker.budget.mapping) {
             db.spendTracker.budget.mapping = JSON.parse(JSON.stringify(DEFAULT_BUDGET_MAPPING));
         }
@@ -447,14 +452,6 @@
         }
 
         function getPlanMonthKey(y, m) { return y + '-' + String(m + 1).padStart(2, '0'); }
-
-        // ── DYNAMIC BUDGET MAPPING ──
-        // User-configurable: which spend categories belong to each budget bucket
-        const DEFAULT_BUDGET_MAPPING = {
-            needs: ['Food & Dining','Groceries','Bills & Utilities','Rent','Health & Medical','Transport'],
-            wants: ['Entertainment','Shopping','Travel','Education'],
-            investments: ['Investment']
-        };
 
         // ── SPEND ENTRY SHEET ──
         let spendEditId = null;

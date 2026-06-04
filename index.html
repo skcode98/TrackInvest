@@ -228,31 +228,15 @@
                 </div>
             </div>
 
-            <!-- Quick stat chips -->
-            <div class="md-card" style="padding:16px;">
-                <div class="stat-row" id="stat-row">
-                    <div class="stat-chip">
-                        <div class="stat-chip-label">Invested</div>
-                        <div class="stat-chip-val" id="sc-invested">₹0</div>
-                    </div>
-                    <div class="stat-chip">
-                        <div class="stat-chip-label">Gain/Loss</div>
-                        <div class="stat-chip-val" id="sc-pnl">₹0</div>
-                    </div>
-                    <div class="stat-chip">
-                        <div class="stat-chip-label">Savings Rate</div>
-                        <div class="stat-chip-val" id="sc-savings-rate">0%</div>
-                    </div>
-                    <div class="stat-chip">
-                        <div class="stat-chip-label">Best Month</div>
-                        <div class="stat-chip-val" id="sc-best-month">—</div>
-                    </div>
-                    <div class="stat-chip">
-                        <div class="stat-chip-label">Streak</div>
-                        <div class="stat-chip-val" id="sc-streak">0 mo</div>
-                    </div>
+            <!-- Sankey Flow Diagram (replaces stat chips) -->
+            <div class="md-card sankey-card" style="padding:16px;">
+                <div class="sankey-header">
+                    <span class="material-symbols-rounded" style="font-size:16px;">account_tree</span> Monthly Flow
                 </div>
+                <canvas id="sankey-canvas"></canvas>
             </div>
+            <!-- hidden stat refs for backwards compat -->
+            <div style="display:none;"><span id="sc-invested"></span><span id="sc-pnl"></span><span id="sc-savings-rate"></span><span id="sc-best-month"></span><span id="sc-streak"></span></div>
             <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <div class="summary-card" style="flex:1;" onclick="openMonthDetails(1)">
                     <div class="sum-label">Last Month</div>

@@ -1,5 +1,5 @@
 importScripts('./version.js');
-const SW_BUILD = 33; // bump to force cache refresh
+const SW_BUILD = 34; // bump to force cache refresh
 const CACHE_NAME = 'invest-pro-' + APP_VERSION + '-' + SW_BUILD;
 
 const CORE_ASSETS = [

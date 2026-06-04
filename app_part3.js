@@ -445,6 +445,7 @@ function renderAll() {
             _lastRenderGen = curGen;
         }
         updateDashboardEntryCards();
+        renderSankey();
         renderNotificationBadge();
         checkSpendAlerts();
         generateScheduledNotifications();
@@ -505,6 +506,118 @@ function renderFrequentActions() {
 
     container.innerHTML = html;
 }
+
+// ── Sankey Flow Diagram ──
+function renderSankey() {
+    const canvas = document.getElementById('sankey-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.parentElement.clientWidth - 32;
+    const H = 190;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+
+    const cs = getComputedStyle(document.documentElement);
+    const p = v => cs.getPropertyValue(v).trim();
+    const cPri = p('--md-primary') || '#415F91';
+    const cErr = p('--md-error') || '#F2B8B5';
+    const cTer = p('--md-tertiary') || '#C4DDFF';
+    const cOut = p('--md-outline') || '#938F99';
+    const cSuc = '#4CAF50';
+
+    const monthStr = new Date().toISOString().slice(0, 7);
+    const now = new Date();
+    const curY = now.getFullYear(), curM = now.getMonth();
+
+    let income = 0;
+    if (db.monthlyPlans && db.monthlyPlans[monthStr]) {
+        income = db.monthlyPlans[monthStr].income.reduce((s, i) => s + i.amount, 0);
+    }
+    let expenses = 0;
+    if (db.spendTracker && db.spendTracker.entries) {
+        expenses = db.spendTracker.entries.filter(e => e.date && e.date.startsWith(monthStr)).reduce((s, e) => s + Math.abs(e.amount || 0), 0);
+    }
+    let invested = 0;
+    if (db.investments) {
+        invested = db.investments.filter(inv => { const d = new Date(inv.date); return d.getFullYear() === curY && d.getMonth() === curM; }).reduce((s, inv) => s + (inv.amount || 0), 0);
+    }
+
+    const savings = Math.max(0, income - expenses);
+    const idle = Math.max(0, savings - invested);
+    if (invested > savings) invested = savings;
+    const total = Math.max(income, expenses, invested, 1);
+
+    if (income === 0 && expenses === 0 && invested === 0) {
+        ctx.fillStyle = cOut; ctx.font = '13px Roboto, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('Add income & track spending to see your flow', W / 2, H / 2);
+        return;
+    }
+
+    const nw = 72, px = 16, py = 14, gap = 6, minH = 22;
+    const c1x = px, c2x = (W - nw) / 2, c3x = W - px - nw;
+    const ah = H - py * 2;
+
+    const eH = Math.max(minH, ah * (expenses / total) * 0.65);
+    const sH = Math.max(minH, ah * (savings / total) * 0.65);
+    const iH = savings > 0 ? Math.max(minH, sH * (invested / savings) * 0.8) : minH;
+    const uH = savings > 0 ? Math.max(minH, sH * (idle / savings) * 0.8) : minH;
+
+    const iY = py + (ah - Math.max(eH + sH + gap, minH * 2 + gap)) / 2;
+    const eY = iY, sY = eY + eH + gap;
+    const inY = py + (ah - iH - uH - gap) / 2, uY = inY + iH + gap;
+    const incH = eH + sH + gap;
+    const incY = py + (ah - incH) / 2;
+
+    const ep = income > 0 ? Math.min(expenses / income, 1) : 0;
+    const ip = savings > 0 ? Math.min(invested / savings, 1) : 0;
+
+    const fET = incY, fEB = incY + incH * ep;
+    const fST = fEB, fSB = incY + incH;
+    const fIT = sY, fIB = sY + sH * ip;
+    const fUT = fIB, fUB = sY + sH;
+
+    function drawFlow(x1, x2, y1t, y1b, y2t, y2b, color, alpha) {
+        const cx = x1 + (x2 - x1) * 0.45;
+        ctx.save(); ctx.globalAlpha = alpha || 0.25;
+        ctx.beginPath(); ctx.moveTo(x1, y1t);
+        ctx.bezierCurveTo(cx, y1t, cx, y2t, x2, y2t);
+        ctx.lineTo(x2, y2b);
+        ctx.bezierCurveTo(cx, y2b, cx, y1b, x1, y1b);
+        ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+        ctx.restore();
+    }
+
+    if (expenses > 0) drawFlow(c1x + nw, c2x, fET, fEB, eY, eY + eH, cErr, 0.2);
+    if (savings > 0) drawFlow(c1x + nw, c2x, fST, fSB, sY, sY + sH, cTer, 0.2);
+    if (invested > 0 && savings > 0) drawFlow(c2x + nw, c3x, fIT, fIB, inY, inY + iH, cSuc, 0.2);
+    if (idle > 0 && savings > 0) drawFlow(c2x + nw, c3x, fUT, fUB, uY, uY + uH, cOut, 0.2);
+
+    function drawNode(x, y, w, h, color, label, val) {
+        const r = 8; ctx.beginPath(); ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+        ctx.fillStyle = color; ctx.fill();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Roboto, sans-serif';
+        ctx.fillText(label, x + w / 2, y + h / 2 - 7);
+        ctx.font = '10px Roboto, sans-serif';
+        ctx.fillText(val, x + w / 2, y + h / 2 + 9);
+    }
+
+    const rup = n => '₹' + fmt(n);
+    drawNode(c1x, incY, nw, incH, cPri, 'Income', rup(income));
+    if (expenses > 0) drawNode(c2x, eY, nw, eH, cErr, 'Spent', rup(expenses));
+    if (savings > 0) drawNode(c2x, sY, nw, sH, cTer, 'Saved', rup(savings));
+    if (invested > 0) drawNode(c3x, inY, nw, iH, cSuc, 'Invested', rup(invested));
+    if (idle > 0) drawNode(c3x, uY, nw, uH, cOut, 'Idle', rup(idle));
+}
+window.renderSankey = renderSankey;
 
 // ==========================================
 // 10. EVENT LISTENERS
