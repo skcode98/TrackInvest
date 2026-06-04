@@ -673,12 +673,14 @@
                         cvs.height = Math.round(img.height * scale);
                         let ctx = cvs.getContext('2d');
                         ctx.drawImage(img, 0, 0, cvs.width, cvs.height);
-                        let opts = {
-                            lang: 'eng',
-                            langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/4.0.0',
-                            logger: m => {}
-                        };
-                        Tesseract.recognize(cvs, 'eng', opts).then(res => {
+                        Tesseract.recognize(cvs, 'eng', {
+                            logger: m => {
+                                if (m.status === 'loading tesseract core') Swal.update({text:'Loading OCR engine...'});
+                                if (m.status === 'initializing tesseract') Swal.update({text:'Initializing...'});
+                                if (m.status === 'loading language traineddata') Swal.update({text:'Downloading language data...'});
+                                if (m.status === 'recognizing') Swal.update({text:`Recognizing text... ${Math.round(m.progress*100)}%`});
+                            }
+                        }).then(res => {
                             let text = res.data.text;
                             let lines = text.split('\n').map(l => l.trim()).filter(l => l);
                             let allText = lines.join(' ');
