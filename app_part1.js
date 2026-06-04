@@ -3770,3 +3770,21 @@ function openInvestSheet(id = null, presetAmt = null) {
     openSheet('invest-sheet');
 }
 
+function renewFD(invId) {
+    const inv = db.investments.find(i => String(i.id) === String(invId));
+    if (!inv) return;
+    haptic(30);
+    clearFormDraft();
+    setInvestType('FD');
+    openInvestSheet(null, inv.amount);
+    setTimeout(() => {
+        const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        safeSet('inv-note', `Renewed: ${inv.note || 'FD'}`);
+        safeSet('inv-interest', inv.interestRate || '');
+        const newMatDate = new Date();
+        newMatDate.setFullYear(newMatDate.getFullYear() + 1);
+        safeSet('inv-maturity-simple', getLocalYYYYMMDD(newMatDate));
+        safeSet('inv-payout', inv.payoutType || 'quarterly');
+    }, 150);
+}
+

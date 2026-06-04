@@ -286,7 +286,16 @@ function updatePortfolioCalculations() {
         const matList = document.getElementById('maturity-list');
         if (maturities.length > 0 && matList) {
             maturities.sort((a, b) => a.days - b.days);
-            matList.innerHTML = maturities.map(m => `<div class="maturity-card md-card" style="margin-bottom:0; flex-shrink:0; padding:12px; min-width:120px;" onclick="openInvestSheet('${escapeHtml(m.id)}')"><div class="mat-title" style="font-size:14px; font-weight:500;">${escapeHtml(m.note || m.type)}</div><div class="mat-days" style="color:var(--md-primary); font-size:22px; margin-top:4px;">${m.days} <span style="font-size:12px;">Days</span></div></div>`).join('');
+            matList.innerHTML = maturities.map(m => {
+                const isMatured = m.days <= 0;
+                return `<div class="maturity-card md-card" style="margin-bottom:0; flex-shrink:0; padding:12px; min-width:120px;" onclick="openInvestSheet('${escapeHtml(m.id)}')">
+                    <div class="mat-title" style="font-size:14px; font-weight:500;">${escapeHtml(m.note || m.type)}</div>
+                    <div class="mat-days" style="color:${isMatured ? 'var(--md-error)' : 'var(--md-primary)'}; font-size:22px; margin-top:4px;">
+                        ${isMatured ? 'Matured' : `${m.days} <span style="font-size:12px;">Days</span>`}
+                    </div>
+                    ${(isMatured && m.type === 'FD') ? `<button style="margin-top:8px;width:100%;padding:8px;border:none;border-radius:20px;background:var(--md-primary);color:var(--md-on-primary);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;" onclick="event.stopPropagation();renewFD('${escapeHtml(m.id)}')">Renew FD</button>` : ''}
+                </div>`;
+            }).join('');
             matSection.style.display = 'block';
         } else {
             matSection.style.display = 'none';
