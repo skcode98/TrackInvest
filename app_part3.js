@@ -78,6 +78,44 @@ function updateAccountFilter() {
     if (aal) aal.innerText = window.activeAccountFilter;
 }
 
+// Calculate withdrawable/usable money considering liquidity constraints
+function calculateUsableMoney() {
+    let usable = 0;
+    let emergency = 0;
+    
+    // Liquid categories that can be withdrawn immediately
+    const liquidCategories = ['Cash', 'Liquid'];
+    // PPF and similar categories with withdrawal restrictions
+    const restrictedCategories = ['PPF'];
+    
+    db.investments.forEach(inv => {
+        if (inv.isClosed) return; // Skip closed investments
+        if (window.activeAccountFilter !== 'All' && inv.account !== window.activeAccountFilter) return;
+        
+        if (liquidCategories.includes(inv.type)) {
+            usable += inv.amount;
+        } else if (restrictedCategories.includes(inv.type)) {
+            // PPF can be withdrawn only in emergency
+            emergency += inv.amount;
+        } else if (inv.type === 'FD' || inv.type === 'RD') {
+            // FDs can be liquidated but may have penalty
+            usable += inv.amount * 0.95; // Apply 5% penalty estimate
+        } else if (inv.type === 'SIP' || inv.type === 'Stocks' || inv.type === 'Mutual Funds') {
+            // Can be withdrawn but market dependent
+            usable += inv.amount * 0.90; // Apply 10% volatility buffer
+        } else {
+            // Other categories - moderate liquidity
+            usable += inv.amount * 0.80;
+        }
+    });
+    
+    return {
+        immediate: Math.max(0, usable),
+        emergency: Math.max(0, emergency),
+        total: Math.max(0, usable + emergency)
+    };
+}
+
 function updatePortfolioCalculations() {
     let now = new Date(); let currentM = now.getMonth(); let currentY = now.getFullYear();
     let lastM = currentM === 0 ? 11 : currentM - 1; let lastMY = currentM === 0 ? currentY - 1 : currentY;
@@ -96,7 +134,7 @@ function updatePortfolioCalculations() {
 
     Object.keys(db.categories).forEach(type => {
         try {
-            let filteredInvs = db.investments.filter(inv => inv.type === type && (window.activeAccountFilter === 'All' || inv.account === window.activeAccountFilter));
+            let filteredInvs = db.investments.filter(inv => inv.type === type && !inv.isClosed && (window.activeAccountFilter === 'All' || inv.account === window.activeAccountFilter));
 
             // Data integrity checks
             filteredInvs.forEach(inv => {
@@ -1306,6 +1344,7 @@ function renderDashboardMiniCards() {
     const sym = window.currencySymbol || '₹';
 
     // ── Monthly Budget Card ──
+    const budgetCardEl = document.getElementById('dash-card-budget');
     const monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
     const plan = db.monthlyPlans?.[monthKey];
     const hasPlan = plan && (plan.income?.length || plan.needs?.length || plan.wants?.length || plan.investments?.length);
@@ -1314,7 +1353,12 @@ function renderDashboardMiniCards() {
     const barEl = document.getElementById('dmc-budget-bar');
     const statusEl = document.getElementById('dmc-budget-status');
 
-    if (hasPlan) {
+    // Hide/show card based on feature flag
+    if (budgetCardEl) {
+        budgetCardEl.style.display = db.enableMonthlyPlanner ? 'block' : 'none';
+    }
+
+    if (hasPlan && db.enableMonthlyPlanner) {
         const income = (plan.income || []).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
         const needs = (plan.needs || []).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
         const wants = (plan.wants || []).reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
@@ -1344,9 +1388,15 @@ function renderDashboardMiniCards() {
     }
 
     // ── Spend This Month Card ──
+    const spendCardEl = document.getElementById('dash-card-spend');
     const totalEl = document.getElementById('dmc-spend-total');
     const deltaEl = document.getElementById('dmc-spend-delta');
     const topcatEl = document.getElementById('dmc-spend-topcat');
+
+    // Hide/show card based on feature flag
+    if (spendCardEl) {
+        spendCardEl.style.display = db.enableSpendTracker ? 'block' : 'none';
+    }
 
     if (db.enableSpendTracker && db.spendTracker?.entries?.length) {
         const now = new Date();
@@ -1377,11 +1427,17 @@ function renderDashboardMiniCards() {
     }
 
     // ── Accounts Overview Card ──
+    const aoCardEl = document.getElementById('dash-card-ao');
     const cardsEl = document.getElementById('dmc-ao-cards');
     const banksEl = document.getElementById('dmc-ao-banks');
     const pfEl = document.getElementById('dmc-ao-pf');
     const utilBarEl = document.getElementById('dmc-ao-util-bar');
     const utilLabelEl = document.getElementById('dmc-ao-util-label');
+
+    // Hide/show card based on feature flag
+    if (aoCardEl) {
+        aoCardEl.style.display = db.enableAccountOverview ? 'block' : 'none';
+    }
 
     if (db.enableAccountOverview) {
         let aoData = null;
@@ -1413,6 +1469,16 @@ function renderDashboardMiniCards() {
         if (utilBarEl) utilBarEl.style.width = '0%';
         if (utilLabelEl) utilLabelEl.innerText = 'Not enabled';
     }
+    
+    // ── Usable Money Card ──
+    const usableMoney = calculateUsableMoney();
+    const immEl = document.getElementById('dmc-usable-immediate');
+    const emergEl = document.getElementById('dmc-usable-emergency');
+    const usableTotalEl = document.getElementById('dmc-usable-total');
+    
+    if (immEl) immEl.innerText = sym + fmtNum(Math.round(usableMoney.immediate));
+    if (emergEl) emergEl.innerText = sym + fmtNum(Math.round(usableMoney.emergency));
+    if (usableTotalEl) usableTotalEl.innerText = sym + fmtNum(Math.round(usableMoney.total));
 }
 
 function updateDashboardEntryCards() {

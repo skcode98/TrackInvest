@@ -145,3 +145,42 @@ Review all UI→Logic→BusinessLogic→DB flows. Fix CRUD, consistency, mobile-
 | 16 | `style.css:2676` | `#settings-sheet max-height`: `90vh → 100dvh` |
 | 17 | `market_watch.html` | Added `attrEsc()` for onclick attribute escaping |
 | 18 | `app_part1.js`, `app_part2.js` | Removed all dividend-related UI, CSV exports, stats filtering, and logic |
+
+## Phase 8 — Portfolio & Withdrawal Features
+
+| # | Issue | Fix | Status |
+|---|-------|-----|--------|
+| 35 | Auto-close old FD when renewed | `renewFD()` now stores old FD ID; `saveInvestment()` marks old FD as `isClosed` with `closedDate` and `closedReason` | ✅ |
+| 36 | Category rename not reflecting in portfolio | Added `renameCategory()` function that updates: investments, goals, recurring SIPs, templates, allocTargets, and market values | ✅ |
+| 37 | No usable/withdrawable money indicator | Added `calculateUsableMoney()` function + dashboard card showing immediate access & emergency funds (PPF) | ✅ |
+
+### Feature Details:
+
+**Issue #35 — Auto-close Old FD**
+- When user clicks "Renew FD" button, `renewFD()` sets `window.renewedFromInvestmentId`
+- Upon `saveInvestment()`, the old FD is marked: `isClosed: true, closedDate, closedReason: 'Renewed'`
+- Closed investments excluded from portfolio calculations via `!inv.isClosed` filter
+- Old FD still in DB for audit trail but hidden from active portfolio
+
+**Issue #36 — Category Rename with Cascading Update**
+- New `renameCategory()` function in Settings (Manage tab)
+- Updates all linked data:
+  - `db.categories` (metadata)
+  - `db.categoryDetails` (initial balance, interest, fields)
+  - `db.allocTargets` (allocation %age)
+  - `db.currentMarketValues` (override values)
+  - All `db.investments[].type` references
+  - All `db.goals[].linkedCategory` references
+  - All `db.recurring[].type` references (SIPs)
+  - All `db.templates[].type` references
+  - Window variables: `currentInvType`, `activeCategory`
+- UI: Rename button (edit icon) added next to delete button in category settings
+
+**Issue #37 — Usable Money Indicator**
+- New function `calculateUsableMoney()` returns: `{ immediate, emergency, total }`
+- Liquidity rules:
+  - **Immediate**: Cash, Liquid (100%) + FD/RD (95% penalty) + SIP/Stocks/MF (90% buffer)
+  - **Emergency**: PPF (100% but restricted to emergency)
+  - **Total**: immediate + emergency
+- New dashboard mini-card shows: immediate access, emergency (PPF), and total withdrawable
+- Updates via `renderDashboardMiniCards()` on every render

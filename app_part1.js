@@ -3783,6 +3783,8 @@ function renewFD(invId) {
     haptic(30);
     clearFormDraft();
     setInvestType('FD');
+    // Store the old FD ID so we can close it after renewal is saved
+    window.renewedFromInvestmentId = String(invId);
     openInvestSheet(null, inv.amount);
     setTimeout(() => {
         const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };

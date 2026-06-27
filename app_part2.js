@@ -305,6 +305,18 @@ function saveInvestment() {
         saveSmartDefault(`subcat_${window.currentInvType}`, subCat);
     }
 
+    // Auto-close old FD when renewing
+    if (window.renewedFromInvestmentId && !editInvId) {
+        const oldFDIndex = db.investments.findIndex(i => String(i.id) === String(window.renewedFromInvestmentId));
+        if (oldFDIndex > -1) {
+            // Mark old FD as closed
+            db.investments[oldFDIndex].isClosed = true;
+            db.investments[oldFDIndex].closedDate = new Date().toISOString();
+            db.investments[oldFDIndex].closedReason = 'Renewed';
+        }
+        window.renewedFromInvestmentId = null;
+    }
+
     saveData(); renderAll(); closeOverlays(); clearFormDraft();
     // Reset edit states
     const wasEdit = !!window.editInvId;
@@ -1646,7 +1658,8 @@ function renderSettingsSections() {
             let safeIcon = escapeHtml(cat?.icon || 'help');
             let delBtn = `<span style="display:flex;align-items:center;gap:8px;">
                     ${isDefault ? '<span style="font-size:10px;color:var(--md-outline);">Default</span>' : ''}
-                    <span class="material-symbols-rounded" style="color:var(--md-error);font-size:16px;cursor:pointer;" onclick="deleteCategory(this.dataset.val)" data-val="${escapeHtml(c)}" title="Delete category">delete</span>
+                    <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:16px;cursor:pointer;margin-left:4px;" onclick="renameCategory(this.dataset.val)" data-val="${escapeHtml(c)}" title="Rename category">edit</span>
+                    <span class="material-symbols-rounded" style="color:var(--md-error);font-size:16px;cursor:pointer;margin-left:4px;" onclick="deleteCategory(this.dataset.val)" data-val="${escapeHtml(c)}" title="Delete category">delete</span>
                 </span>`;
 
             catHtml += `
@@ -1785,6 +1798,107 @@ function addCustomCategory() {
     openSettings();
     showSnackbar(`Added Category: ${name} with ${template} template`);
 }
+
+function renameCategory(oldName) {
+    haptic(40);
+    if (!db.categories[oldName]) return;
+
+    Swal.fire({
+        title: `Rename '${oldName}'?`,
+        input: 'text',
+        inputValue: oldName,
+        inputPlaceholder: 'New category name',
+        showCancelButton: true,
+        confirmButtonText: 'Rename',
+        inputValidator: (value) => {
+            return new Promise((resolve) => {
+                const newName = sanitizeText(value.trim());
+                if (!newName) {
+                    resolve('Category name cannot be empty');
+                } else if (newName === oldName) {
+                    resolve('Name is the same as current');
+                } else if (db.categories[newName]) {
+                    resolve('A category with this name already exists');
+                } else if (newName.length > 50) {
+                    resolve('Category name too long (max 50 chars)');
+                } else {
+                    resolve();
+                }
+            });
+        }
+    }).then(r => {
+        if (r.isConfirmed && r.value) {
+            const newName = sanitizeText(r.value.trim());
+            
+            // Move category metadata
+            db.categories[newName] = db.categories[oldName];
+            delete db.categories[oldName];
+            
+            // Move category details (initial balance, interest rate, etc.)
+            if (db.categoryDetails && db.categoryDetails[oldName]) {
+                db.categoryDetails[newName] = db.categoryDetails[oldName];
+                delete db.categoryDetails[oldName];
+            }
+            
+            // Update allocation targets
+            if (db.allocTargets && db.allocTargets[oldName]) {
+                db.allocTargets[newName] = db.allocTargets[oldName];
+                delete db.allocTargets[oldName];
+            }
+            
+            // Update current market values
+            if (db.currentMarketValues && db.currentMarketValues[oldName]) {
+                db.currentMarketValues[newName] = db.currentMarketValues[oldName];
+                delete db.currentMarketValues[oldName];
+            }
+            
+            // Update all investments with the old category name
+            db.investments.forEach(inv => {
+                if (inv.type === oldName) {
+                    inv.type = newName;
+                }
+            });
+            
+            // Update goals linked to this category
+            if (db.goals && Array.isArray(db.goals)) {
+                db.goals.forEach(goal => {
+                    if (goal.linkedCategory === oldName) {
+                        goal.linkedCategory = newName;
+                    }
+                });
+            }
+            
+            // Update recurring SIPs
+            if (db.recurring && Array.isArray(db.recurring)) {
+                db.recurring.forEach(rec => {
+                    if (rec.type === oldName) {
+                        rec.type = newName;
+                    }
+                });
+            }
+            
+            // Update templates
+            if (db.templates && Array.isArray(db.templates)) {
+                db.templates.forEach(tmpl => {
+                    if (tmpl.type === oldName) {
+                        tmpl.type = newName;
+                    }
+                });
+            }
+            
+            // Update window variables if needed
+            if (window.currentInvType === oldName) window.currentInvType = newName;
+            if (window.activeCategory === oldName) window.activeCategory = newName;
+            
+            saveData();
+            initUI();
+            renderSettingsSections();
+            renderAll();
+            showSnackbar(`Category renamed: '${oldName}' → '${newName}'`);
+        }
+    });
+}
+
 function deleteCategory(name) {
     haptic(40);
     if (!db.categories || Object.keys(db.categories).length <= 1) {
