@@ -1137,6 +1137,24 @@ tr:last-child td {
     line-height: 1.1;
 }
 
+.dmc-action-btn {
+    border: none;
+    background: var(--md-surface-container-high);
+    color: var(--md-primary);
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+.dmc-action-btn:hover {
+    background: var(--md-surface-container-highest);
+}
+.dmc-action-btn:active {
+    transform: scale(0.96);
+}
+
 .dmc-val-positive { color: var(--md-success); }
 .dmc-val-negative { color: var(--md-error); }
 .hero-dots {

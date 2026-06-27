@@ -116,6 +116,60 @@ function calculateUsableMoney() {
     };
 }
 
+function openUsableMoneyDetails() {
+    const sheet = document.getElementById('usable-money-sheet');
+    const scrim = document.getElementById('usable-money-scrim');
+    const body = document.getElementById('usable-money-details-body');
+    if (!sheet || !scrim || !body) return;
+
+    const usable = calculateUsableMoney();
+    const immediate = usable.immediate;
+    const emergency = usable.emergency;
+    const total = usable.total;
+
+    body.innerHTML = `
+        <div style="padding:14px;border-radius:16px;background:linear-gradient(135deg,var(--md-primary-container) 0%,var(--md-surface-container) 100%);border:1px solid var(--md-outline-variant);">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.3px;color:var(--md-on-surface-variant);font-weight:700;">Estimated withdrawable value</div>
+            <div style="font-size:24px;font-weight:700;color:var(--md-on-surface);margin-top:4px;">₹${fmtNum(Math.round(total))}</div>
+            <div style="font-size:12px;color:var(--md-outline);margin-top:6px;">This is a planning estimate, not a guaranteed cash balance.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="padding:12px 14px;border-radius:14px;background:var(--md-surface-container);border:1px solid var(--md-outline-variant);">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <span style="font-size:13px;font-weight:600;">Immediate access</span>
+                    <span style="font-size:14px;font-weight:700;color:var(--md-success);">₹${fmtNum(Math.round(immediate))}</span>
+                </div>
+                <div style="font-size:12px;color:var(--md-outline);margin-top:6px;">Cash or near-cash assets that are easy to turn into spendable money.</div>
+            </div>
+            <div style="padding:12px 14px;border-radius:14px;background:var(--md-surface-container);border:1px solid var(--md-outline-variant);">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <span style="font-size:13px;font-weight:600;">Emergency (PPF)</span>
+                    <span style="font-size:14px;font-weight:700;color:var(--md-warning);">₹${fmtNum(Math.round(emergency))}</span>
+                </div>
+                <div style="font-size:12px;color:var(--md-outline);margin-top:6px;">Restricted savings meant for emergencies rather than day-to-day spending.</div>
+            </div>
+        </div>
+        <div style="padding:12px 14px;border-radius:14px;background:var(--md-surface-container-high);border:1px solid var(--md-outline-variant);">
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px;">How this is estimated</div>
+            <div style="font-size:12px;color:var(--md-outline);line-height:1.55;">
+                • Liquid holdings are counted fully.<br>
+                • PPF is shown separately as emergency-only.<br>
+                • FDs, RDs, SIPs, stocks, and mutual funds use conservative liquidity assumptions so the number stays practical.
+            </div>
+        </div>
+    `;
+
+    sheet.classList.add('active');
+    scrim.classList.add('active');
+}
+
+function closeUsableMoneyDetails() {
+    const sheet = document.getElementById('usable-money-sheet');
+    const scrim = document.getElementById('usable-money-scrim');
+    if (sheet) sheet.classList.remove('active');
+    if (scrim) scrim.classList.remove('active');
+}
+
 function updatePortfolioCalculations() {
     let now = new Date(); let currentM = now.getMonth(); let currentY = now.getFullYear();
     let lastM = currentM === 0 ? 11 : currentM - 1; let lastMY = currentM === 0 ? currentY - 1 : currentY;
@@ -1595,10 +1649,6 @@ function renderDashboardMiniCards() {
     if (usableTotalEl) usableTotalEl.innerText = sym + fmtNum(Math.round(usableMoney.total));
 }
 
-function updateDashboardEntryCards() {
-    renderDashboardMiniCards();
-}
-
 function resolveBudgetValue(value) {
     if (Array.isArray(value)) {
         return value.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
@@ -1607,6 +1657,8 @@ function resolveBudgetValue(value) {
 }
 
 function updateDashboardEntryCards() {
+    renderDashboardMiniCards();
+
     let plannerEntry = document.getElementById('monthly-planner-entry');
     if (plannerEntry) {
         let monthKey = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');

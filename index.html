@@ -217,20 +217,16 @@
                         <div style="font-size:9px;color:var(--md-outline);margin-top:2px;" id="dmc-ao-util-label"></div>
                     </div>
                 </div>
-                <div class="dash-mini-card">
-                    <div class="dmc-header"><span class="material-symbols-rounded" style="font-size:16px;">currency_exchange</span> Usable Money</div>
+                <div class="dash-mini-card" id="dash-card-usable" onclick="openUsableMoneyDetails()">
+                    <div class="dmc-header" style="justify-content:space-between; margin-bottom:8px;">
+                        <span style="display:flex;align-items:center;gap:5px;"><span class="material-symbols-rounded" style="font-size:16px;">currency_exchange</span> Usable Money</span>
+                        <button class="dmc-action-btn" type="button" onclick="event.stopPropagation(); openUsableMoneyDetails()">Details</button>
+                    </div>
                     <div class="dmc-body">
-                        <div style="display:flex;gap:6px;flex-direction:column;margin-bottom:4px;">
-                            <div>
-                                <div style="font-size:9px;color:var(--md-outline);margin-bottom:2px;">Immediate Access</div>
-                                <div id="dmc-usable-immediate" style="font-size:14px;font-weight:600;color:var(--md-success);">₹0</div>
-                            </div>
-                            <div>
-                                <div style="font-size:9px;color:var(--md-outline);margin-bottom:2px;">Emergency (PPF)</div>
-                                <div id="dmc-usable-emergency" style="font-size:12px;font-weight:600;color:var(--md-warning);">₹0</div>
-                            </div>
-                        </div>
-                        <div style="font-size:9px;color:var(--md-outline);margin-top:6px;">Total withdrawable: <span id="dmc-usable-total" style="font-weight:600;color:var(--md-primary);">₹0</span></div>
+                        <div class="dmc-big-val" id="dmc-usable-total">₹0</div>
+                        <div class="dmc-row" style="margin-top:4px;"><span>Immediate access</span><span id="dmc-usable-immediate" class="dmc-val dmc-val-positive">₹0</span></div>
+                        <div class="dmc-row"><span>Emergency (PPF)</span><span id="dmc-usable-emergency" class="dmc-val" style="color:var(--md-warning);">₹0</span></div>
+                        <div style="font-size:10px;color:var(--md-outline);margin-top:4px;">Estimated withdrawable value</div>
                     </div>
                 </div>
             </div>
@@ -1412,6 +1408,16 @@
     <div class="sheet sub-sheet" id="month-detail-sheet">
         <div class="drag-handle"></div>
         <div id="month-detail-body"></div>
+    </div>
+
+    <div class="scrim" id="usable-money-scrim" onclick="closeUsableMoneyDetails()"></div>
+    <div class="sheet sub-sheet" id="usable-money-sheet">
+        <div class="drag-handle"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;">
+            <h3 class="sheet-title" style="margin:0; flex:1;"><span class="material-symbols-rounded" style="font-size:20px;vertical-align:middle;">currency_exchange</span> Withdrawable & Usable Money</h3>
+            <button class="icon-btn" onclick="closeUsableMoneyDetails()"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div id="usable-money-details-body" style="display:flex;flex-direction:column;gap:12px;"></div>
     </div>
 
     <div class="scrim" id="milestone-detail-scrim" onclick="closeMilestoneDetail()"></div>
