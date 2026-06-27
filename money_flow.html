@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#F3F3F7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
+    <title>Money Flow | TrackInvest</title>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        connect-src 'self' https://api.groq.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.cerebras.ai https://models.github.ai https://mfapi.in https://api.mfapi.in https://query1.finance.yahoo.com https://mintedmetal.com https://ibja-api.vercel.app https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;
+        img-src 'self' data:;
+        manifest-src 'self';
+    ">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+    <script src="./version.js"></script>
+    <style>
+        body { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+        .moneyflow-hero {
+            background: linear-gradient(135deg, var(--md-primary-container) 0%, var(--md-surface-container) 100%);
+            border: 1px solid var(--md-outline-variant);
+            border-radius: 28px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-card);
+        }
+        .moneyflow-hero .hero-balance { font-size: 36px; line-height: 1.05; margin: 8px 0 6px; }
+        .moneyflow-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .moneyflow-metric {
+            background: var(--md-surface-container-high);
+            border-radius: 16px;
+            padding: 10px 12px;
+        }
+        .moneyflow-metric-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.25px; color: var(--md-on-surface-variant); font-weight: 600; }
+        .moneyflow-metric-val { font-size: 15px; font-weight: 700; color: var(--md-on-surface); margin-top: 3px; }
+        .moneyflow-card {
+            background: var(--md-surface-container-low);
+            border: 1px solid var(--md-outline-variant);
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .moneyflow-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .moneyflow-title-row h3 { margin: 0; font-size: 15px; color: var(--md-primary); }
+        .moneyflow-help {
+            font-size: 12px;
+            color: var(--md-outline);
+            line-height: 1.45;
+            margin-top: 8px;
+        }
+        .moneyflow-form-grid {
+            display: grid;
+            gap: 10px;
+        }
+        .moneyflow-entry {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: var(--md-surface-container);
+            border: 1px solid var(--md-outline-variant);
+            margin-bottom: 8px;
+        }
+        .moneyflow-entry-main { flex: 1; min-width: 0; }
+        .moneyflow-entry-name { font-size: 14px; font-weight: 600; color: var(--md-on-surface); }
+        .moneyflow-entry-sub { font-size: 11px; color: var(--md-outline); margin-top: 3px; }
+        .moneyflow-entry-amount { font-size: 15px; font-weight: 700; white-space: nowrap; }
+        .moneyflow-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+        .empty-state {
+            padding: 20px;
+            border-radius: 16px;
+            background: var(--md-surface-container-high);
+            color: var(--md-on-surface-variant);
+            text-align: center;
+            font-size: 13px;
+        }
+        .moneyflow-actions { display: flex; gap: 8px; }
+        .moneyflow-actions .btn-primary, .moneyflow-actions .btn-secondary { flex: 1; }
+        @media (max-width: 480px) {
+            .moneyflow-metrics { grid-template-columns: 1fr; }
+            .moneyflow-entry { flex-direction: column; }
+            .moneyflow-entry-amount { align-self: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <header class="top-app-bar" style="gap:8px;">
+        <button class="icon-btn" onclick="window.location.href='index.html'" aria-label="Back">
+            <span class="material-symbols-rounded">arrow_back</span>
+        </button>
+        <div class="app-title" style="flex:1;">Money Flow</div>
+        <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner">
+            <span class="material-symbols-rounded">calendar_month</span>
+        </button>
+        <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker">
+            <span class="material-symbols-rounded">receipt_long</span>
+        </button>
+        <button class="icon-btn" onclick="window.location.href='account_overview.html'" title="Account Overview">
+            <span class="material-symbols-rounded">account_balance_wallet</span>
+        </button>
+        <button class="icon-btn" onclick="openMoneyFlowSettings()" aria-label="Open settings">
+            <span class="material-symbols-rounded">settings</span>
+        </button>
+    </header>
+
+    <main class="container">
+        <section class="moneyflow-hero">
+            <div class="hero-label">Unregistered money</div>
+            <div class="hero-balance" id="moneyflow-total">₹0</div>
+            <div style="font-size:13px;color:var(--md-on-surface-variant);">This page is for money that is not in your usual tracked portfolio flow.</div>
+            <div class="moneyflow-metrics">
+                <div class="moneyflow-metric">
+                    <div class="moneyflow-metric-label">Given / lent</div>
+                    <div class="moneyflow-metric-val" id="moneyflow-lent">₹0</div>
+                </div>
+                <div class="moneyflow-metric">
+                    <div class="moneyflow-metric-label">Borrowed</div>
+                    <div class="moneyflow-metric-val" id="moneyflow-borrowed">₹0</div>
+                </div>
+                <div class="moneyflow-metric">
+                    <div class="moneyflow-metric-label">Locked / stuck</div>
+                    <div class="moneyflow-metric-val" id="moneyflow-locked">₹0</div>
+                </div>
+                <div class="moneyflow-metric">
+                    <div class="moneyflow-metric-label">Uncounted</div>
+                    <div class="moneyflow-metric-val" id="moneyflow-uncounted">₹0</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="moneyflow-card">
+            <div class="moneyflow-title-row">
+                <h3>Log a new entry</h3>
+            </div>
+            <div class="moneyflow-form-grid">
+                <div class="input-container" style="margin-bottom:0;">
+                    <label>Category</label>
+                    <select id="moneyflow-category" class="md-input" style="background:transparent;">
+                        <option value="lent">Given / Lent</option>
+                        <option value="borrowed">Borrowed</option>
+                        <option value="locked">Locked / Stuck</option>
+                        <option value="uncounted">Uncounted</option>
+                    </select>
+                </div>
+                <div class="input-container" style="margin-bottom:0;">
+                    <label>Person or purpose</label>
+                    <input id="moneyflow-name" class="md-input" placeholder="Friend, deposit, flat, cash, etc.">
+                </div>
+                <div class="input-container" style="margin-bottom:0;">
+                    <label>Amount (₹)</label>
+                    <input id="moneyflow-amount" class="md-input" type="number" inputmode="decimal" placeholder="0">
+                </div>
+                <div class="input-container" style="margin-bottom:0;">
+                    <label>Note</label>
+                    <input id="moneyflow-note" class="md-input" placeholder="When, why, expected return, etc.">
+                </div>
+                <div class="moneyflow-actions">
+                    <button class="btn-primary" onclick="addMoneyFlowEntry()"><span class="material-symbols-rounded">add</span> Add entry</button>
+                    <button class="btn-secondary" onclick="clearMoneyFlowForm()">Clear</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="moneyflow-card">
+            <div class="moneyflow-title-row">
+                <h3>How to read this page</h3>
+            </div>
+            <div class="moneyflow-help">
+                <strong>Given / Lent</strong> means money you have given to someone and expect back later.<br>
+                <strong>Borrowed</strong> means money you have taken from someone and need to return.<br>
+                <strong>Locked / Stuck</strong> means money tied up in deposits, flats, projects, or long-term commitments.<br>
+                <strong>Uncounted</strong> means cash or amounts still not reflected in your regular investment/portfolio tracking.
+            </div>
+        </section>
+
+        <section class="moneyflow-card">
+            <div class="moneyflow-title-row">
+                <h3>Your entries</h3>
+            </div>
+            <div id="moneyflow-entries"></div>
+        </section>
+    </main>
+
+    <div class="scrim" id="moneyflow-settings-scrim" onclick="closeMoneyFlowSettings()"></div>
+    <div class="sheet sub-sheet" id="moneyflow-settings-sheet">
+        <div class="drag-handle"></div>
+        <h3 class="sheet-title" style="margin-bottom:12px;">Money Flow Settings</h3>
+        <div class="moneyflow-help" style="margin-top:0; margin-bottom:16px;">
+            Use this page as a simple ledger for money that does not fit neatly into your main tracked portfolio.
+        </div>
+        <button class="btn-secondary" onclick="resetMoneyFlowEntries()">Reset all entries</button>
+    </div>
+
+    <div id="snackbar" class="snackbar"></div>
+    <script src="./shared_ai.js"></script>
+    <script>
+        let moneyFlowState = { entries: [] };
+        const STORAGE_KEY = 'appHubInvestMoneyFlowDb';
+
+        function getStoredMoneyFlow() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : null;
+                return parsed && Array.isArray(parsed.entries) ? parsed : { entries: [] };
+            } catch (e) {
+                return { entries: [] };
+            }
+        }
+
+        function saveMoneyFlowState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(moneyFlowState));
+        }
+
+        function fmtMoney(value) {
+            return (typeof window.fmtNum === 'function' ? window.fmtNum(value) : Number(value || 0).toLocaleString('en-IN'));
+        }
+
+        function getCategoryMeta(category) {
+            switch (category) {
+                case 'borrowed':
+                    return { label: 'Borrowed', color: 'var(--md-warning)', icon: 'swap_horiz', hint: 'You owe this amount' };
+                case 'locked':
+                    return { label: 'Locked / Stuck', color: 'var(--md-tertiary)', icon: 'lock', hint: 'Tied up in deposits or property' };
+                case 'uncounted':
+                    return { label: 'Uncounted', color: 'var(--md-outline)', icon: 'inventory_2', hint: 'Not reflected in your main book' };
+                default:
+                    return { label: 'Given / Lent', color: 'var(--md-success)', icon: 'outgoing_mail', hint: 'You gave this amount' };
+            }
+        }
+
+        function renderMoneyFlow() {
+            const entriesEl = document.getElementById('moneyflow-entries');
+            const totalEl = document.getElementById('moneyflow-total');
+            const lentEl = document.getElementById('moneyflow-lent');
+            const borrowedEl = document.getElementById('moneyflow-borrowed');
+            const lockedEl = document.getElementById('moneyflow-locked');
+            const uncountedEl = document.getElementById('moneyflow-uncounted');
+
+            const totals = moneyFlowState.entries.reduce((acc, item) => {
+                acc[item.category] += Number(item.amount || 0);
+                return acc;
+            }, { lent: 0, borrowed: 0, locked: 0, uncounted: 0 });
+
+            totalEl.innerText = '₹' + fmtMoney(totals.lent + totals.borrowed + totals.locked + totals.uncounted);
+            lentEl.innerText = '₹' + fmtMoney(totals.lent);
+            borrowedEl.innerText = '₹' + fmtMoney(totals.borrowed);
+            lockedEl.innerText = '₹' + fmtMoney(totals.locked);
+            uncountedEl.innerText = '₹' + fmtMoney(totals.uncounted);
+
+            if (!moneyFlowState.entries.length) {
+                entriesEl.innerHTML = '<div class="empty-state">No money-flow entries yet. Add one above to start tracking.</div>';
+                return;
+            }
+
+            const sorted = [...moneyFlowState.entries].sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+            entriesEl.innerHTML = sorted.map(item => {
+                const meta = getCategoryMeta(item.category);
+                return `
+                    <div class="moneyflow-entry">
+                        <div class="moneyflow-entry-main">
+                            <div class="moneyflow-badge" style="background:color-mix(in srgb, ${meta.color} 16%, var(--md-surface-container)); color:${meta.color};">
+                                <span class="material-symbols-rounded" style="font-size:12px;">${meta.icon}</span> ${meta.label}
+                            </div>
+                            <div class="moneyflow-entry-name">${escapeHtml(item.name || 'Untitled')}</div>
+                            <div class="moneyflow-entry-sub">${escapeHtml(item.note || 'No note')}</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                            <div class="moneyflow-entry-amount" style="color:${meta.color};">₹${fmtMoney(item.amount || 0)}</div>
+                            <button class="icon-btn" onclick="deleteMoneyFlowEntry('${item.id}')" title="Delete entry"><span class="material-symbols-rounded">delete</span></button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addMoneyFlowEntry() {
+            const category = document.getElementById('moneyflow-category').value;
+            const name = document.getElementById('moneyflow-name').value.trim();
+            const amount = parseFloat(document.getElementById('moneyflow-amount').value);
+            const note = document.getElementById('moneyflow-note').value.trim();
+
+            if (!name || !Number.isFinite(amount) || amount <= 0) {
+                showSnackbar('Please add a name and a valid amount.', 'error');
+                return;
+            }
+
+            moneyFlowState.entries.push({
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                category,
+                name,
+                amount,
+                note,
+                createdAt: Date.now()
+            });
+            saveMoneyFlowState();
+            clearMoneyFlowForm();
+            renderMoneyFlow();
+            showSnackbar('Entry added', 'check_circle');
+        }
+
+        function clearMoneyFlowForm() {
+            document.getElementById('moneyflow-name').value = '';
+            document.getElementById('moneyflow-amount').value = '';
+            document.getElementById('moneyflow-note').value = '';
+            document.getElementById('moneyflow-category').value = 'lent';
+        }
+
+        function deleteMoneyFlowEntry(id) {
+            moneyFlowState.entries = moneyFlowState.entries.filter(item => item.id !== id);
+            saveMoneyFlowState();
+            renderMoneyFlow();
+            showSnackbar('Entry removed', 'delete');
+        }
+
+        function openMoneyFlowSettings() {
+            document.getElementById('moneyflow-settings-sheet').classList.add('active');
+            document.getElementById('moneyflow-settings-scrim').classList.add('active');
+        }
+
+        function closeMoneyFlowSettings() {
+            document.getElementById('moneyflow-settings-sheet').classList.remove('active');
+            document.getElementById('moneyflow-settings-scrim').classList.remove('active');
+        }
+
+        function resetMoneyFlowEntries() {
+            moneyFlowState.entries = [];
+            saveMoneyFlowState();
+            renderMoneyFlow();
+            closeMoneyFlowSettings();
+            showSnackbar('All entries cleared', 'delete_sweep');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            moneyFlowState = getStoredMoneyFlow();
+            renderMoneyFlow();
+            registerSW();
+            const versionBadge = document.querySelector('.version-badge');
+            if (versionBadge && typeof APP_VERSION !== 'undefined') {
+                versionBadge.textContent = APP_VERSION;
+            }
+        });
+    </script>
+</body>
+</html>

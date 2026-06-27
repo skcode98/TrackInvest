@@ -217,16 +217,16 @@
                         <div style="font-size:9px;color:var(--md-outline);margin-top:2px;" id="dmc-ao-util-label"></div>
                     </div>
                 </div>
-                <div class="dash-mini-card" id="dash-card-usable" onclick="openUsableMoneyDetails()">
+                <div class="dash-mini-card" id="dash-card-usable" onclick="window.location.href='money_flow.html'">
                     <div class="dmc-header" style="justify-content:space-between; margin-bottom:8px;">
-                        <span style="display:flex;align-items:center;gap:5px;"><span class="material-symbols-rounded" style="font-size:16px;">currency_exchange</span> Usable Money</span>
-                        <button class="dmc-action-btn" type="button" onclick="event.stopPropagation(); openUsableMoneyDetails()">Details</button>
+                        <span style="display:flex;align-items:center;gap:5px;"><span class="material-symbols-rounded" style="font-size:16px;">currency_exchange</span> Money Flow</span>
+                        <button class="dmc-action-btn" type="button" onclick="event.stopPropagation(); window.location.href='money_flow.html'">Open</button>
                     </div>
                     <div class="dmc-body">
                         <div class="dmc-big-val" id="dmc-usable-total">₹0</div>
-                        <div class="dmc-row" style="margin-top:4px;"><span>Immediate access</span><span id="dmc-usable-immediate" class="dmc-val dmc-val-positive">₹0</span></div>
-                        <div class="dmc-row"><span>Emergency (PPF)</span><span id="dmc-usable-emergency" class="dmc-val" style="color:var(--md-warning);">₹0</span></div>
-                        <div style="font-size:10px;color:var(--md-outline);margin-top:4px;">Estimated withdrawable value</div>
+                        <div class="dmc-row" style="margin-top:4px;"><span>Given / lent</span><span id="dmc-usable-immediate" class="dmc-val dmc-val-positive">₹0</span></div>
+                        <div class="dmc-row"><span>Borrowed / locked</span><span id="dmc-usable-emergency" class="dmc-val" style="color:var(--md-warning);">₹0</span></div>
+                        <div style="font-size:10px;color:var(--md-outline);margin-top:4px;">Unregistered money overview</div>
                     </div>
                 </div>
             </div>
