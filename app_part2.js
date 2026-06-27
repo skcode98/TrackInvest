@@ -1441,8 +1441,11 @@ function saveToggleState(type, isChecked) {
         window.__webEnabled = isChecked;
     }
     saveData();
-    // Render silently or show brief toast if requested
-    // showSnackbar("Preference saved"); 
+    if (typeof renderAll === 'function') {
+        renderAll();
+    } else if (typeof updateDashboardEntryCards === 'function') {
+        updateDashboardEntryCards();
+    }
 }
 
 function openMonthDetails(offset) {
