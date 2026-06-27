@@ -71,6 +71,16 @@
         .detail-row:last-child { border-bottom:none; }
         .detail-label { font-size:12px; color:var(--md-outline); }
         .detail-value { font-size:14px; font-weight:500; color:var(--md-on-surface); text-align:right; }
+        .detail-summary { padding:16px; border-radius:16px; background:var(--md-surface-container-high); margin-bottom:14px; }
+        .detail-summary-title { font-size:18px; font-weight:700; color:var(--md-on-surface); }
+        .detail-summary-subtitle { font-size:12px; color:var(--md-outline); margin-top:2px; }
+        .detail-summary-value { font-size:22px; font-weight:700; margin-top:8px; color:var(--md-primary); }
+        .detail-pill-row { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 14px; }
+        .detail-pill { flex:1; min-width:100px; padding:10px 12px; border-radius:12px; background:var(--md-surface-container-highest); border:1px solid var(--md-outline-variant); }
+        .detail-pill .detail-label { display:block; margin-bottom:2px; }
+        .detail-pill .detail-value { text-align:left; font-size:13px; }
+        .detail-insight { padding:12px 14px; border-radius:14px; background:linear-gradient(135deg, var(--md-primary-container), var(--md-secondary-container)); color:var(--md-on-primary-container); margin-bottom:12px; font-size:13px; line-height:1.45; }
+        .detail-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--md-outline); margin:10px 0 2px; }
 
         @media(max-width:480px) {
             .import-sheet { max-width:100%; border-radius:20px 20px 0 0; padding:16px; }
@@ -403,6 +413,14 @@
             if (type === 'cards') {
                 let network = item.cardNetwork || '';
                 let cardBg = resolveCardBg(item, 'cards');
+                let summaryTitle = item.cardHolderName || 'Card';
+                let summarySubtitle = (item.bankName || 'Card account'); + ' • ' + (item.type === 'credit' ? 'Credit' : 'Debit');
+                let summaryValue = item.type === 'credit' ? (sym + fmt(item.outstandingAmount || 0)) : (sym + fmt(item.creditLimit || 0));
+                let statusText = item.type === 'credit' && (item.outstandingAmount || 0) > 0 ? 'Needs attention' : 'Healthy';
+                let insightText = item.type === 'credit'
+                    ? ((item.outstandingAmount || 0) > 0 ? 'You still have an outstanding balance to manage. A small payment before the billing date can keep this card healthier.' : 'No outstanding balance is showing right now, which is a good sign for your cash flow.')
+                    : 'This card is ready to use and can be tracked easily with your monthly spending plan.';
+
                 html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:160px;background:' + cardBg + ';">'
                     + (item.type === 'debit' ? '<span class="material-symbols-rounded" style="position:absolute;top:20px;left:20px;font-size:14px;z-index:1;">account_balance</span>' : '<div class="vc-chip"></div>')
                     + '<div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;padding-top:10px;">'
@@ -411,23 +429,54 @@
                     + '<div style="text-align:right;"><div class="vc-label">CVV</div><div>•••</div></div></div>'
                     + '<div class="vc-footer" style="margin-top:10px;"><div class="vc-name">' + (item.cardHolderName||'CARD HOLDER').toUpperCase() + '</div><div class="vc-network">' + network.toUpperCase() + '</div></div></div>'
                     + '<div class="vc-bg" style="background:radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 60%);"></div></div>';
+                html += '<div class="detail-summary">'
+                    + '<div class="detail-summary-title">' + summaryTitle + '</div>'
+                    + '<div class="detail-summary-subtitle">' + summarySubtitle + '</div>'
+                    + '<div class="detail-summary-value">' + summaryValue + '</div>'
+                    + '<div style="margin-top:8px;font-size:12px;color:var(--md-success);font-weight:600;">' + statusText + '</div>'
+                    + '</div>';
+                html += '<div class="detail-pill-row">'
+                    + '<div class="detail-pill"><div class="detail-label">Type</div><div class="detail-value" style="text-transform:capitalize;">' + (item.type||'—') + '</div></div>'
+                    + '<div class="detail-pill"><div class="detail-label">Network</div><div class="detail-value">' + (item.cardNetwork||'—') + '</div></div>'
+                    + '<div class="detail-pill"><div class="detail-label">Billing</div><div class="detail-value">' + (item.billingDate ? 'Every ' + item.billingDate + 'th' : '—') + '</div></div>'
+                    + '</div>';
+                html += '<div class="detail-insight">' + insightText + '</div>';
+                html += '<div class="detail-section-title">Details</div>';
                 html += '<div class="detail-row"><div class="detail-label">Bank</div><div class="detail-value">' + (item.bankName||'—') + '</div></div>'
-                    + '<div class="detail-row"><div class="detail-label">Type</div><div class="detail-value" style="text-transform:capitalize;">' + (item.type||'—') + '</div></div>'
-                    + '<div class="detail-row"><div class="detail-label">Card Network</div><div class="detail-value">' + (item.cardNetwork||'—') + '</div></div>';
+                    + '<div class="detail-row"><div class="detail-label">Card Number</div><div class="detail-value">••••' + (item.cardNumber||'0000') + '</div></div>';
                 if (item.type === 'credit') {
                     html += '<div class="detail-row"><div class="detail-label">Credit Limit</div><div class="detail-value" style="color:var(--md-primary);">' + sym + fmt(item.creditLimit) + '</div></div>'
-                        + '<div class="detail-row"><div class="detail-label">Outstanding</div><div class="detail-value" style="color:' + ((item.outstandingAmount||0) > 0 ? 'var(--md-error)' : 'var(--md-success)') + ';">' + sym + fmt(item.outstandingAmount) + '</div></div>'
-                        + '<div class="detail-row"><div class="detail-label">Billing Date</div><div class="detail-value">' + (item.billingDate ? 'Every ' + item.billingDate + 'th' : '—') + '</div></div>';
+                        + '<div class="detail-row"><div class="detail-label">Outstanding</div><div class="detail-value" style="color:' + ((item.outstandingAmount||0) > 0 ? 'var(--md-error)' : 'var(--md-success)') + ';">' + sym + fmt(item.outstandingAmount) + '</div></div>';
                 }
                 if (item.notes) html += '<div class="detail-row"><div class="detail-label">Notes</div><div class="detail-value" style="font-weight:400;max-width:180px;word-break:break-word;">' + item.notes + '</div></div>';
             } else if (type === 'banks') {
                 let bankBg = resolveCardBg(item, 'banks');
+                let summaryTitle = item.bankName || 'Bank Account';
+                let summarySubtitle = ({savings:'Savings',current:'Current',salary:'Salary',fixed_deposit:'Fixed Deposit'}[item.accountType]||item.accountType || 'Account');
+                let summaryValue = sym + fmt(item.balance || 0);
+                let statusText = (item.balance || 0) > 0 ? 'Available balance' : 'Needs a quick review';
+                let insightText = (item.balance || 0) > 0
+                    ? 'This account is carrying a healthy balance. It is a good place to track your monthly buffer and planned expenses.'
+                    : 'This account is low right now. You may want to review recent transfers or upcoming bills.';
                 html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:120px;background:' + bankBg + ';">'
                     + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">'
-                    + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + ({savings:'Savings',current:'Current',salary:'Salary',fixed_deposit:'Fixed Deposit'}[item.accountType]||item.accountType) + '</div>'
-                    + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + (item.bankName||'Bank') + '</div></div>'
-                    + '<div><div class="vc-balance">' + sym + fmt(item.balance) + '</div></div></div>'
+                    + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + summarySubtitle + '</div>'
+                    + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + summaryTitle + '</div></div>'
+                    + '<div><div class="vc-balance">' + summaryValue + '</div></div></div>'
                     + '<div class="vc-bg" style="background:radial-gradient(circle at 30% 80%, rgba(255,255,255,0.08) 0%, transparent 50%);"></div></div>';
+                html += '<div class="detail-summary">'
+                    + '<div class="detail-summary-title">' + summaryTitle + '</div>'
+                    + '<div class="detail-summary-subtitle">' + summarySubtitle + '</div>'
+                    + '<div class="detail-summary-value">' + summaryValue + '</div>'
+                    + '<div style="margin-top:8px;font-size:12px;color:var(--md-success);font-weight:600;">' + statusText + '</div>'
+                    + '</div>';
+                html += '<div class="detail-pill-row">'
+                    + '<div class="detail-pill"><div class="detail-label">Account</div><div class="detail-value">••••' + (item.accountNumber||'0000') + '</div></div>'
+                    + '<div class="detail-pill"><div class="detail-label">Branch</div><div class="detail-value">' + (item.branchName||'—') + '</div></div>'
+                    + '<div class="detail-pill"><div class="detail-label">IFSC</div><div class="detail-value">' + (item.ifscCode||'—') + '</div></div>'
+                    + '</div>';
+                html += '<div class="detail-insight">' + insightText + '</div>';
+                html += '<div class="detail-section-title">Details</div>';
                 html += '<div class="detail-row"><div class="detail-label">Account Number</div><div class="detail-value">••••' + (item.accountNumber||'0000') + '</div></div>'
                     + '<div class="detail-row"><div class="detail-label">IFSC Code</div><div class="detail-value">' + (item.ifscCode||'—') + '</div></div>'
                     + '<div class="detail-row"><div class="detail-label">Branch</div><div class="detail-value">' + (item.branchName||'—') + '</div></div>'
@@ -435,12 +484,32 @@
                 if (item.notes) html += '<div class="detail-row"><div class="detail-label">Notes</div><div class="detail-value" style="font-weight:400;max-width:180px;word-break:break-word;">' + item.notes + '</div></div>';
             } else if (type === 'pf') {
                 let pfBg = resolveCardBg(item, 'pf');
+                let summaryTitle = item.provider || 'PF Account';
+                let summarySubtitle = item.accountNumber || 'Provident Fund';
+                let summaryValue = sym + fmt(item.balance || 0);
+                let statusText = (item.balance || 0) > 0 ? 'Growing steadily' : 'Needs a review';
+                let insightText = (item.monthlyContribution || 0) > 0
+                    ? 'Your contributions are active and employer support is also included. This is a strong long-term savings account.'
+                    : 'This PF account is listed but no contribution value is set yet. Adding the monthly amount can make the tracking clearer.';
                 html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:120px;background:' + pfBg + ';">'
                     + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">'
                     + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + (item.provider||'PF') + '</div>'
-                    + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + sym + fmt(item.balance) + '</div></div>'
+                    + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + summaryValue + '</div></div>'
                     + '<div style="font-size:12px;opacity:0.7;">' + (item.accountNumber||'') + '</div></div>'
                     + '<div class="vc-bg" style="background:radial-gradient(circle at 70% 30%, rgba(255,200,50,0.1) 0%, transparent 50%);"></div></div>';
+                html += '<div class="detail-summary">'
+                    + '<div class="detail-summary-title">' + summaryTitle + '</div>'
+                    + '<div class="detail-summary-subtitle">' + summarySubtitle + '</div>'
+                    + '<div class="detail-summary-value">' + summaryValue + '</div>'
+                    + '<div style="margin-top:8px;font-size:12px;color:var(--md-success);font-weight:600;">' + statusText + '</div>'
+                    + '</div>';
+                html += '<div class="detail-pill-row">'
+                    + '<div class="detail-pill"><div class="detail-label">Self</div><div class="detail-value">' + sym + fmt(item.monthlyContribution) + '/mo</div></div>'
+                    + '<div class="detail-pill"><div class="detail-label">Employer</div><div class="detail-value">' + sym + fmt(item.employerContribution) + '/mo</div></div>'
+                    + '<div class="detail-pill"><div class="detail-label">Rate</div><div class="detail-value">' + (item.interestRate ? item.interestRate + '%' : '—') + '</div></div>'
+                    + '</div>';
+                html += '<div class="detail-insight">' + insightText + '</div>';
+                html += '<div class="detail-section-title">Details</div>';
                 html += '<div class="detail-row"><div class="detail-label">Provider</div><div class="detail-value">' + (item.provider||'—') + '</div></div>'
                     + '<div class="detail-row"><div class="detail-label">Account Number</div><div class="detail-value">' + (item.accountNumber||'—') + '</div></div>'
                     + '<div class="detail-row"><div class="detail-label">Balance</div><div class="detail-value" style="color:var(--md-primary);">' + sym + fmt(item.balance) + '</div></div>'

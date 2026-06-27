@@ -451,6 +451,9 @@ function updatePortfolioCalculations() {
         }
     }
 
+    renderDashboardInsightCard(monthTarget, thisMonthTotal, lastMonthTotal);
+    renderDashboardFocusCard(monthTarget, thisMonthTotal, lastMonthTotal, goalsList);
+
     // Add Frequent Actions section for quick navigation
     renderFrequentActions();
 
@@ -491,6 +494,114 @@ function renderAll() {
 }
 window.renderAll = renderAll;
 window.getEmptyStateHTML = getEmptyStateHTML;
+
+function renderDashboardInsightCard(monthTarget, thisMonthTotal, lastMonthTotal) {
+    const card = document.getElementById('dashboard-insight-card');
+    const titleEl = document.getElementById('dashboard-insight-title');
+    const subtitleEl = document.getElementById('dashboard-insight-subtitle');
+    const badgeEl = document.getElementById('dashboard-insight-badge');
+    const statsEl = document.getElementById('dashboard-insight-stats');
+    if (!card || !titleEl || !subtitleEl || !badgeEl || !statsEl) return;
+
+    const progressPct = monthTarget > 0 ? Math.min(100, Math.round((thisMonthTotal / monthTarget) * 100)) : 0;
+    const spendDelta = thisMonthTotal - lastMonthTotal;
+    const spendPct = lastMonthTotal > 0 ? Math.round((spendDelta / lastMonthTotal) * 100) : 0;
+    const goalsCount = (db.goals || []).length;
+
+    let badgeText = 'Ready';
+    let badgeClass = 'badge-neutral';
+    let title = 'Your dashboard is ready';
+    let subtitle = 'A quick snapshot of progress, momentum, and goals is shown below.';
+    let stats = [
+        { label: 'This month', value: formatMoney(thisMonthTotal) },
+        { label: 'Last month', value: formatMoney(lastMonthTotal) },
+        { label: 'Goals', value: goalsCount ? `${goalsCount} active` : 'None' }
+    ];
+
+    if (!db.investments || db.investments.length === 0) {
+        title = 'Start logging your first entry';
+        subtitle = 'Add your first investment to unlock smart progress insights and monthly summaries.';
+        badgeText = 'Start';
+        badgeClass = 'badge-neutral';
+        stats = [
+            { label: 'Entries', value: '0' },
+            { label: 'Target', value: '—' },
+            { label: 'Goals', value: '0' }
+        ];
+    } else if (progressPct >= 100) {
+        badgeText = 'On Track';
+        badgeClass = 'badge-positive';
+        title = 'Monthly target reached';
+        subtitle = `You’ve hit ${formatMoney(monthTarget)} for this month.`;
+    } else if (progressPct >= 70) {
+        badgeText = 'Almost There';
+        badgeClass = 'badge-positive';
+        title = `${progressPct}% of your monthly target`;
+        subtitle = `You’re close to your ${formatMoney(monthTarget)} goal.`;
+    } else {
+        badgeText = 'Needs Attention';
+        badgeClass = 'badge-negative';
+        title = `${progressPct}% of your monthly target`;
+        subtitle = `A little more investing will bring you closer to your goal.`;
+    }
+
+    if (db.investments && db.investments.length > 0 && lastMonthTotal > 0) {
+        subtitle = spendDelta >= 0
+            ? `Spending is up ${Math.abs(spendPct)}% vs last month. ${subtitle}`
+            : `Spending is down ${Math.abs(spendPct)}% vs last month. ${subtitle}`;
+    }
+
+    badgeEl.className = `badge-pill ${badgeClass}`;
+    badgeEl.textContent = badgeText;
+    titleEl.textContent = title;
+    subtitleEl.textContent = subtitle;
+    statsEl.innerHTML = stats.map(s => `
+        <div class="dashboard-insight-stat">
+            <div class="dashboard-insight-stat-label">${escapeHtml(s.label)}</div>
+            <div class="dashboard-insight-stat-value">${escapeHtml(String(s.value))}</div>
+        </div>
+    `).join('');
+    card.style.display = 'block';
+}
+
+function renderDashboardFocusCard(monthTarget, thisMonthTotal, lastMonthTotal, goalsList) {
+    const card = document.getElementById('dashboard-focus-card');
+    const titleEl = document.getElementById('dashboard-focus-title');
+    const iconEl = document.getElementById('dashboard-focus-icon');
+    const btnEl = document.getElementById('dashboard-focus-btn');
+    if (!card || !titleEl || !iconEl || !btnEl) return;
+
+    const hasEntries = (db.investments || []).length > 0;
+    const hasGoals = (db.goals || []).length > 0;
+    const progressPct = monthTarget > 0 ? Math.min(100, Math.round((thisMonthTotal / monthTarget) * 100)) : 0;
+    let title = 'Open the dashboard tools';
+    let icon = 'task_alt';
+    let action = () => openInvestSheet();
+
+    if (!hasEntries) {
+        title = 'Log your first entry to unlock insights';
+        icon = 'add_circle';
+        action = () => openInvestSheet();
+    } else if (monthTarget > 0 && progressPct < 100) {
+        title = `Add one more entry to reach ${formatMoney(monthTarget)}`;
+        icon = 'trending_up';
+        action = () => openInvestSheet();
+    } else if (hasGoals) {
+        title = 'Review a goal and keep it moving';
+        icon = 'flag';
+        action = () => openGoalSheet();
+    } else {
+        title = 'Check your portfolio and next steps';
+        icon = 'insights';
+        action = () => openAIHub('reports');
+    }
+
+    titleEl.textContent = title;
+    iconEl.textContent = icon;
+    btnEl.style.display = 'inline-flex';
+    btnEl.onclick = action;
+    card.style.display = 'block';
+}
 
 // Frequent Actions Quick Navigation
 function renderFrequentActions() {
@@ -533,7 +644,10 @@ function renderFrequentActions() {
     actions.push({ icon: 'settings', label: 'Settings', action: 'openSettings()', color: 'var(--md-outline)' });
 
     // Build HTML
-    let html = `<div style="display:flex; gap:12px; overflow-x:auto; padding: 4px 0; scrollbar-width:none;">`;
+    let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:var(--md-on-surface-variant);">Quick actions</div>
+        <div style="font-size:11px; color:var(--md-outline);">One tap</div>
+    </div><div style="display:flex; gap:12px; overflow-x:auto; padding: 4px 0; scrollbar-width:none;">`;
     actions.forEach(a => {
         html += `<button onclick="${a.action}" style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding: 12px 16px; background:var(--md-surface-container-low); border:none; border-radius:16px; cursor:pointer; min-width:72px; transition:transform 0.2s, background 0.2s;" onmouseover="this.style.transform='scale(1.05)';this.style.background='var(--md-surface-container)'" onmouseout="this.style.transform='scale(1)';this.style.background='var(--md-surface-container-low)'">
             <span class="material-symbols-rounded" style="font-size:24px; color:${a.color};">${escapeHtml(a.icon)}</span>

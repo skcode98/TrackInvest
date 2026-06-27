@@ -149,6 +149,31 @@
             <div class="quick-templates-wrapper" id="quick-templates-list" style="display:none; margin-bottom:8px;">
             </div>
 
+            <div class="md-card dashboard-insight-card" id="dashboard-insight-card" style="display:none; padding:16px 16px 14px;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                    <div>
+                        <div class="dmc-header" style="margin-bottom:6px;"><span class="material-symbols-rounded">insights</span> At a glance</div>
+                        <div id="dashboard-insight-title" style="font-size:16px;font-weight:700;color:var(--md-on-surface);">Loading insights…</div>
+                        <div id="dashboard-insight-subtitle" style="font-size:12px;color:var(--md-on-surface-variant);margin-top:4px;">Your personalized snapshot will appear here.</div>
+                    </div>
+                    <div id="dashboard-insight-badge" class="badge-pill badge-neutral">—</div>
+                </div>
+                <div id="dashboard-insight-stats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;"></div>
+            </div>
+
+            <div class="md-card dashboard-focus-card" id="dashboard-focus-card" style="display:none; padding:12px 14px; margin-top:-2px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                        <span class="material-symbols-rounded" id="dashboard-focus-icon" style="font-size:20px;color:var(--md-primary);">task_alt</span>
+                        <div style="min-width:0;">
+                            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--md-on-surface-variant);">Today's focus</div>
+                            <div id="dashboard-focus-title" style="font-size:14px;font-weight:700;color:var(--md-on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading focus…</div>
+                        </div>
+                    </div>
+                    <button class="icon-btn" id="dashboard-focus-btn" style="display:none;" onclick=""><span class="material-symbols-rounded">arrow_forward</span></button>
+                </div>
+            </div>
+
             <!-- Frequent Actions Quick Navigation -->
             <div id="frequent-actions" style="margin-bottom:16px;"></div>
 

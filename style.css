@@ -1158,6 +1158,36 @@ tr:last-child td {
     transform: scale(1.3);
 }
 
+.dashboard-insight-card {
+    background: linear-gradient(145deg, var(--md-surface-container) 0%, var(--md-surface-container-high) 100%);
+    border: 1px solid var(--md-outline-variant);
+    box-shadow: var(--shadow-card);
+}
+.dashboard-insight-stat {
+    background: var(--md-surface-container-high);
+    border-radius: 12px;
+    padding: 10px;
+    min-height: 54px;
+}
+.dashboard-insight-stat-label {
+    font-size: 9px;
+    color: var(--md-outline);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+}
+.dashboard-insight-stat-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--md-on-surface);
+    margin-top: 3px;
+    line-height: 1.2;
+}
+.dashboard-focus-card {
+    border: 1px solid var(--md-outline-variant);
+    background: linear-gradient(135deg, var(--md-surface-container-high) 0%, var(--md-surface-container) 100%);
+}
+
 .dash-mini-cards {
     display: flex;
     gap: 10px;
