@@ -224,20 +224,46 @@
     <script src="./shared_ai.js"></script>
     <script>
         let moneyFlowState = { entries: [] };
-        const STORAGE_KEY = 'appHubInvestMoneyFlowDb';
+        let appDb = {};
+        const STORAGE_KEY = 'appHubInvestDb';
+        const SYNC_CHANNEL_NAME = 'trackinvest-sync';
 
-        function getStoredMoneyFlow() {
+        function loadAppDb() {
             try {
                 const raw = localStorage.getItem(STORAGE_KEY);
-                const parsed = raw ? JSON.parse(raw) : null;
-                return parsed && Array.isArray(parsed.entries) ? parsed : { entries: [] };
+                return raw ? JSON.parse(raw) : {};
             } catch (e) {
-                return { entries: [] };
+                console.warn('Failed to load app DB:', e);
+                return {};
             }
         }
 
+        function saveAppDb() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appDb));
+                try {
+                    new BroadcastChannel(SYNC_CHANNEL_NAME).postMessage({ type: 'sync-data', data: { moneyFlow: true } });
+                } catch (e) {
+                    // BroadcastChannel may not be available in some browsers
+                }
+                return true;
+            } catch (e) {
+                console.warn('Failed to save app DB:', e);
+                return false;
+            }
+        }
+
+        function getStoredMoneyFlow() {
+            appDb = loadAppDb();
+            if (!appDb.moneyFlow || !Array.isArray(appDb.moneyFlow.entries)) {
+                appDb.moneyFlow = { entries: [] };
+            }
+            return appDb.moneyFlow;
+        }
+
         function saveMoneyFlowState() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(moneyFlowState));
+            appDb.moneyFlow = moneyFlowState;
+            saveAppDb();
         }
 
         function fmtMoney(value) {

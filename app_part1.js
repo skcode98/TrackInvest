@@ -108,11 +108,10 @@ if (typeof db.fyStartMonth === 'undefined') db.fyStartMonth = 3; // Default: Apr
 if (typeof db.firstTimeTipsShown === 'undefined') db.firstTimeTipsShown = false;
 
 
-// NEW: Default state for Monthly Planner visibility
+// NEW: Default state for dashboard feature visibility
 if (typeof db.enableMonthlyPlanner === 'undefined') db.enableMonthlyPlanner = true;
-
-// NEW: Spend Tracker
 if (typeof db.enableSpendTracker === 'undefined') db.enableSpendTracker = false;
+if (typeof db.enableAccountOverview === 'undefined') db.enableAccountOverview = true;
 if (typeof db.aiEnabled === 'undefined') db.aiEnabled = true;
 if (typeof db.webEnabled === 'undefined') db.webEnabled = true;
 
