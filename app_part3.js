@@ -505,6 +505,7 @@ function updatePortfolioCalculations() {
         }
     }
 
+    let monthTarget = db.monthlyInvestmentTarget || 0;
     renderDashboardInsightCard(monthTarget, thisMonthTotal, lastMonthTotal);
     renderDashboardFocusCard(monthTarget, thisMonthTotal, lastMonthTotal, goalsList);
 
@@ -514,7 +515,7 @@ function updatePortfolioCalculations() {
     renderDashboardMiniCards();
     renderHistory();
 
-    let monthTarget = db.monthlyInvestmentTarget || 0; let pct = monthTarget > 0 ? Math.min(100, (thisMonthTotal / monthTarget) * 100) : 0;
+    let pct = monthTarget > 0 ? Math.min(100, (thisMonthTotal / monthTarget) * 100) : 0;
     let mTargetDisplay = document.getElementById('monthly-target-display'); if (mTargetDisplay) mTargetDisplay.innerText = formatMoney(monthTarget);
     let pPercent = document.getElementById('progress-percent'); if (pPercent) pPercent.innerText = Math.round(pct) + '%';
     let pCircle = document.getElementById('progress-circle'); if (pCircle) pCircle.style.strokeDashoffset = 188.4 * (1 - pct / 100);
