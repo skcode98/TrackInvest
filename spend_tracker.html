@@ -85,12 +85,6 @@
         .chart-card-title { font-size:11px; font-weight:600; color:var(--md-on-surface-variant); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px; }
         .sankey-svg { width:100%; max-width:100%; height:180px; overflow:visible; }
 
-        /* ── Sheet ── */
-        .import-sheet { position:fixed; bottom:0; left:0; right:0; margin:0 auto; max-width:600px; background:var(--md-surface-container-low); border-radius:28px 28px 0 0; padding:24px 24px 32px; z-index:1001; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.1,0.7,0.1,1); max-height:75vh; overflow-y:auto; box-shadow:0 -8px 32px rgba(0,0,0,0.18); }
-        .import-sheet.open { transform:translateY(0); }
-        .import-scrim { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:1000; opacity:0; visibility:hidden; transition:0.3s; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
-        .import-scrim.open { opacity:1; visibility:visible; }
-
         /* ── Biggest item ── */
         .biggest-item { background:var(--md-surface-container); border-radius:20px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:0.2s; border:1px solid var(--md-error-container); }
         .biggest-item:active { transform:scale(0.98); background:var(--md-surface-container-highest); }
@@ -161,94 +155,95 @@
     <div class="import-scrim" id="import-scrim" onclick="closeImportSheet()"></div>
     <div class="import-sheet" id="import-sheet">
         <div class="drag-handle"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
-            <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;">file_upload</span>
+        <div class="flex items-center gap-8" style="margin-bottom:20px;">
+            <span class="material-symbols-rounded text-primary" style="font-size:22px;">file_upload</span>
             <span style="font-weight:600;font-size:17px;">Import Transactions</span>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-            <button class="btn-primary" style="flex:1;padding:12px;" onclick="document.getElementById('csv-file-input').click()"><span class="material-symbols-rounded">description</span> CSV</button>
-            <button class="btn-primary" style="flex:1;padding:12px;" onclick="document.getElementById('xlsx-file-input').click()"><span class="material-symbols-rounded">table_chart</span> XLSX</button>
-            <button class="btn-secondary" style="flex:1;padding:12px;" onclick="document.getElementById('pdf-file-input').click()"><span class="material-symbols-rounded">picture_as_pdf</span> PDF</button>
+        <div class="flex gap-8 flex-wrap" style="margin-bottom:16px;">
+            <button class="btn-primary grow" style="padding:12px;" onclick="document.getElementById('csv-file-input').click()"><span class="material-symbols-rounded">description</span> CSV</button>
+            <button class="btn-primary grow" style="padding:12px;" onclick="document.getElementById('xlsx-file-input').click()"><span class="material-symbols-rounded">table_chart</span> XLSX</button>
+            <button class="btn-secondary grow" style="padding:12px;" onclick="document.getElementById('pdf-file-input').click()"><span class="material-symbols-rounded">picture_as_pdf</span> PDF</button>
+            <button class="btn-outline-sm grow" style="padding:12px;" onclick="connectBuckwheat()" id="bw-connect-btn"><span class="material-symbols-rounded">link</span> Buckwheat</button>
         </div>
         <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="importCSVFile(event)">
         <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="importPDFFile(event)">
         <input type="file" id="xlsx-file-input" accept=".xlsx,.xls" style="display:none" onchange="importXLSXFile(event)">
-        <div style="display:flex;flex-direction:column;gap:4px;padding:12px;background:var(--md-surface-container-highest);border-radius:14px;">
-            <div style="font-size:12px;color:var(--md-outline);display:flex;align-items:center;gap:6px;"><span class="material-symbols-rounded" style="font-size:14px;">info</span> CSV: amount, comment, commit_time (DD/MM/YY, HH:MM AM/PM)</div>
-            <div style="font-size:12px;color:var(--md-outline);display:flex;align-items:center;gap:6px;"><span class="material-symbols-rounded" style="font-size:14px;">table_chart</span> XLSX: columns amount, comment, commit_time or date</div>
+        <div class="flex flex-col gap-4" style="padding:12px;background:var(--md-surface-container-highest);border-radius:14px;">
+            <div class="text-sm text-muted flex items-center" style="gap:6px;"><span class="material-symbols-rounded text-base">info</span> CSV: amount, comment, commit_time (DD/MM/YY, HH:MM AM/PM)</div>
+            <div class="text-sm text-muted flex items-center" style="gap:6px;"><span class="material-symbols-rounded text-base">table_chart</span> XLSX: columns amount, comment, commit_time or date</div>
         </div>
-        <button class="btn-secondary" style="width:100%;margin-top:16px;" onclick="closeImportSheet()">Cancel</button>
+        <button class="btn-secondary w-full" style="margin-top:16px;" onclick="closeImportSheet()">Cancel</button>
     </div>
 
     <!-- Budget Sheet -->
     <div class="import-scrim" id="budget-scrim" onclick="closeBudgetSheet()"></div>
     <div class="import-sheet" id="budget-sheet">
         <div class="drag-handle"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-            <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;">account_balance_wallet</span>
+        <div class="flex items-center gap-8" style="margin-bottom:16px;">
+            <span class="material-symbols-rounded text-primary" style="font-size:22px;">account_balance_wallet</span>
             <span style="font-weight:600;font-size:17px;">Monthly Budget</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="flex flex-col" style="gap:14px;">
             <div class="budget-item-row">
-                <div class="input-container" style="margin-bottom:0;flex:1;">
-                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
-                        <span class="material-symbols-rounded" style="font-size:14px;color:#186D33;">receipt_long</span>
-                        <span style="font-size:12px;font-weight:600;">Needs (Bills, Food, Rent)</span>
+                <div class="input-container grow" style="margin-bottom:0;">
+                    <div class="flex items-center gap-4" style="margin-bottom:2px;">
+                        <span class="material-symbols-rounded text-base" style="color:#186D33;">receipt_long</span>
+                        <span class="text-sm font-semibold">Needs (Bills, Food, Rent)</span>
                     </div>
                     <input type="number" id="budget-needs-input" class="md-input" placeholder="0" inputmode="decimal">
                 </div>
             </div>
             <div class="budget-item-row">
-                <div class="input-container" style="margin-bottom:0;flex:1;">
-                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
-                        <span class="material-symbols-rounded" style="font-size:14px;color:#E91E63;">favorite</span>
-                        <span style="font-size:12px;font-weight:600;">Wants (Fun, Shopping, Travel)</span>
+                <div class="input-container grow" style="margin-bottom:0;">
+                    <div class="flex items-center gap-4" style="margin-bottom:2px;">
+                        <span class="material-symbols-rounded text-base" style="color:#E91E63;">favorite</span>
+                        <span class="text-sm font-semibold">Wants (Fun, Shopping, Travel)</span>
                     </div>
                     <input type="number" id="budget-wants-input" class="md-input" placeholder="0" inputmode="decimal">
                 </div>
             </div>
             <div class="budget-item-row">
-                <div class="input-container" style="margin-bottom:0;flex:1;">
-                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
-                        <span class="material-symbols-rounded" style="font-size:14px;color:#F57C00;">trending_up</span>
-                        <span style="font-size:12px;font-weight:600;">Investments</span>
+                <div class="input-container grow" style="margin-bottom:0;">
+                    <div class="flex items-center gap-4" style="margin-bottom:2px;">
+                        <span class="material-symbols-rounded text-base" style="color:#F57C00;">trending_up</span>
+                        <span class="text-sm font-semibold">Investments</span>
                     </div>
                     <input type="number" id="budget-investments-input" class="md-input" placeholder="0" inputmode="decimal">
                 </div>
             </div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:12px 14px;background:var(--md-surface-container);border-radius:14px;">
-            <span style="font-size:13px;font-weight:600;color:var(--md-on-surface-variant);">Total Monthly</span>
-            <span style="font-size:20px;font-weight:700;color:var(--md-primary);" id="budget-total-display">₹0</span>
+        <div class="flex items-center justify-between" style="margin-top:16px;padding:12px 14px;background:var(--md-surface-container);border-radius:14px;">
+            <span class="font-semibold text-muted-variant" style="font-size:13px;">Total Monthly</span>
+            <span class="text-xl font-bold text-primary" id="budget-total-display">₹0</span>
         </div>
 
         <!-- Category Mapping -->
-        <div style="margin-top:12px;">
-            <div style="font-size:12px;font-weight:600;color:var(--md-on-surface-variant);margin-bottom:6px;">Assign transaction categories to budget buckets:</div>
+        <div class="mt-12">
+            <div class="text-sm font-semibold text-muted-variant" style="margin-bottom:6px;">Assign transaction categories to budget buckets:</div>
             <div id="budget-mapping-container"></div>
         </div>
 
-        <div style="display:flex;gap:12px;margin-top:16px;">
+        <div class="flex gap-12" style="margin-top:16px;">
             <button class="btn-secondary" onclick="clearBudget()" style="flex:0.4;color:var(--md-error);border-color:var(--md-error);"><span class="material-symbols-rounded">delete</span> Clear</button>
-            <button class="btn-primary" onclick="saveBudget()" style="flex:1;"><span class="material-symbols-rounded">check</span> Save Budget</button>
+            <button class="btn-primary grow" onclick="saveBudget()"><span class="material-symbols-rounded">check</span> Save Budget</button>
         </div>
-        <button class="btn-secondary" id="ai-suggest-budget-btn" onclick="aiSuggestBudget()" style="width:100%;margin-top:8px;"><span class="material-symbols-rounded">auto_awesome</span> AI Suggest</button>
-        <button class="btn-secondary" style="width:100%;margin-top:4px;" onclick="closeBudgetSheet()">Cancel</button>
+        <button class="btn-secondary w-full" id="ai-suggest-budget-btn" onclick="aiSuggestBudget()" style="margin-top:8px;"><span class="material-symbols-rounded">auto_awesome</span> AI Suggest</button>
+        <button class="btn-secondary w-full" style="margin-top:4px;" onclick="closeBudgetSheet()">Cancel</button>
     </div>
 
     <!-- Spend Entry Sheet -->
     <div class="import-scrim" id="spend-scrim" onclick="closeSpendSheet()"></div>
     <div class="import-sheet" id="spend-sheet">
         <div class="drag-handle"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
-            <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;" id="spend-sheet-icon">add_circle</span>
+        <div class="flex items-center gap-8" style="margin-bottom:20px;">
+            <span class="material-symbols-rounded text-primary" style="font-size:22px;" id="spend-sheet-icon">add_circle</span>
             <span style="font-weight:600;font-size:17px;" id="spend-sheet-title">Add Expense</span>
         </div>
         <div class="input-container"><label>Amount (₹)</label><input type="number" id="spend-amt-input" class="md-input" placeholder="0.00" inputmode="decimal"></div>
         <div class="input-container"><label>Description
             <button class="ai-button-inline" id="ai-cat-suggest-btn"
                 style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;font-size:11px;vertical-align:middle;margin-left:4px;display:none;"
-                onclick="aiSuggestCategory()" title="AI suggest category"><span class="material-symbols-rounded" style="font-size:14px;">auto_awesome</span></button>
+                onclick="aiSuggestCategory()" title="AI suggest category"><span class="material-symbols-rounded text-base">auto_awesome</span></button>
         </label>
         <input type="text" id="spend-comment-input" class="md-input" placeholder="What for?" list="comment-suggestions" oninput="onSpendCommentInput(this)"></div>
         <div class="input-container"><label>Category</label>
@@ -257,11 +252,11 @@
             </select>
         </div>
         <div class="input-container"><label>Date</label><input type="date" id="spend-date-input" class="md-input"></div>
-        <div style="display:flex;gap:12px;margin-top:20px;">
+        <div class="flex gap-12" style="margin-top:20px;">
             <button class="btn-secondary" id="spend-del-btn" style="display:none;color:var(--md-error);border-color:var(--md-error);flex:0.4;" onclick="deleteSpendEntry()"><span class="material-symbols-rounded">delete</span> Delete</button>
-            <button class="btn-primary" onclick="saveSpendEntry()" style="flex:1;" id="spend-save-btn"><span class="material-symbols-rounded">add</span> Add Expense</button>
+            <button class="btn-primary grow" onclick="saveSpendEntry()" id="spend-save-btn"><span class="material-symbols-rounded">add</span> Add Expense</button>
         </div>
-        <button class="btn-secondary" onclick="closeSpendSheet()" style="width:100%;margin-top:8px;">Cancel</button>
+        <button class="btn-secondary w-full" style="margin-top:8px;" onclick="closeSpendSheet()">Cancel</button>
     </div>
 
     <!-- FAB -->
@@ -269,19 +264,22 @@
 
     <header class="top-app-bar">
         <button class="icon-btn" onclick="window.location.href='index.html'"><span class="material-symbols-rounded">arrow_back</span></button>
-        <div class="app-title">Spend Tracker</div>
-        <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner"><span class="material-symbols-rounded">account_balance</span></button>
-        <button class="icon-btn" onclick="window.location.href='account_overview.html'" title="Account Overview"><span class="material-symbols-rounded">account_balance_wallet</span></button>
-        <button class="icon-btn" onclick="openImportSheet()" title="Import"><span class="material-symbols-rounded">file_upload</span></button>
-        <button class="icon-btn" onclick="showExportMenu()" title="Export"><span class="material-symbols-rounded">download</span></button>
-        <button class="icon-btn" onclick="document.getElementById('ai-insights-output').style.display='none';renderAll()" title="Refresh"><span class="material-symbols-rounded">refresh</span></button>
+        <div class="app-title grow">Spend Tracker</div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner"><span class="material-symbols-rounded">account_balance</span></button>
+            <button class="icon-btn" onclick="window.location.href='account_overview.html'" title="Account Overview"><span class="material-symbols-rounded">account_balance_wallet</span></button>
+            <button class="icon-btn" onclick="window.location.href='money_flow.html'" title="Money Flow"><span class="material-symbols-rounded">currency_exchange</span></button>
+            <button class="icon-btn" onclick="openImportSheet()" title="Import"><span class="material-symbols-rounded">file_upload</span></button>
+            <button class="icon-btn" onclick="showExportMenu()" title="Export"><span class="material-symbols-rounded">download</span></button>
+            <button class="icon-btn" onclick="document.getElementById('ai-insights-output').style.display='none';renderAll()" title="Refresh"><span class="material-symbols-rounded">refresh</span></button>
+        </div>
     </header>
 
     <main class="container" style="padding-top:0;">
         <!-- Month Picker -->
         <div class="month-nav">
             <button class="icon-btn" onclick="shiftMonth(-1)"><span class="material-symbols-rounded">chevron_left</span></button>
-            <div style="font-size:13px;font-weight:500;color:var(--md-on-surface);" id="month-label"></div>
+            <div class="font-medium text-on-surface" style="font-size:13px;" id="month-label"></div>
             <button class="icon-btn" onclick="shiftMonth(1)"><span class="material-symbols-rounded">chevron_right</span></button>
         </div>
 
@@ -289,11 +287,11 @@
         <div class="hero-card" id="hero-section">
             <div class="hero-decor"></div>
             <div class="hero-decor2"></div>
-            <div class="hero-subtitle"><span class="material-symbols-rounded" style="font-size:14px;margin-right:4px;">account_balance_wallet</span>Total Spent</div>
+            <div class="hero-subtitle"><span class="material-symbols-rounded text-base" style="margin-right:4px;">account_balance_wallet</span>Total Spent</div>
             <div class="hero-title" id="hero-total">₹0</div>
             <div class="stat-row" style="margin-bottom:0;margin-top:8px;">
-                <div class="stat-chip" style="flex-direction:row;align-items:center;gap:6px;min-width:auto;padding:6px 12px;border-radius:100px;"><span class="material-symbols-rounded" style="font-size:14px;color:var(--md-primary);">receipt_long</span><span style="font-size:12px;" id="hero-count">0 txns</span></div>
-                <div class="stat-chip" style="flex-direction:row;align-items:center;gap:6px;min-width:auto;padding:6px 12px;border-radius:100px;"><span class="material-symbols-rounded" style="font-size:14px;color:var(--md-primary);">trending_up</span><span style="font-size:12px;" id="hero-avg">₹0/day</span></div>
+                <div class="stat-chip" style="flex-direction:row;align-items:center;gap:6px;min-width:auto;padding:6px 12px;border-radius:100px;"><span class="material-symbols-rounded text-base text-primary">receipt_long</span><span class="text-sm" id="hero-count">0 txns</span></div>
+                <div class="stat-chip" style="flex-direction:row;align-items:center;gap:6px;min-width:auto;padding:6px 12px;border-radius:100px;"><span class="material-symbols-rounded text-base text-primary">trending_up</span><span class="text-sm" id="hero-avg">₹0/day</span></div>
                 <div class="stat-chip" style="flex-direction:row;align-items:center;gap:6px;min-width:auto;padding:6px 12px;border-radius:100px;" id="hero-vs-budget"></div>
             </div>
         </div>
@@ -304,23 +302,23 @@
         <datalist id="comment-suggestions"></datalist>
 
         <!-- Budget vs Actual -->
-        <div id="budget-section" style="display:none; margin-bottom:16px;">
-            <div class="st-section" style="justify-content:space-between;">
+        <div id="budget-section" class="mb-16" style="display:none;">
+            <div class="st-section justify-between">
                 <span><span class="material-symbols-rounded">compare_arrows</span> Budget vs Actual</span>
-                <button class="btn-outline-sm" onclick="openBudgetSheet()" style="font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid var(--md-outline-variant);background:transparent;color:var(--md-on-surface-variant);cursor:pointer;display:flex;align-items:center;gap:4px;">
-                    <span class="material-symbols-rounded" style="font-size:14px;">edit</span> Set Budget
+                <button class="btn-outline-sm text-sm flex items-center gap-4" onclick="openBudgetSheet()" style="padding:4px 10px;border-radius:8px;border:1px solid var(--md-outline-variant);background:transparent;color:var(--md-on-surface-variant);cursor:pointer;">
+                    <span class="material-symbols-rounded text-base">edit</span> Set Budget
                 </button>
             </div>
             <div class="budget-rows" id="budget-list"></div>
-            <div id="budget-breakdown-container" style="margin-top:12px;"></div>
+            <div id="budget-breakdown-container" class="mt-12"></div>
         </div>
 
         <!-- Charts -->
         <div class="st-section"><span class="material-symbols-rounded">monitoring</span> Insights</div>
         <div class="chart-grid" id="charts-section">
-            <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded" style="font-size:14px;">donut_small</span> By Category</div><div style="height:170px;"><canvas id="catPieChart"></canvas></div></div>
-            <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded" style="font-size:14px;">bar_chart</span> Daily Trend</div><div style="height:170px;"><canvas id="dailyTrendChart"></canvas></div></div>
-            <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded" style="font-size:14px;">flowchart</span> Spend Flow</div><div class="sankey-container"><svg class="sankey-svg" id="sankey-svg"></svg></div></div>
+            <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded text-base">donut_small</span> By Category</div><div style="height:170px;"><canvas id="catPieChart"></canvas></div></div>
+            <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded text-base">bar_chart</span> Daily Trend</div><div style="height:170px;"><canvas id="dailyTrendChart"></canvas></div></div>
+            <div class="chart-card"><div class="chart-card-title"><span class="material-symbols-rounded text-base">flowchart</span> Spend Flow</div><div class="sankey-container"><svg class="sankey-svg" id="sankey-svg"></svg></div></div>
         </div>
 
         <!-- Biggest Single Expense -->
@@ -332,16 +330,16 @@
         <!-- AI Actions -->
         <div class="st-section ai-dependent"><span class="material-symbols-rounded">auto_awesome</span> AI Tools</div>
         <div class="st-action-row ai-dependent">
-            <button class="btn-primary" style="flex:1;padding:12px;" onclick="runAICategorization()" id="ai-cat-btn"><span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize</button>
-            <button class="btn-secondary" style="flex:1;padding:12px;" onclick="runAIInsights()" id="ai-insights-btn"><span class="material-symbols-rounded">insights</span> Insights</button>
+            <button class="btn-primary grow" style="padding:12px;" onclick="runAICategorization()" id="ai-cat-btn"><span class="material-symbols-rounded">auto_awesome</span> Auto-Categorize</button>
+            <button class="btn-secondary grow" style="padding:12px;" onclick="runAIInsights()" id="ai-insights-btn"><span class="material-symbols-rounded">insights</span> Insights</button>
         </div>
-        <div id="ai-info-banner" class="st-action-row ai-dependent-info" style="margin-bottom:12px;">
-            <div style="padding:12px 16px;background:var(--md-surface-container);border-radius:14px;font-size:12px;color:var(--md-outline);text-align:center;">
-                <span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle;">auto_awesome</span>
+        <div id="ai-info-banner" class="st-action-row ai-dependent-info mb-12">
+            <div class="text-sm text-muted" style="padding:12px 16px;background:var(--md-surface-container);border-radius:14px;text-align:center;">
+                <span class="material-symbols-rounded icon-sm" style="vertical-align:middle;">auto_awesome</span>
                 Enable AI in Settings → App to auto-categorize & analyze spending.
             </div>
         </div>
-        <div id="ai-insights-output" style="display:none;background:var(--md-surface-container);border-radius:18px;padding:20px;margin-bottom:16px;font-size:14px;line-height:1.6;border:1px solid var(--md-outline-variant);"></div>
+        <div id="ai-insights-output" class="bg-surface-container" style="display:none;border-radius:18px;padding:20px;margin-bottom:16px;font-size:14px;line-height:1.6;border:1px solid var(--md-outline-variant);"></div>
 
         <!-- Filters -->
         <div class="st-section"><span class="material-symbols-rounded">filter_list</span> Transactions</div>
@@ -353,9 +351,9 @@
         </div>
 
         <!-- Transaction Actions -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:13px;color:var(--md-on-surface-variant);font-weight:500;" id="list-count"></span>
-            <div style="display:flex;gap:4px;">
+        <div class="flex items-center justify-between mb-8">
+            <span class="text-muted-variant font-medium" style="font-size:13px;" id="list-count"></span>
+            <div class="flex gap-4">
                 <button class="icon-btn" onclick="deleteAllUncategorized()" title="Clear uncategorized"><span class="material-symbols-rounded" style="color:var(--md-error);">filter_alt_off</span></button>
                 <button class="icon-btn" onclick="deleteAllEntries()" title="Clear month"><span class="material-symbols-rounded" style="color:var(--md-error);">delete_sweep</span></button>
             </div>
@@ -608,6 +606,7 @@
             populateCategorySelect();
             updateCommentSuggestions();
             renderAll();
+            autoImportBuckwheat();
         });
 
         // ── IMPORT SHEET ──
@@ -632,9 +631,9 @@
             let html = '';
             buckets.forEach(b => {
                 const assigned = mapping[b] || [];
-                html += `<div style="margin-bottom:8px;padding:8px 10px;background:var(--md-surface-container);border-radius:10px;">
-                    <div style="font-size:11px;font-weight:600;color:${bucketColors[b]};margin-bottom:4px;">${bucketLabels[b]}</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:4px;" id="map-chips-${b}">`;
+                html += `<div class="bg-surface-container" style="margin-bottom:8px;padding:8px 10px;border-radius:10px;">
+                    <div class="font-semibold" style="font-size:11px;color:${bucketColors[b]};margin-bottom:4px;">${bucketLabels[b]}</div>
+                    <div class="flex flex-wrap gap-4" id="map-chips-${b}">`;
                 knownCats.forEach(c => {
                     const active = assigned.includes(c);
                     html += `<button type="button" class="map-chip" data-bucket="${b}" data-cat="${c}"
@@ -695,7 +694,7 @@
             if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey)
                 return showSnackbar("Add API key in Settings","key");
             const btn = document.getElementById('ai-suggest-budget-btn');
-            btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;animation:spin 1s linear infinite;">autorenew</span> Analyzing...';
+            btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded text-base" style="animation:spin 1s linear infinite;">autorenew</span> Analyzing...';
             try {
                 const now = new Date();
                 const monthData = [];
@@ -842,25 +841,25 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             entries.forEach(e => { const c = e.category || 'Uncategorized'; cats[c] = (cats[c] || 0) + e.amount; });
             const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
             if (sorted.length > 0) {
-                let bHtml = '<div style="display:flex;align-items:center;gap:6px;margin:4px 0 8px;font-size:13px;font-weight:500;color:var(--md-on-surface-variant);">'
-                    + '<span class="material-symbols-rounded" style="font-size:16px;">donut_small</span> Category Breakdown</div>';
+                let bHtml = '<div class="flex items-center font-medium text-muted-variant" style="gap:6px;margin:4px 0 8px;font-size:13px;">'
+                    + '<span class="material-symbols-rounded icon-sm">donut_small</span> Category Breakdown</div>';
                 sorted.forEach(([cat, amt]) => {
                     const pct = totalActual > 0 ? (amt / totalActual * 100) : 0;
                     const color = getCatColor(cat);
-                    bHtml += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--md-surface-container);margin-bottom:4px;">'
+                    bHtml += '<div class="flex items-center gap-8 bg-surface-container" style="padding:6px 8px;border-radius:10px;margin-bottom:4px;">'
                         + '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:' + color + ';"></div>'
-                        + '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:500;color:var(--md-on-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + cat + '</div>'
+                        + '<div class="flex-1" style="min-width:0;"><div class="text-sm font-medium text-on-surface" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + cat + '</div>'
                         + '<div style="background:var(--md-surface-container-highest);border-radius:999px;height:4px;overflow:hidden;margin-top:3px;">'
                         + '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:999px;transition:width 0.4s;"></div></div></div>'
-                        + '<div style="text-align:right;flex-shrink:0;"><div style="font-size:13px;font-weight:600;color:var(--md-on-surface);">₹' + amt.toLocaleString('en-IN') + '</div>'
-                        + '<div style="font-size:10px;color:var(--md-outline);">' + pct.toFixed(1) + '%</div></div></div>';
+                        + '<div class="flex-shrink-0" style="text-align:right;"><div class="font-semibold text-on-surface" style="font-size:13px;">₹' + amt.toLocaleString('en-IN') + '</div>'
+                        + '<div class="text-muted" style="font-size:10px;">' + pct.toFixed(1) + '%</div></div></div>';
                 });
                 // Budget progress bar
                 const budget = totalBudgetDisplay;
                 if (budget > 0) {
                     const bpct = Math.min(totalActual / budget * 100, 100);
-                    bHtml += '<div style="margin-top:10px;padding:8px 10px;background:var(--md-surface-container-highest);border-radius:12px;">'
-                        + '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--md-outline);margin-bottom:4px;">'
+                    bHtml += '<div class="bg-surface-container-highest" style="margin-top:10px;padding:8px 10px;border-radius:12px;">'
+                        + '<div class="flex justify-between text-muted" style="font-size:11px;margin-bottom:4px;">'
                         + '<span>Budget Utilized</span><span>₹' + totalActual.toLocaleString('en-IN') + ' / ₹' + budget.toLocaleString('en-IN') + '</span></div>'
                         + '<div style="background:var(--md-surface-container);border-radius:999px;height:6px;overflow:hidden;">'
                         + '<div style="height:100%;width:' + bpct + '%;background:' + (bpct > 90 ? (bpct > 100 ? 'var(--md-error)' : '#F4A100') : 'var(--md-primary)') + ';border-radius:999px;transition:width 0.4s;"></div></div></div>';
@@ -973,7 +972,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
                 const reviewCats = ['all', ...catsList];
                 let html = '<div style="max-height:55vh;overflow-y:auto;">';
                 let currentFilter = 'all';
-                html += '<div style="margin-bottom:8px;display:flex;gap:4px;flex-wrap:wrap;" class="review-filter-bar">';
+                html += '<div class="flex gap-4 flex-wrap mb-8 review-filter-bar">';
                 reviewCats.forEach(c => {
                     const count = c === 'all' ? suggestions.length : suggestions.filter(s => s.suggested === c).length;
                     html += '<button type="button" class="review-filter-btn' + (c === 'all' ? ' active' : '') + '" data-cat="' + c + '" onclick="(function(){ document.querySelectorAll(\'.review-filter-btn\').forEach(b=>b.classList.remove(\'active\')); this.classList.add(\'active\'); document.querySelectorAll(\'.review-row\').forEach(r=>{r.style.display=(this.dataset.cat===\'all\'||r.dataset.cat===this.dataset.cat)?\'\':\'none\';}); }).call(this)" style="padding:4px 10px;border-radius:999px;border:1px solid var(--md-outline-variant);background:none;font-size:11px;cursor:pointer;color:var(--md-on-surface);">' + c + ' (' + count + ')</button>';
@@ -981,16 +980,16 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
                 html += '</div>';
                 suggestions.forEach((s, i) => {
                     const optionsHtml = catsList.map(c => '<option value="'+c+'"' + (c === s.suggested ? ' selected' : '') + '>'+c+'</option>').join('');
-                    html += '<div class="review-row" data-cat="' + s.suggested + '" style="display:flex;align-items:center;gap:6px;padding:6px 4px;border-bottom:1px solid var(--md-surface-container-highest);font-size:13px;">'
+                    html += '<div class="review-row flex items-center" data-cat="' + s.suggested + '" style="gap:6px;padding:6px 4px;border-bottom:1px solid var(--md-surface-container-highest);font-size:13px;">'
                         + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + DOMPurify.sanitize(s.entry.comment) + ' — ₹' + s.entry.amount + '</span>'
-                        + '<select id="review-cat-' + i + '" style="padding:4px 6px;border-radius:8px;border:1px solid var(--md-outline);font-size:12px;">' + optionsHtml + '</select></div>';
+                        + '<select id="review-cat-' + i + '" class="text-sm" style="padding:4px 6px;border-radius:8px;border:1px solid var(--md-outline);">' + optionsHtml + '</select></div>';
                 });
                 html += '</div>';
                 const result = await Swal.fire({
                     title: 'Review AI Categorization',
                     html: html,
                     showCancelButton: true,
-                    confirmButtonText: '<span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle;">check</span> Apply',
+                    confirmButtonText: '<span class="material-symbols-rounded icon-sm" style="vertical-align:middle;">check</span> Apply',
                     cancelButtonText: 'Cancel',
                     preConfirm: () => {
                         suggestions.forEach((s, i) => {
@@ -1015,9 +1014,9 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             const opts=cats.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
             let h='<div style="max-height:50vh;overflow-y:auto;">';
             entries.forEach((e,i)=>{
-                h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--md-surface-container-highest);font-size:13px;">'
-                  + '<span style="flex:1;">'+DOMPurify.sanitize(e.comment)+' — ₹'+e.amount+'</span>'
-                  + '<select id="mc-'+i+'" style="padding:6px 8px;border-radius:8px;border:1px solid var(--md-outline);font-size:12px;">'+opts+'</select></div>';
+                h+='<div class="flex items-center gap-8" style="padding:8px 0;border-bottom:1px solid var(--md-surface-container-highest);font-size:13px;">'
+                  + '<span class="flex-1">'+DOMPurify.sanitize(e.comment)+' — ₹'+e.amount+'</span>'
+                  + '<select id="mc-'+i+'" class="text-sm" style="padding:6px 8px;border-radius:8px;border:1px solid var(--md-outline);">'+opts+'</select></div>';
             });
             h+='</div>';
             Swal.fire({title:'Categorize '+entries.length+' items',html:h,showCancelButton:true,confirmButtonText:'Save',preConfirm:()=>{entries.forEach((e,i)=>{const s=document.getElementById('mc-'+i); if(s) e.category=s.value;}); saveDB(); renderAll();}});
@@ -1034,7 +1033,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             if (!comment || comment.length < 3) return;
             if (!db.geminiKey && !db.groqKey && !db.openrouterKey && !db.cerebrasKey && !db.githubKey) return showSnackbar("Add API key in Settings","key");
             const btn = document.getElementById('ai-cat-suggest-btn');
-            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;animation:spin 1s linear infinite;">autorenew</span>'; }
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded text-base" style="animation:spin 1s linear infinite;">autorenew</span>'; }
             try {
                 const cats = Object.keys(CAT_COLORS).join(', ');
                 const r = await callAI(`Expense: "${comment.slice(0,100)}". Categories: ${cats}. Which category fits best? You can also suggest a new short category. Return category name only, no explanation.`, 'spend_categorize_2');
@@ -1045,7 +1044,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
                     showSnackbar(`Suggested: ${cat}`, 'auto_awesome');
                 }
             } catch(e) { showSnackbar("AI suggest failed", "error"); }
-            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">auto_awesome</span>'; }
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-rounded text-base">auto_awesome</span>'; }
         }
 
         async function runAIInsights() {
@@ -1145,11 +1144,11 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
             if(entries.length===0){container.style.display='none';return;}
             const biggest=entries.reduce((a,b)=>a.amount>b.amount?a:b);
             container.style.display='block';
-            container.innerHTML=`<div style="font-size:14px;font-weight:500;color:var(--md-primary);margin:24px 0 16px 4px;display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded" style="font-size:16px;color:var(--md-error);">warning</span> Biggest Expense</div>
+            container.innerHTML=`<div class="flex items-center gap-8 text-base font-medium text-primary" style="margin:24px 0 16px 4px;"><span class="material-symbols-rounded icon-sm text-error">warning</span> Biggest Expense</div>
                 <div class="biggest-item" onclick="openSpendSheet('${biggest.id}')">
-                    <span class="material-symbols-rounded" style="font-size:24px;color:var(--md-error);">emergency</span>
-                    <div style="flex:1;"><div style="font-weight:600;font-size:15px;color:var(--md-on-surface);">${DOMPurify.sanitize(biggest.comment)}</div><div style="font-size:12px;color:var(--md-outline);">${fmtDate(new Date(biggest.date))}</div></div>
-                    <div style="font-size:20px;font-weight:600;color:var(--md-error);">₹${biggest.amount.toLocaleString('en-IN')}</div>
+                    <span class="material-symbols-rounded icon-lg text-error">emergency</span>
+                    <div class="flex-1"><div class="font-semibold text-on-surface" style="font-size:15px;">${DOMPurify.sanitize(biggest.comment)}</div><div class="text-sm text-muted">${fmtDate(new Date(biggest.date))}</div></div>
+                    <div class="text-xl font-semibold text-error">₹${biggest.amount.toLocaleString('en-IN')}</div>
                 </div>`;
         }
 
@@ -1195,7 +1194,7 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
         function showExportMenu() {
             const entries=getMonthEntries();
             if(entries.length===0){Swal.fire('Info','Nothing to export','info');return;}
-            Swal.fire({title:'Export',html:`<div style="display:flex;gap:8px;flex-direction:column;"><button class="btn-secondary" onclick="exportCSV()" style="width:100%;padding:12px;"><span class="material-symbols-rounded">description</span> CSV</button><button class="btn-secondary" onclick="exportXLSX()" style="width:100%;padding:12px;"><span class="material-symbols-rounded">table_chart</span> XLSX</button><button class="btn-secondary" onclick="exportPDF()" style="width:100%;padding:12px;"><span class="material-symbols-rounded">picture_as_pdf</span> PDF</button></div>`,showConfirmButton:false,showCloseButton:true});
+            Swal.fire({title:'Export',html:`<div class="flex gap-8 flex-col"><button class="btn-secondary w-full" style="padding:12px;" onclick="exportCSV()"><span class="material-symbols-rounded">description</span> CSV</button><button class="btn-secondary w-full" style="padding:12px;" onclick="exportXLSX()"><span class="material-symbols-rounded">table_chart</span> XLSX</button><button class="btn-secondary w-full" style="padding:12px;" onclick="exportPDF()"><span class="material-symbols-rounded">picture_as_pdf</span> PDF</button></div>`,showConfirmButton:false,showCloseButton:true});
         }
         function exportCSV() { const e=getMonthEntries(); let c='amount,comment,category,date\n'; e.forEach(x=>{const d=new Date(x.date);c+=`${x.amount},"${(x.comment||'').replace(/"/g,'""')}","${x.category||'Uncategorized'}",${d.toISOString().split('T')[0]}\n`;}); downloadFile(c,`spends_${currentMonth+1}_${currentYear}.csv`,'text/csv'); Swal.close(); }
         function exportXLSX() { const e=getMonthEntries().sort((a,b)=>new Date(b.date)-new Date(a.date)).map(x=>({Date:new Date(x.date).toISOString().split('T')[0],Comment:x.comment||'',Category:x.category||'Uncategorized',Amount:x.amount})); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(e),'Spends'); XLSX.writeFile(wb,`spends_${currentMonth+1}_${currentYear}.xlsx`); Swal.close(); }
@@ -1223,6 +1222,107 @@ Base the suggestion on average monthly spend per category mapped to each bucket,
                 <div class="stat-chip"><div class="stat-chip-label">Top Category</div><div class="stat-chip-val">${topCat?topCat[0]:'—'}</div></div>
                 <div class="stat-chip"><div class="stat-chip-label">Categories</div><div class="stat-chip-val">${Object.keys(cats).length}</div></div>
                 <div class="stat-chip"><div class="stat-chip-label">Biggest</div><div class="stat-chip-val">₹${e.length>0?Math.max(...e.map(x=>x.amount)).toLocaleString('en-IN'):0}</div></div>`;
+        }
+
+        // ── BUCKWHEAT SYNC ──
+        function openBuckwheatDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('buckwheat-sync', 1);
+                req.onupgradeneeded = () => req.result.createObjectStore('handles');
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function storeBuckwheatHandle(handle) {
+            const db = await openBuckwheatDB();
+            const tx = db.transaction('handles', 'readwrite');
+            tx.objectStore('handles').put(handle, 'csvHandle');
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+        async function getBuckwheatHandle() {
+            const db = await openBuckwheatDB();
+            const tx = db.transaction('handles', 'readonly');
+            const req = tx.objectStore('handles').get('csvHandle');
+            return new Promise((resolve, reject) => {
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function connectBuckwheat() {
+            try {
+                const [handle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Buckwheat Sync CSV',
+                        accept: { 'text/csv': ['.csv'] },
+                    }],
+                });
+                await storeBuckwheatHandle(handle);
+                await importBuckwheatFile(handle);
+                document.getElementById('bw-connect-btn').innerHTML =
+                    '<span class="material-symbols-rounded">check</span> Buckwheat';
+                Swal.fire({icon:'success',title:'Buckwheat connected!',timer:1500,showConfirmButton:false});
+            } catch (e) {
+                if (e.name !== 'AbortError') {
+                    console.warn('Buckwheat connect failed', e);
+                    Swal.fire({icon:'error',title:'Could not connect to Buckwheat',timer:2000,showConfirmButton:false});
+                }
+            }
+        }
+        async function importBuckwheatFile(handle) {
+            const perm = await handle.requestPermission({ mode: 'read' });
+            if (perm !== 'granted') return;
+            const file = await handle.getFile();
+            const text = await file.text();
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length < 2) return;
+            const cols = lines[0].toLowerCase().split(',').map(c => c.trim());
+            const amtIdx = cols.indexOf('amount');
+            const commentIdx = cols.indexOf('comment');
+            const timeIdx = cols.indexOf('commit_time');
+            if (amtIdx === -1 || timeIdx === -1) return;
+            let added = 0, skipped = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const p = parseCSVLine(lines[i]);
+                const amt = parseFloat(p[amtIdx]);
+                const comment = commentIdx >= 0 ? (p[commentIdx] || '') : '';
+                const date = parseBuckwheatDate(p[timeIdx]);
+                if (!isNaN(amt) && date) {
+                    const dup = db.spendTracker.entries.some(e =>
+                        e.amount === amt && e.comment === comment && e.date === date.toISOString()
+                    );
+                    if (dup) { skipped++; continue; }
+                    db.spendTracker.entries.push({
+                        id: Date.now() + '_bw_' + Math.random().toString(36).slice(2, 6),
+                        amount: amt,
+                        comment: DOMPurify.sanitize(comment, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }),
+                        date: date.toISOString(),
+                        category: 'Uncategorized',
+                    });
+                    added++;
+                } else {
+                    skipped++;
+                }
+            }
+            if (added > 0 || skipped > 0) {
+                saveDB();
+                renderAll();
+                Swal.fire({icon:'success',title:'Buckwheat imported',text:`${added} added${skipped ? ', '+skipped+' skipped' : ''}`,timer:2000,showConfirmButton:false});
+            }
+        }
+        async function autoImportBuckwheat() {
+            let handle;
+            try { handle = await getBuckwheatHandle(); } catch (e) { return; }
+            if (!handle) return;
+            try {
+                await importBuckwheatFile(handle);
+                document.getElementById('bw-connect-btn').innerHTML =
+                    '<span class="material-symbols-rounded">check</span> Buckwheat';
+            } catch (e) {
+                console.warn('Buckwheat auto-import failed', e);
+            }
         }
 
         // ── MAIN ──

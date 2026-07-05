@@ -113,23 +113,25 @@
     </style>
 </head>
 <body>
-    <header class="top-app-bar" style="gap:8px;">
+    <header class="top-app-bar">
         <button class="icon-btn" onclick="window.location.href='index.html'" aria-label="Back">
             <span class="material-symbols-rounded">arrow_back</span>
         </button>
-        <div class="app-title" style="flex:1;">Money Flow</div>
-        <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner">
-            <span class="material-symbols-rounded">calendar_month</span>
-        </button>
-        <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker">
-            <span class="material-symbols-rounded">receipt_long</span>
-        </button>
-        <button class="icon-btn" onclick="window.location.href='account_overview.html'" title="Account Overview">
-            <span class="material-symbols-rounded">account_balance_wallet</span>
-        </button>
-        <button class="icon-btn" onclick="openMoneyFlowSettings()" aria-label="Open settings">
-            <span class="material-symbols-rounded">settings</span>
-        </button>
+        <div class="app-title grow">Money Flow</div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner">
+                <span class="material-symbols-rounded">calendar_month</span>
+            </button>
+            <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker">
+                <span class="material-symbols-rounded">receipt_long</span>
+            </button>
+            <button class="icon-btn" onclick="window.location.href='account_overview.html'" title="Account Overview">
+                <span class="material-symbols-rounded">account_balance_wallet</span>
+            </button>
+            <button class="icon-btn" onclick="openMoneyFlowSettings()" aria-label="Open settings">
+                <span class="material-symbols-rounded">settings</span>
+            </button>
+        </div>
     </header>
 
     <main class="container">

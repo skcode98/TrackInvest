@@ -359,22 +359,25 @@
     </style>
 </head>
 <body>
-    <header class="top-app-bar" style="gap:8px;">
+    <header class="top-app-bar">
         <button class="icon-btn" onclick="window.location.href='index.html'">
             <span class="material-symbols-rounded">arrow_back</span>
         </button>
-        <div class="app-title" style="flex:1;">Monthly Planner</div>
+        <div class="app-title grow">Monthly Planner</div>
         <div class="month-nav">
-            <button onclick="shiftMonth(-1)"><span class="material-symbols-rounded" style="font-size:18px;">chevron_left</span></button>
+            <button onclick="shiftMonth(-1)"><span class="material-symbols-rounded icon-sm">chevron_left</span></button>
             <span id="month-label">—</span>
-            <span id="month-saved-dot" style="display:none;width:6px;height:6px;border-radius:50%;background:var(--md-success);margin-left:2px;" title="Plan saved for this month"></span>
-            <button onclick="shiftMonth(1)"><span class="material-symbols-rounded" style="font-size:18px;">chevron_right</span></button>
+            <span id="month-saved-dot" style="display:none;width:6px;height:6px;border-radius:50%;background:var(--md-success);" title="Plan saved for this month"></span>
+            <button onclick="shiftMonth(1)"><span class="material-symbols-rounded icon-sm">chevron_right</span></button>
         </div>
         <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker">
             <span class="material-symbols-rounded">receipt_long</span>
         </button>
         <button class="icon-btn" onclick="window.location.href='account_overview.html'" title="Account Overview">
             <span class="material-symbols-rounded">account_balance_wallet</span>
+        </button>
+        <button class="icon-btn" onclick="window.location.href='money_flow.html'" title="Money Flow">
+            <span class="material-symbols-rounded">currency_exchange</span>
         </button>
     </header>
 

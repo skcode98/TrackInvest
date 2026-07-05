@@ -54,10 +54,9 @@
     <input type="file" id="csv-file" style="display:none;" accept=".csv" onchange="importCSV(event)">
 
     <header class="top-app-bar">
-        <div class="app-title"><span class="material-symbols-rounded"
-                style="color:var(--md-primary);">account_balance</span> TrackInvest</div>
-        <div style="display:flex; gap:8px; align-items:center;">
-            <button class="icon-btn" onclick="openInAppNotifications()" aria-label="Notifications" id="notif-bell-btn"><span
+        <div class="app-title"><span class="material-symbols-rounded text-primary">account_balance</span> TrackInvest</div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="openInAppNotifications()" aria-label="Notifications" id="notif-bell-btn" style="position:relative;"><span
                     class="material-symbols-rounded">notifications</span><span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--md-error);border:2px solid var(--md-surface);"></span></button>
             <button class="icon-btn" onclick="togglePrivacy()" aria-label="Toggle Privacy"><span
                     class="material-symbols-rounded" id="privacy-icon">visibility</span></button>
@@ -234,7 +233,7 @@
 
             <div id="maturity-section" style="display:none; margin-bottom:16px;">
                 <div class="section-title" style="margin-top:0;">⏰ Maturing Soon <span
-                        style="font-size:12px;font-weight:400;color:var(--md-outline);">(Next 90 days)</span></div>
+                        class="text-sm text-muted">(Next 90 days)</span></div>
                 <div style="display:flex; gap:12px; overflow-x:auto; scrollbar-width:none; padding-bottom:8px;"
                     id="maturity-list"></div>
             </div>
@@ -904,55 +903,54 @@
             Target</button>
     </div>
 
-    <div class="sheet" id="settings-sheet" style="display:flex; flex-direction:column; overflow:hidden;">
+    <div class="sheet flex flex-col overflow-hidden" id="settings-sheet">
         <div class="drag-handle"></div>
-        <div class="sheet-title" style="margin-bottom:12px; flex-shrink:0;">
-            <div style="display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">settings</span>
+        <div class="sheet-title mb-12 flex-shrink-0">
+            <div class="flex items-center gap-8"><span class="material-symbols-rounded">settings</span>
                 Settings</div>
             <button class="icon-btn" onclick="closeOverlays()"><span
                     class="material-symbols-rounded">close</span></button>
         </div>
 
-        <div class="settings-tabs"
-            style="display:flex; gap:4px; padding:4px; background:var(--md-surface-container-high); border-radius:12px; margin-bottom:20px; flex-shrink:0;">
-            <button class="s-tab active" onclick="switchSettingsTab('profile', this)"
-                style="flex:1; padding:8px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer;">Profile</button>
-            <button class="s-tab" onclick="switchSettingsTab('security', this)"
-                style="flex:1; padding:8px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer;">App</button>
-            <button class="s-tab" onclick="switchSettingsTab('manage', this)"
-                style="flex:1; padding:8px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer;">Manage</button>
-            <button class="s-tab" onclick="switchSettingsTab('data', this)"
-                style="flex:1; padding:8px; border:none; background:transparent; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer;">Data</button>
+        <div class="settings-tabs flex gap-4 bg-surface-container-high flex-shrink-0"
+            style="padding:4px; border-radius:12px; margin-bottom:20px;">
+            <button class="s-tab active flex-1 font-medium" onclick="switchSettingsTab('profile', this)"
+                style="padding:8px; border:none; background:transparent; border-radius:8px; cursor:pointer;">Profile</button>
+            <button class="s-tab flex-1 font-medium" onclick="switchSettingsTab('security', this)"
+                style="padding:8px; border:none; background:transparent; border-radius:8px; cursor:pointer;">App</button>
+            <button class="s-tab flex-1 font-medium" onclick="switchSettingsTab('manage', this)"
+                style="padding:8px; border:none; background:transparent; border-radius:8px; cursor:pointer;">Manage</button>
+            <button class="s-tab flex-1 font-medium" onclick="switchSettingsTab('data', this)"
+                style="padding:8px; border:none; background:transparent; border-radius:8px; cursor:pointer;">Data</button>
         </div>
 
-        <div id="settings-content-scroll" class="scroll-y" style="flex:1; padding-bottom:20px;">
+        <div id="settings-content-scroll" class="scroll-y flex-1" style="padding-bottom:20px;">
             <!-- Tab 1: Profile -->
             <div id="stab-profile" class="s-tab-content active">
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     Financial Profile</div>
                 <div class="input-container"><label>Gross Annual Salary (₹)</label><input type="number"
                         id="settings-salary" class="md-input" placeholder="e.g. 1500000"></div>
                 <div class="input-row">
-                    <div class="input-container" style="flex:1"><label>Tax Regime</label>
+                    <div class="input-container flex-1"><label>Tax Regime</label>
                         <select id="settings-regime" class="md-input">
                             <option value="new">New (12L Limit)</option>
                             <option value="old">Old</option>
                         </select>
                     </div>
-                    <div class="input-container" style="flex:1"><label>Monthly Expenses (₹)</label><input type="number"
+                    <div class="input-container flex-1"><label>Monthly Expenses (₹)</label><input type="number"
                             id="settings-expenses" class="md-input" placeholder="e.g. 50000"></div>
                 </div>
                 <div class="input-row">
-                    <div class="input-container" style="flex:1"><label>FY Start Month</label>
+                    <div class="input-container flex-1"><label>FY Start Month</label>
                         <select id="settings-fy-start" class="md-input">
                             <option value="0">January</option>
                             <option value="3">April (India)</option>
                         </select>
                     </div>
-                    <div class="input-container" style="flex:1"><label>Currency Symbol</label><input type="text"
+                    <div class="input-container flex-1"><label>Currency Symbol</label><input type="text"
                             id="settings-currency" class="md-input" value="₹" placeholder="₹"></div>
-                    <div class="input-container" style="flex:1"><label>Display Currency</label>
+                    <div class="input-container flex-1"><label>Display Currency</label>
                         <select id="settings-display-currency" class="md-input">
                             <option value="INR">INR (₹)</option>
                             <option value="USD">USD ($)</option>
@@ -966,25 +964,26 @@
                         </select>
                     </div>
                 </div>
-                <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
-                    <div
-                        style="display:flex; align-items:center; justify-content:space-between; background:var(--md-surface-container-low); padding:12px 16px; border-radius:16px; border:1px solid var(--md-surface-container-highest);">
+                <div class="p-16 flex flex-col gap-16">
+                    <div class="flex items-center justify-between bg-surface-container-low"
+                        style="padding:12px 16px; border-radius:16px; border:1px solid var(--md-surface-container-highest);">
                         <div>
-                            <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Date of Birth
+                            <div class="font-medium text-base text-on-surface">Date of Birth
                             </div>
-                            <div style="font-size:12px; color:var(--md-on-surface-variant);" id="calculated-age-label">
+                            <div class="text-sm text-muted-variant" id="calculated-age-label">
                                 Age: Not set</div>
                         </div>
                         <input type="date" id="profile-dob"
-                            style="border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); font-family:inherit; font-weight:600; padding:8px 12px; border-radius:12px; outline:none;"
+                            class="border-0 bg-surface-container-high text-on-surface font-semibold"
+                            style="font-family:inherit; padding:8px 12px; border-radius:12px; outline:none;"
                             onchange="updateCalculatedAgeDisplay()">
                     </div>
                 </div>
                 
                 <div class="input-row">
-                    <div class="input-container" style="flex:1"><label>Credit Score</label><input type="number"
+                    <div class="input-container flex-1"><label>Credit Score</label><input type="number"
                             id="settings-credit-score" class="md-input" placeholder="e.g. 750"></div>
-                    <div class="input-container" style="flex:1"><label>Risk Tolerance</label>
+                    <div class="input-container flex-1"><label>Risk Tolerance</label>
                         <select id="settings-risk" class="md-input">
                             <option value="moderate">Moderate</option>
                             <option value="conservative">Conservative</option>
@@ -993,79 +992,71 @@
                     </div>
                 </div>
                 <div class="input-row">
-                    <div class="input-container" style="flex:1"><label>Dependents</label><input type="number"
+                    <div class="input-container flex-1"><label>Dependents</label><input type="number"
                             id="settings-dependents" class="md-input" placeholder="e.g. 2"></div>
                     <div class="input-container" style="flex:2"><label>Primary Financial Goal</label><input type="text"
                             id="settings-primary-goal" class="md-input" placeholder="e.g. Buy a house in 5 years"></div>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin:20px 0 12px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide" style="margin:20px 0 12px;">
                     Dashboard Features</div>
 
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
+                <div class="flex items-center justify-between bg-surface-container mb-8" style="padding:14px 16px; border-radius:14px;">
                     <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Monthly Planner</div>
-                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Budget your
+                        <div class="font-medium text-base text-on-surface">Monthly Planner</div>
+                        <div class="text-sm text-muted-variant mt-4">Budget your
                             salary & cash flow</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="settings-enable-planner" onchange="saveToggleState('planner', this.checked)"><span
                             class="slider"></span></label>
                 </div>
 
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
+                <div class="flex items-center justify-between bg-surface-container mb-8" style="padding:14px 16px; border-radius:14px;">
                     <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Spend Tracker</div>
-                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Track expenses,
+                        <div class="font-medium text-base text-on-surface">Spend Tracker</div>
+                        <div class="text-sm text-muted-variant mt-4">Track expenses,
                             AI categorization & insights</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="settings-enable-spend-tracker" onchange="saveToggleState('spend', this.checked)"><span
                             class="slider"></span></label>
                 </div>
 
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:8px;">
+                <div class="flex items-center justify-between bg-surface-container mb-8" style="padding:14px 16px; border-radius:14px;">
                     <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Account Overview</div>
-                        <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:2px;">Cards, bank accounts & PF details</div>
+                        <div class="font-medium text-base text-on-surface">Account Overview</div>
+                        <div class="text-sm text-muted-variant mt-4">Cards, bank accounts & PF details</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="settings-enable-account-overview" onchange="saveToggleState('accountOverview', this.checked)"><span
                             class="slider"></span></label>
                 </div>
 
-                <button class="btn-primary" onclick="saveProfileSettings()" style="margin-top:12px;"><span
+                <button class="btn-primary mt-12"><span
                         class="material-symbols-rounded">save</span> Save Profile</button>
             </div>
 
             <!-- Tab 2: Security & App -->
             <div id="stab-security" class="s-tab-content" style="display:none;">
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     App Security</div>
                 <div class="input-container"><label>App Lock PIN (4 digits)</label><input type="password"
                         id="settings-pin" class="md-input" placeholder="Set PIN" maxlength="4"></div>
-                <div
-                    style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px; gap:12px;">
-                    <button class="btn-primary" style="flex:1;" onclick="savePin()">Set PIN</button>
-                    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-                        <div style="display:flex;align-items:center;gap:8px;">
+                <div class="flex items-center justify-between mb-24" style="gap:12px;">
+                    <button class="btn-primary flex-1" onclick="savePin()">Set PIN</button>
+                    <div class="flex flex-col" style="gap:4px; align-items:flex-end;">
+                        <div class="flex items-center gap-8">
                             <label class="switch"><input type="checkbox" id="use-biometric-toggle"
                                     onchange="toggleBiometric()"><span class="slider"></span></label>
-                            <span style="font-size:12px;">Biometric</span>
+                            <span class="text-sm">Biometric</span>
                         </div>
 
                     </div>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     AI Features</div>
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:12px;">
+                <div class="flex items-center justify-between bg-surface-container mb-12" style="padding:14px 16px; border-radius:14px;">
                     <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Enable AI</div>
+                        <div class="font-medium text-base text-on-surface">Enable AI</div>
                         <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">AI chat, reports,
                             auto-categorize, forecasts</div>
                     </div>
@@ -1073,8 +1064,7 @@
                             class="slider"></span></label>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     AI Strategy Keys</div>
                 <div class="input-container"><label>Groq API Key (Primary)</label><input type="password"
                         id="groq-api-key" class="md-input" placeholder="gsk_..."></div>
@@ -1089,13 +1079,11 @@
                 <button class="btn-primary" onclick="saveApiKeys()"><span class="material-symbols-rounded">key</span>
                     Save API Keys</button>
 
-                <div
-                    style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mt-24 mb-12">
                     Web Connectivity</div>
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px; margin-bottom:12px;">
+                <div class="flex items-center justify-between bg-surface-container mb-12" style="padding:14px 16px; border-radius:14px;">
                     <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Enable Web Access
+                        <div class="font-medium text-base text-on-surface">Enable Web Access
                         </div>
                         <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Live prices, NAV lookup,
                             exchange rates, gold rates</div>
@@ -1104,94 +1092,84 @@
                             class="slider"></span></label>
                 </div>
 
-                <div
-                    style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mt-24 mb-12">
                     Notifications</div>
-                <div
-                    style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--md-surface-container);border-radius:14px;margin-bottom:4px;">
+                <div class="flex items-center justify-between bg-surface-container mb-4" style="padding:14px 16px; border-radius:14px;">
                     <div>
-                        <div style="font-weight:500;font-size:14px;color:var(--md-on-surface);">Master Toggle</div>
-                        <div style="font-size:11px;color:var(--md-outline);margin-top:2px;" id="notif-status-text">
+                        <div class="font-medium text-base text-on-surface">Master Toggle</div>
+                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;" id="notif-status-text">
                             Requires browser permission</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="notif-master-toggle"
                             onchange="toggleNotificationMaster(this.checked)"><span class="slider"></span></label>
                 </div>
-                <div id="notif-preferences" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                <div id="notif-preferences" class="flex flex-col" style="gap:4px; margin-top:4px;">
+                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
                         <div>
-                            <div style="font-weight:500;font-size:13px;">SIP Reminders</div>
-                            <div style="font-size:11px;color:var(--md-outline);">Notify when SIPs are due</div>
+                            <div style="font-weight:500; font-size:13px;">SIP Reminders</div>
+                            <div style="font-size:11px; color:var(--md-outline);">Notify when SIPs are due</div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="sipReminders"><span
                                 class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
                         <div>
-                            <div style="font-weight:500;font-size:13px;">Maturity Alerts</div>
-                            <div style="font-size:11px;color:var(--md-outline);">Upcoming FD/PPF maturity reminders
+                            <div style="font-weight:500; font-size:13px;">Maturity Alerts</div>
+                            <div style="font-size:11px; color:var(--md-outline);">Upcoming FD/PPF maturity reminders
                             </div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="maturityAlerts"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
                         <div>
-                            <div style="font-weight:500;font-size:13px;">Goal Progress</div>
-                            <div style="font-size:11px;color:var(--md-outline);">Monthly goal achievement updates</div>
+                            <div style="font-weight:500; font-size:13px;">Goal Progress</div>
+                            <div style="font-size:11px; color:var(--md-outline);">Monthly goal achievement updates</div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="goalProgressUpdates"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
                         <div>
-                            <div style="font-weight:500;font-size:13px;">Weekly Digest</div>
-                            <div style="font-size:11px;color:var(--md-outline);">Weekly portfolio summary</div>
+                            <div style="font-weight:500; font-size:13px;">Weekly Digest</div>
+                            <div style="font-size:11px; color:var(--md-outline);">Weekly portfolio summary</div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="weeklyDigest"><span
                                 class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
                         <div>
-                            <div style="font-weight:500;font-size:13px;">Price Alerts</div>
-                            <div style="font-size:11px;color:var(--md-outline);">Stock/MF price movement alerts</div>
+                            <div style="font-weight:500; font-size:13px;">Price Alerts</div>
+                            <div style="font-size:11px; color:var(--md-outline);">Stock/MF price movement alerts</div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="priceAlerts"><span
                                 class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
                         <div>
-                            <div style="font-weight:500;font-size:13px;">Spend Confirmations</div>
-                            <div style="font-size:11px;color:var(--md-outline);">Notify after adding spend entries
+                            <div style="font-weight:500; font-size:13px;">Spend Confirmations</div>
+                            <div style="font-size:11px; color:var(--md-outline);">Notify after adding spend entries
                             </div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="spendConfirmations"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row"
-                        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--md-surface-container-highest);border-radius:12px;">
+                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
                         <div>
-                            <div style="font-weight:500;font-size:13px;">Daily Spend Summary</div>
-                            <div style="font-size:11px;color:var(--md-outline);">Daily total spent notification
+                            <div style="font-weight:500; font-size:13px;">Daily Spend Summary</div>
+                            <div style="font-size:11px; color:var(--md-outline);">Daily total spent notification
                             </div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="dailySpendSummary"><span class="slider"></span></label>
                     </div>
                 </div>
-                <div style="font-size:11px;color:var(--md-outline);margin-top:8px;">Notifications work offline via
+                <div style="font-size:11px; color:var(--md-outline); margin-top:8px;">Notifications work offline via
                     service worker. No server needed.</div>
 
-                <div
-                    style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mt-24 mb-16">
                     Color Scheme</div>
-                <div class="scheme-options" style="display:flex; gap:8px; margin-bottom:20px;">
+                <div class="scheme-options flex gap-8" style="margin-bottom:20px;">
                     <button class="scheme-option scheme-auto active" onclick="setColorScheme('auto')">
                         <span class="material-symbols-rounded" style="font-size:20px;">brightness_auto</span>
                         <span>System</span>
@@ -1206,8 +1184,7 @@
                     </button>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     App Theme</div>
                 <div class="theme-picker" id="theme-picker" style="margin-bottom:20px;">
                     <div class="theme-swatch ts-indigo active" style="background: #415F91;" onclick="setTheme('indigo')" title="Indigo"></div>
@@ -1221,41 +1198,36 @@
                     <div class="theme-swatch ts-rose" style="background: #A13069;" onclick="setTheme('rose')" title="Rose"></div>
                 </div>
 
-                <div
-                    style="margin-top:8px;display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--md-surface-container); border-radius:14px;">
+                <div class="flex items-center justify-between bg-surface-container" style="margin-top:8px; padding:14px 16px; border-radius:14px;">
                     <div>
-                        <div style="font-weight:500; font-size:14px; color:var(--md-on-surface);">Compact Layout</div>
+                        <div class="font-medium text-base text-on-surface">Compact Layout</div>
                         <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Tighter spacing & smaller text</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="settings-compact-layout" onchange="toggleCompactLayout(this.checked)"><span
                             class="slider"></span></label>
                 </div>
 
-                <div
-                    style="margin-top:24px; font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mt-24 mb-16">
                     Milestone Badges</div>
                 <div class="badge-grid" id="badge-grid"></div>
             </div>
 
             <!-- Tab 3: Manage Accounts & Categories -->
             <div id="stab-manage" class="s-tab-content" style="display:none;">
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     Manage Accounts</div>
-                <div id="account-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
-                <div class="input-row" style="margin-bottom:24px;">
-                    <input type="text" id="new-acc-name" class="md-input" placeholder="New Account Name"
-                        style="flex:1;">
+                <div id="account-list" class="flex flex-col gap-8 mb-12"></div>
+                <div class="input-row mb-24">
+                    <input type="text" id="new-acc-name" class="md-input flex-1" placeholder="New Account Name">
                     <button class="btn-primary" style="width:auto;padding:0 16px;" onclick="addAccount()"><span
                             class="material-symbols-rounded">add</span></button>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     Manage Categories</div>
-                <div id="category-crud-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+                <div id="category-crud-list" class="flex flex-col gap-8 mb-12">
                 </div>
-                <div style="font-size:12px; color:var(--md-on-surface-variant); margin-bottom:4px;">Add New Category
+                <div class="text-sm text-muted-variant mb-4">Add New Category
                 </div>
                 <div class="input-row">
                     <input type="text" id="new-cat-name" class="md-input" placeholder="Name" style="flex:1.5;">
@@ -1273,52 +1245,50 @@
 
             <!-- Tab 4: Data Management -->
             <div id="stab-data" class="s-tab-content" style="display:none;">
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     Data Operations</div>
 
                 <div class="settings-action-card" onclick="exportData()">
-                    <span class="material-symbols-rounded" style="color:var(--md-primary);">cloud_download</span>
-                    <div style="flex:1;">
-                        <div style="font-weight:600; font-size:14px;">Backup Data</div>
-                        <div style="font-size:12px; color:var(--md-outline);">Export as encrypted JSON file</div>
+                    <span class="material-symbols-rounded text-primary">cloud_download</span>
+                    <div class="flex-1">
+                        <div class="font-semibold text-base">Backup Data</div>
+                        <div class="text-sm text-muted">Export as encrypted JSON file</div>
                     </div>
                 </div>
 
                 <label class="settings-action-card">
                     <span class="material-symbols-rounded" style="color:var(--md-secondary);">cloud_upload</span>
-                    <div style="flex:1;">
-                        <div style="font-weight:600; font-size:14px;">Restore Data</div>
-                        <div style="font-size:12px; color:var(--md-outline);">Import from backup file</div>
+                    <div class="flex-1">
+                        <div class="font-semibold text-base">Restore Data</div>
+                        <div class="text-sm text-muted">Import from backup file</div>
                     </div>
                     <input type="file" style="display:none;" accept=".json,.enc" onchange="restoreData(event)">
                 </label>
 
                 <label class="settings-action-card">
-                    <span class="material-symbols-rounded" style="color:var(--md-success);">csv</span>
-                    <div style="flex:1;">
-                        <div style="font-weight:600; font-size:14px;">Import CSV</div>
-                        <div style="font-size:12px; color:var(--md-outline);">Import data from spreadsheets</div>
+                    <span class="material-symbols-rounded text-success">csv</span>
+                    <div class="flex-1">
+                        <div class="font-semibold text-base">Import CSV</div>
+                        <div class="text-sm text-muted">Import data from spreadsheets</div>
                     </div>
                     <input type="file" style="display:none;" accept=".csv" onchange="importCSV(event)">
                 </label>
 
-                <div class="settings-action-card" onclick="dataCleanup()" style="color:var(--md-error);">
+                <div class="settings-action-card" style="color:var(--md-error);" onclick="dataCleanup()">
                     <span class="material-symbols-rounded">mop</span>
-                    <div style="flex:1;">
-                        <div style="font-weight:600; font-size:14px;">Clean Old Entries</div>
-                        <div style="font-size:12px; opacity:0.7;">Remove historical clutter</div>
+                    <div class="flex-1">
+                        <div class="font-semibold text-base">Clean Old Entries</div>
+                        <div class="text-sm" style="opacity:0.7;">Remove historical clutter</div>
                     </div>
                 </div>
 
-                <div style="display:flex;align-items:center;gap:12px;margin:16px 0; padding:0 8px;">
+                <div class="flex items-center gap-12" style="margin:16px 0; padding:0 8px;">
                     <input type="checkbox" id="encrypt-backup-toggle" checked style="width:18px;height:18px;">
                     <label for="encrypt-backup-toggle"
-                        style="font-size:13px;color:var(--md-on-surface-variant);">Encrypt Backup with App PIN</label>
+                        class="text-muted-variant" style="font-size:13px;">Encrypt Backup with App PIN</label>
                 </div>
 
-                <div
-                    style="font-size:12px;font-weight:600;color:var(--md-primary);margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase; margin-top:24px;">
+                <div class="text-sm font-semibold text-primary uppercase tracking-wide mt-24 mb-16">
                     Reports & Sync</div>
                 <button class="btn-primary"
                     style="background:var(--md-secondary-container);color:var(--md-on-secondary-container); margin-bottom:8px;"
@@ -1326,8 +1296,8 @@
                     <span class="material-symbols-rounded">history_edu</span> Universal Generator
                 </button>
 
-                <button id="pwa-install-btn" class="btn-primary"
-                    style="display:none; background:var(--md-primary); color:var(--md-on-primary); margin-top:16px;"
+                <button id="pwa-install-btn" class="btn-primary mt-16"
+                    style="display:none; background:var(--md-primary); color:var(--md-on-primary);"
                     onclick="triggerPWAInstall()">
                     <span class="material-symbols-rounded">install_mobile</span> Install App
                 </button>
@@ -1338,7 +1308,7 @@
     <div class="sheet sub-sheet" id="history-sync-sheet">
         <div class="drag-handle"></div>
         <h3 class="sheet-title">Universal History Generator</h3>
-        <p style="font-size:13px; color:var(--md-on-surface-variant); margin-bottom:16px;">
+        <p class="text-muted-variant mb-16" style="font-size:13px;">
             Automatically generate past monthly deposits. Fixed-income assets will mathematically compound to present
             day automatically!
         </p>
@@ -1348,19 +1318,19 @@
             <select id="sync-asset-type" class="md-input" onchange="toggleSyncFields()"></select>
         </div>
 
-        <div id="sync-mf-block" style="display:none; flex-direction:column; gap:8px; margin-bottom:16px;">
-            <label style="font-size: 12px; color: var(--md-on-surface-variant); font-weight: 500;">Live Search Mutual
+        <div id="sync-mf-block" style="display:none;" class="flex-col gap-8 mb-16">
+            <label class="text-sm text-muted-variant font-medium">Live Search Mutual
                 Fund (mfapi.in)</label>
-            <div style="display:flex; gap:8px;">
-                <input type="text" id="sync-search" class="md-input"
-                    style="flex:1; background:var(--md-surface-container-highest); padding:12px; border-radius:8px;"
+            <div class="flex gap-8">
+                <input type="text" id="sync-search" class="md-input flex-1 bg-surface-container-highest"
+                    style="padding:12px; border-radius:8px;"
                     placeholder="Fund Name">
                 <button class="btn-secondary"
                     style="width:auto; padding:0 16px; border-radius:8px; border:none; background:var(--md-primary-container); color:var(--md-on-primary-container);"
                     onclick="searchMFForSync()">Search</button>
             </div>
-            <select id="sync-mf-select" class="md-input"
-                style="display:none; background:var(--md-surface-container-highest); padding:12px; border-radius:8px; width:100%;"
+            <select id="sync-mf-select" class="md-input bg-surface-container-highest w-full"
+                style="display:none; padding:12px; border-radius:8px;"
                 onchange="handleMFSelectForSync(this)"></select>
             <input type="hidden" id="sync-code">
         </div>
@@ -1380,20 +1350,21 @@
                 <input type="number" id="sync-day" class="md-input" placeholder="5" min="1" max="28">
             </div>
         </div>
-        <button class="btn-primary" style="margin-top:12px;" onclick="syncHistoricalSIP()">Generate History</button>
+        <button class="btn-primary mt-12" onclick="syncHistoricalSIP()">Generate History</button>
     </div>
+
 
 
 
 
     <div class="sheet sub-sheet" id="month-sheet">
         <div class="drag-handle"></div>
-        <h3 class="sheet-title" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+        <h3 class="sheet-title flex items-center justify-between w-full">
             <span id="month-sheet-title">Summary</span>
             <button class="icon-btn" onclick="closeSubSheet()"><span
                     class="material-symbols-rounded">close</span></button>
         </h3>
-        <div id="month-history-list" class="list" style="overflow-y:auto;padding-bottom:20px;"></div>
+        <div id="month-history-list" class="list" style="overflow-y:auto; padding-bottom:20px;"></div>
     </div>
 
     <div class="sheet sub-sheet" id="projection-sheet">
@@ -1413,11 +1384,11 @@
     <div class="scrim" id="usable-money-scrim" onclick="closeUsableMoneyDetails()"></div>
     <div class="sheet sub-sheet" id="usable-money-sheet">
         <div class="drag-handle"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;">
-            <h3 class="sheet-title" style="margin:0; flex:1;"><span class="material-symbols-rounded" style="font-size:20px;vertical-align:middle;">currency_exchange</span> Withdrawable & Usable Money</h3>
+        <div class="flex items-center justify-between w-full gap-8">
+            <h3 class="sheet-title m-0 flex-1"><span class="material-symbols-rounded icon-md" style="vertical-align:middle;">currency_exchange</span> Withdrawable & Usable Money</h3>
             <button class="icon-btn" onclick="closeUsableMoneyDetails()"><span class="material-symbols-rounded">close</span></button>
         </div>
-        <div id="usable-money-details-body" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <div id="usable-money-details-body" class="flex flex-col gap-12"></div>
     </div>
 
     <div class="scrim" id="milestone-detail-scrim" onclick="closeMilestoneDetail()"></div>
@@ -1428,20 +1399,20 @@
 
     <div class="sheet sub-sheet" id="monthly-target-sheet">
         <div class="drag-handle"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
-            <h3 class="sheet-title" style="margin-bottom:0;">Monthly Investment Target</h3>
+        <div class="flex items-center justify-between w-full">
+            <h3 class="sheet-title m-0">Monthly Investment Target</h3>
             <button class="icon-btn" onclick="closeSubSheet()"><span class="material-symbols-rounded">close</span></button>
         </div>
         <div class="input-container"><label>Target Amount (₹)</label><input type="number" id="monthly-target-amt"
                 class="md-input"></div>
-        <button class="btn-primary" onclick="saveMonthlyTarget()" style="margin-bottom:16px;">Set Target</button>
-        <button class="btn-secondary" onclick="aiPredictNextMonth()" style="width:100%;"><span class="material-symbols-rounded">auto_awesome</span> AI Predict Next Month</button>
-        <div id="ai-prediction-result" style="margin-top:16px;display:none;"></div>
+        <button class="btn-primary mb-16" onclick="saveMonthlyTarget()">Set Target</button>
+        <button class="btn-secondary w-full" onclick="aiPredictNextMonth()"><span class="material-symbols-rounded">auto_awesome</span> AI Predict Next Month</button>
+        <div id="ai-prediction-result" class="mt-16" style="display:none;"></div>
     </div>
 
     <div class="sheet sub-sheet" id="maturity-calendar-sheet">
         <div class="drag-handle"></div>
-        <h3 class="sheet-title" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+        <h3 class="sheet-title flex justify-between items-center w-full">
             <span>Maturity Calendar</span>
             <button class="icon-btn" onclick="closeSubSheet()"><span
                     class="material-symbols-rounded">close</span></button>
@@ -1456,17 +1427,17 @@
     <!-- In-App Notification Sheet -->
     <div class="sheet sub-sheet" id="notif-sheet">
         <div class="drag-handle"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <h3 class="sheet-title" style="margin:0;"><span class="material-symbols-rounded" style="font-size:20px;vertical-align:middle;">notifications</span> Notifications</h3>
-            <div style="display:flex;gap:4px;">
+        <div class="flex justify-between items-center mb-12">
+            <h3 class="sheet-title m-0"><span class="material-symbols-rounded" style="font-size:20px;vertical-align:middle;">notifications</span> Notifications</h3>
+            <div class="flex gap-4">
                 <button class="icon-btn" onclick="markAllNotificationsRead()" title="Mark all read"><span class="material-symbols-rounded" style="font-size:18px;">done_all</span></button>
                 <button class="icon-btn" onclick="clearAllNotifications()" title="Clear all"><span class="material-symbols-rounded" style="font-size:18px;color:var(--md-error);">delete_sweep</span></button>
                 <button class="icon-btn" onclick="closeSubSheet()"><span class="material-symbols-rounded" style="font-size:18px;">close</span></button>
             </div>
         </div>
-        <div id="notif-list" style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px;"></div>
-        <div id="notif-empty" style="display:none;text-align:center;padding:32px 16px;color:var(--md-outline);font-size:13px;">
-            <span class="material-symbols-rounded" style="font-size:32px;display:block;margin-bottom:8px;">notifications_off</span>
+        <div id="notif-list" class="flex flex-col gap-4" style="max-height:55vh; overflow-y:auto;"></div>
+        <div id="notif-empty" class="text-center text-muted" style="display:none; padding:32px 16px; font-size:13px;">
+            <span class="material-symbols-rounded" style="font-size:32px; display:block; margin-bottom:8px;">notifications_off</span>
             No notifications
         </div>
     </div>

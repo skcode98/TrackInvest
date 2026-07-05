@@ -26,12 +26,6 @@
     <style>
         body { padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
 
-        /* ── Bottom sheet (matching spend_tracker) ── */
-        .import-sheet { position:fixed; bottom:0; left:0; right:0; margin:0 auto; max-width:600px; background:var(--md-surface-container-low); border-radius:28px 28px 0 0; padding:24px 24px 32px; z-index:1001; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.1,0.7,0.1,1); max-height:75vh; overflow-y:auto; box-shadow:0 -8px 32px rgba(0,0,0,0.18); }
-        .import-sheet.open { transform:translateY(0); }
-        .import-scrim { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); z-index:1000; opacity:0; visibility:hidden; transition:0.3s; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
-        .import-scrim.open { opacity:1; visibility:visible; }
-
         /* ── Tab bar ── */
         .ao-tabs { display:flex; gap:4px; padding:4px; background:var(--md-surface-container-high); border-radius:14px; margin-bottom:16px; overflow-x:auto; scrollbar-width:none; }
         .ao-tab { flex:1; flex-shrink:0; padding:10px 12px; border:none; background:transparent; border-radius:10px; font-size:12px; font-weight:500; cursor:pointer; color:var(--md-on-surface-variant); transition:0.2s; white-space:nowrap; display:flex; align-items:center; gap:4px; justify-content:center; }
@@ -123,16 +117,16 @@
     <div class="import-scrim" id="form-scrim" onclick="closeFormSheet()"></div>
     <div class="import-sheet" id="form-sheet">
         <div class="drag-handle"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+        <div class="flex items-center gap-8" style="margin-bottom:20px;">
             <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;" id="form-sheet-icon">add_circle</span>
-            <span style="font-weight:600;font-size:17px;" id="form-sheet-title">Add</span>
+            <span class="font-semibold" style="font-size:17px;" id="form-sheet-title">Add</span>
         </div>
         <div id="form-fields"></div>
-        <div style="display:flex;gap:12px;margin-top:20px;">
+        <div class="flex gap-12" style="margin-top:20px;">
             <button class="btn-secondary" id="form-del-btn" style="display:none;color:var(--md-error);border-color:var(--md-error);flex:0.4;" onclick="deleteItem()"><span class="material-symbols-rounded">delete</span> Delete</button>
-            <button class="btn-primary" onclick="saveItem()" style="flex:1;" id="form-save-btn"><span class="material-symbols-rounded">check</span> Save</button>
+            <button class="btn-primary flex-1" onclick="saveItem()" id="form-save-btn"><span class="material-symbols-rounded">check</span> Save</button>
         </div>
-        <button class="btn-secondary" onclick="closeFormSheet()" style="width:100%;margin-top:8px;">Cancel</button>
+        <button class="btn-secondary w-full mt-8" onclick="closeFormSheet()">Cancel</button>
     </div>
 
     <!-- Detail Sheet -->
@@ -140,9 +134,9 @@
     <div class="import-sheet" id="detail-sheet" style="max-height:85vh;">
         <div class="drag-handle"></div>
         <div id="detail-body"></div>
-        <div style="display:flex;gap:12px;margin-top:20px;">
-            <button class="btn-secondary" onclick="editFromDetail()" style="flex:1;"><span class="material-symbols-rounded">edit</span> Edit</button>
-            <button class="btn-secondary" onclick="closeDetailSheet()" style="flex:1;">Close</button>
+        <div class="flex gap-12" style="margin-top:20px;">
+            <button class="btn-secondary flex-1" onclick="editFromDetail()"><span class="material-symbols-rounded">edit</span> Edit</button>
+            <button class="btn-secondary flex-1" onclick="closeDetailSheet()">Close</button>
         </div>
     </div>
 
@@ -151,9 +145,12 @@
 
     <header class="top-app-bar">
         <button class="icon-btn" onclick="window.location.href='index.html'"><span class="material-symbols-rounded">arrow_back</span></button>
-        <div class="app-title">Account Overview</div>
-        <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner"><span class="material-symbols-rounded">account_balance</span></button>
-        <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker"><span class="material-symbols-rounded">receipt_long</span></button>
+        <div class="app-title grow">Account Overview</div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner"><span class="material-symbols-rounded">account_balance</span></button>
+            <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker"><span class="material-symbols-rounded">receipt_long</span></button>
+            <button class="icon-btn" onclick="window.location.href='money_flow.html'" title="Money Flow"><span class="material-symbols-rounded">currency_exchange</span></button>
+        </div>
     </header>
 
     <main class="container" style="padding-top:16px;">
@@ -165,7 +162,7 @@
         </div>
 
         <!-- Summary -->
-        <div id="summary-section" style="margin-bottom:16px;"></div>
+        <div id="summary-section" class="mb-16"></div>
 
         <!-- Cards list -->
         <div id="cards-section" class="card-grid"></div>
@@ -174,7 +171,7 @@
         <!-- PF list -->
         <div id="pf-section" class="card-grid" style="display:none;"></div>
 
-        <div style="text-align:center;padding:12px 0;font-size:10px;color:var(--md-outline);opacity:0.4;user-select:none;" onclick="navigator.clipboard.writeText(APP_VERSION).catch(()=>{})" title="Build version" class="version-badge"></div>
+        <div class="text-center text-muted" style="padding:12px 0;font-size:10px;opacity:0.4;user-select:none;" onclick="navigator.clipboard.writeText(APP_VERSION).catch(()=>{})" title="Build version" class="version-badge"></div>
         <script>document.querySelector('.version-badge').textContent=APP_VERSION;</script>
         <div style="height:80px;"></div>
     </main>
@@ -314,11 +311,11 @@
             let totalCards = cards.reduce((sum, c) => sum + (c.outstandingAmount||0), 0);
             let totalBanks = banks.reduce((sum, b) => sum + (b.balance||0), 0);
             let totalPF = pf.reduce((sum, p) => sum + (p.balance||0), 0);
-            s.innerHTML = '<div class="st-section" style="margin-bottom:8px;"><span class="material-symbols-rounded">account_balance_wallet</span> Summary</div>'
-                + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
-                + '<div class="stat-chip" style="flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--md-outline);">Cards Due</span><span style="font-size:16px;font-weight:700;">' + sym + fmt(totalCards) + '</span></div>'
-                + '<div class="stat-chip" style="flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--md-outline);">Bank Balance</span><span style="font-size:16px;font-weight:700;color:var(--md-success);">' + sym + fmt(totalBanks) + '</span></div>'
-                + '<div class="stat-chip" style="flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--md-outline);">PF Balance</span><span style="font-size:16px;font-weight:700;color:#F4A100;">' + sym + fmt(totalPF) + '</span></div>'
+            s.innerHTML = '<div class="st-section mb-8"><span class="material-symbols-rounded">account_balance_wallet</span> Summary</div>'
+                + '<div class="flex gap-8 flex-wrap">'
+                + '<div class="stat-chip" style="gap:2px;"><span style="font-size:10px;color:var(--md-outline);">Cards Due</span><span class="text-lg font-bold">' + sym + fmt(totalCards) + '</span></div>'
+                + '<div class="stat-chip" style="gap:2px;"><span style="font-size:10px;color:var(--md-outline);">Bank Balance</span><span class="text-lg font-bold text-success">' + sym + fmt(totalBanks) + '</span></div>'
+                + '<div class="stat-chip" style="gap:2px;"><span style="font-size:10px;color:var(--md-outline);">PF Balance</span><span class="text-lg font-bold" style="color:#F4A100;">' + sym + fmt(totalPF) + '</span></div>'
                 + '</div>';
         }
 
@@ -331,7 +328,7 @@
             let network = item.cardNetwork === 'RuPay' ? 'RUPAY' : (item.cardNetwork === 'AmEx' ? 'AMEX' : (item.cardNetwork === 'Mastercard' ? 'MC' : 'VISA'));
             return '<div class="vc-card" style="background:' + cardBg + ';" onclick="showDetail(\'' + item.id + '\',\'cards\')">'
                 + chipIcon
-                + '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;margin-top:16px;">'
+                + '<div class="flex-1 flex flex-col justify-center mt-16">'
                 + '<div class="vc-number">' + ('xxxx xxxx xxxx ' + num) + '</div>'
                 + '<div class="vc-row"><div><div class="vc-label">VALID THRU</div><div>' + (item.expiryMonth||'MM') + '/' + (item.expiryYear||'YY') + '</div></div>'
                 + '<div style="text-align:right;"><div class="vc-label">' + (item.type === 'credit' ? 'LIMIT' : 'BALANCE') + '</div><div>' + sym + fmt(item.type === 'credit' ? item.creditLimit : 0) + '</div></div></div>'
@@ -345,11 +342,11 @@
             let typeLabel = {savings:'Savings',current:'Current',salary:'Salary',fixed_deposit:'Fixed Deposit'}[item.accountType] || item.accountType;
             let cardBg = resolveCardBg(item, 'banks');
             return '<div class="vc-card" style="background:' + cardBg + ';" onclick="showDetail(\'' + item.id + '\',\'banks\')">'
-                + '<div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:space-between;">'
-                + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + typeLabel + '</div>'
-                + '<div style="font-size:15px;font-weight:600;margin-top:2px;">' + (item.bankName || 'Bank') + '</div></div>'
+                + '<div class="h-full flex flex-col justify-between" style="position:relative;z-index:1;">'
+                + '<div><div class="uppercase tracking-wide" style="font-size:10px;opacity:0.6;">' + typeLabel + '</div>'
+                + '<div class="font-semibold" style="font-size:15px;margin-top:2px;">' + (item.bankName || 'Bank') + '</div></div>'
                 + '<div><div class="vc-balance">' + sym + fmt(item.balance) + '</div>'
-                + '<div style="font-size:12px;opacity:0.7;margin-top:2px;">••••' + (item.accountNumber || '0000') + '</div>'
+                + '<div class="text-sm" style="opacity:0.7;margin-top:2px;">••••' + (item.accountNumber || '0000') + '</div>'
                 + '<div style="font-size:10px;opacity:0.5;margin-top:6px;">' + (item.ifscCode || '') + '</div></div>'
                 + '</div>'
                 + '<div class="vc-bg" style="background:radial-gradient(circle at 30% 80%, rgba(255,255,255,0.08) 0%, transparent 50%);"></div>'
@@ -359,11 +356,11 @@
         function buildPFHTML(item) {
             let cardBg = resolveCardBg(item, 'pf');
             return '<div class="vc-card" style="background:' + cardBg + ';" onclick="showDetail(\'' + item.id + '\',\'pf\')">'
-                + '<div style="position:relative;z-index:1;height:100%;display:flex;flex-direction:column;justify-content:space-between;">'
-                + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + (item.provider || 'PF') + '</div>'
-                + '<div style="font-size:13px;font-weight:500;margin-top:2px;opacity:0.85;">' + (item.accountNumber || '') + '</div></div>'
+                + '<div class="h-full flex flex-col justify-between" style="position:relative;z-index:1;">'
+                + '<div><div class="uppercase tracking-wide" style="font-size:10px;opacity:0.6;">' + (item.provider || 'PF') + '</div>'
+                + '<div class="font-medium" style="font-size:13px;margin-top:2px;opacity:0.85;">' + (item.accountNumber || '') + '</div></div>'
                 + '<div><div class="vc-balance">' + sym + fmt(item.balance) + '</div>'
-                + '<div style="display:flex;gap:16px;margin-top:4px;font-size:11px;opacity:0.7;">'
+                + '<div class="flex gap-16 mt-4" style="font-size:11px;opacity:0.7;">'
                 + '<span>Self: ' + sym + fmt(item.monthlyContribution) + '/mo</span>'
                 + '<span>Employer: ' + sym + fmt(item.employerContribution) + '/mo</span></div></div>'
                 + '</div>'
@@ -421,9 +418,9 @@
                     ? ((item.outstandingAmount || 0) > 0 ? 'You still have an outstanding balance to manage. A small payment before the billing date can keep this card healthier.' : 'No outstanding balance is showing right now, which is a good sign for your cash flow.')
                     : 'This card is ready to use and can be tracked easily with your monthly spending plan.';
 
-                html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:160px;background:' + cardBg + ';">'
+                html += '<div class="vc-card mb-16" style="cursor:default;min-height:160px;background:' + cardBg + ';">'
                     + (item.type === 'debit' ? '<span class="material-symbols-rounded" style="position:absolute;top:20px;left:20px;font-size:14px;z-index:1;">account_balance</span>' : '<div class="vc-chip"></div>')
-                    + '<div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;padding-top:10px;">'
+                    + '<div class="flex-1 flex flex-col justify-center" style="position:relative;z-index:1;padding-top:10px;">'
                     + '<div class="vc-number">' + ('xxxx xxxx xxxx ' + (item.cardNumber||'••••')) + '</div>'
                     + '<div class="vc-row"><div><div class="vc-label">VALID THRU</div><div>' + (item.expiryMonth||'MM') + '/' + (item.expiryYear||'YY') + '</div></div>'
                     + '<div style="text-align:right;"><div class="vc-label">CVV</div><div>•••</div></div></div>'
@@ -433,7 +430,7 @@
                     + '<div class="detail-summary-title">' + summaryTitle + '</div>'
                     + '<div class="detail-summary-subtitle">' + summarySubtitle + '</div>'
                     + '<div class="detail-summary-value">' + summaryValue + '</div>'
-                    + '<div style="margin-top:8px;font-size:12px;color:var(--md-success);font-weight:600;">' + statusText + '</div>'
+                    + '<div class="mt-8 text-sm text-success font-semibold">' + statusText + '</div>'
                     + '</div>';
                 html += '<div class="detail-pill-row">'
                     + '<div class="detail-pill"><div class="detail-label">Type</div><div class="detail-value" style="text-transform:capitalize;">' + (item.type||'—') + '</div></div>'
@@ -445,7 +442,7 @@
                 html += '<div class="detail-row"><div class="detail-label">Bank</div><div class="detail-value">' + (item.bankName||'—') + '</div></div>'
                     + '<div class="detail-row"><div class="detail-label">Card Number</div><div class="detail-value">••••' + (item.cardNumber||'0000') + '</div></div>';
                 if (item.type === 'credit') {
-                    html += '<div class="detail-row"><div class="detail-label">Credit Limit</div><div class="detail-value" style="color:var(--md-primary);">' + sym + fmt(item.creditLimit) + '</div></div>'
+                    html += '<div class="detail-row"><div class="detail-label">Credit Limit</div><div class="detail-value text-primary">' + sym + fmt(item.creditLimit) + '</div></div>'
                         + '<div class="detail-row"><div class="detail-label">Outstanding</div><div class="detail-value" style="color:' + ((item.outstandingAmount||0) > 0 ? 'var(--md-error)' : 'var(--md-success)') + ';">' + sym + fmt(item.outstandingAmount) + '</div></div>';
                 }
                 if (item.notes) html += '<div class="detail-row"><div class="detail-label">Notes</div><div class="detail-value" style="font-weight:400;max-width:180px;word-break:break-word;">' + item.notes + '</div></div>';
@@ -458,17 +455,17 @@
                 let insightText = (item.balance || 0) > 0
                     ? 'This account is carrying a healthy balance. It is a good place to track your monthly buffer and planned expenses.'
                     : 'This account is low right now. You may want to review recent transfers or upcoming bills.';
-                html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:120px;background:' + bankBg + ';">'
-                    + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">'
-                    + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + summarySubtitle + '</div>'
-                    + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + summaryTitle + '</div></div>'
+                html += '<div class="vc-card mb-16" style="cursor:default;min-height:120px;background:' + bankBg + ';">'
+                    + '<div class="flex flex-col justify-between h-full" style="position:relative;z-index:1;">'
+                    + '<div><div class="uppercase tracking-wide" style="font-size:10px;opacity:0.6;">' + summarySubtitle + '</div>'
+                    + '<div class="font-semibold" style="font-size:18px;margin-top:2px;">' + summaryTitle + '</div></div>'
                     + '<div><div class="vc-balance">' + summaryValue + '</div></div></div>'
                     + '<div class="vc-bg" style="background:radial-gradient(circle at 30% 80%, rgba(255,255,255,0.08) 0%, transparent 50%);"></div></div>';
                 html += '<div class="detail-summary">'
                     + '<div class="detail-summary-title">' + summaryTitle + '</div>'
                     + '<div class="detail-summary-subtitle">' + summarySubtitle + '</div>'
                     + '<div class="detail-summary-value">' + summaryValue + '</div>'
-                    + '<div style="margin-top:8px;font-size:12px;color:var(--md-success);font-weight:600;">' + statusText + '</div>'
+                    + '<div class="mt-8 text-sm text-success font-semibold">' + statusText + '</div>'
                     + '</div>';
                 html += '<div class="detail-pill-row">'
                     + '<div class="detail-pill"><div class="detail-label">Account</div><div class="detail-value">••••' + (item.accountNumber||'0000') + '</div></div>'
@@ -491,17 +488,17 @@
                 let insightText = (item.monthlyContribution || 0) > 0
                     ? 'Your contributions are active and employer support is also included. This is a strong long-term savings account.'
                     : 'This PF account is listed but no contribution value is set yet. Adding the monthly amount can make the tracking clearer.';
-                html += '<div class="vc-card" style="cursor:default;margin-bottom:16px;min-height:120px;background:' + pfBg + ';">'
-                    + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">'
-                    + '<div><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;">' + (item.provider||'PF') + '</div>'
-                    + '<div style="font-size:18px;font-weight:600;margin-top:2px;">' + summaryValue + '</div></div>'
-                    + '<div style="font-size:12px;opacity:0.7;">' + (item.accountNumber||'') + '</div></div>'
+                html += '<div class="vc-card mb-16" style="cursor:default;min-height:120px;background:' + pfBg + ';">'
+                    + '<div class="flex flex-col justify-between h-full" style="position:relative;z-index:1;">'
+                    + '<div><div class="uppercase tracking-wide" style="font-size:10px;opacity:0.6;">' + (item.provider||'PF') + '</div>'
+                    + '<div class="font-semibold" style="font-size:18px;margin-top:2px;">' + summaryValue + '</div></div>'
+                    + '<div class="text-sm" style="opacity:0.7;">' + (item.accountNumber||'') + '</div></div>'
                     + '<div class="vc-bg" style="background:radial-gradient(circle at 70% 30%, rgba(255,200,50,0.1) 0%, transparent 50%);"></div></div>';
                 html += '<div class="detail-summary">'
                     + '<div class="detail-summary-title">' + summaryTitle + '</div>'
                     + '<div class="detail-summary-subtitle">' + summarySubtitle + '</div>'
                     + '<div class="detail-summary-value">' + summaryValue + '</div>'
-                    + '<div style="margin-top:8px;font-size:12px;color:var(--md-success);font-weight:600;">' + statusText + '</div>'
+                    + '<div class="mt-8 text-sm text-success font-semibold">' + statusText + '</div>'
                     + '</div>';
                 html += '<div class="detail-pill-row">'
                     + '<div class="detail-pill"><div class="detail-label">Self</div><div class="detail-value">' + sym + fmt(item.monthlyContribution) + '/mo</div></div>'
@@ -512,7 +509,7 @@
                 html += '<div class="detail-section-title">Details</div>';
                 html += '<div class="detail-row"><div class="detail-label">Provider</div><div class="detail-value">' + (item.provider||'—') + '</div></div>'
                     + '<div class="detail-row"><div class="detail-label">Account Number</div><div class="detail-value">' + (item.accountNumber||'—') + '</div></div>'
-                    + '<div class="detail-row"><div class="detail-label">Balance</div><div class="detail-value" style="color:var(--md-primary);">' + sym + fmt(item.balance) + '</div></div>'
+                    + '<div class="detail-row"><div class="detail-label">Balance</div><div class="detail-value text-primary">' + sym + fmt(item.balance) + '</div></div>'
                     + '<div class="detail-row"><div class="detail-label">Your Contribution</div><div class="detail-value">' + sym + fmt(item.monthlyContribution) + '/mo</div></div>'
                     + '<div class="detail-row"><div class="detail-label">Employer Contribution</div><div class="detail-value">' + sym + fmt(item.employerContribution) + '/mo</div></div>'
                     + '<div class="detail-row"><div class="detail-label">Interest Rate</div><div class="detail-value">' + (item.interestRate ? item.interestRate + '%' : '—') + '</div></div>'
@@ -606,8 +603,8 @@
                 + '<div class="input-container"><label>Card Network</label><select id="f-cardNetwork" class="md-input"><option value="Visa"' + (i.cardNetwork==='Visa'?' selected':'') + '>Visa</option><option value="Mastercard"' + (i.cardNetwork==='Mastercard'?' selected':'') + '>Mastercard</option><option value="RuPay"' + (i.cardNetwork==='RuPay'?' selected':'') + '>RuPay</option><option value="AmEx"' + (i.cardNetwork==='AmEx'?' selected':'') + '>American Express</option></select></div>'
                 + '<div class="input-container"><label>Cardholder Name</label><input type="text" id="f-cardHolderName" class="md-input" value="' + esc(i.cardHolderName||'') + '" placeholder="JOHN DOE"></div>'
                 + '<div class="input-container"><label>Last 4 Digits</label><input type="text" id="f-cardNumber" class="md-input" maxlength="4" value="' + esc(i.cardNumber||'') + '" placeholder="4532" inputmode="numeric"></div>'
-                + '<div style="display:flex;gap:8px;"><div class="input-container" style="flex:1;"><label>Expiry Month</label><input type="text" id="f-expiryMonth" class="md-input" maxlength="2" value="' + esc(i.expiryMonth||'') + '" placeholder="MM" inputmode="numeric"></div>'
-                + '<div class="input-container" style="flex:1;"><label>Expiry Year</label><input type="text" id="f-expiryYear" class="md-input" maxlength="2" value="' + esc(i.expiryYear||'') + '" placeholder="YY" inputmode="numeric"></div></div>'
+                + '<div class="flex gap-8"><div class="input-container flex-1"><label>Expiry Month</label><input type="text" id="f-expiryMonth" class="md-input" maxlength="2" value="' + esc(i.expiryMonth||'') + '" placeholder="MM" inputmode="numeric"></div>'
+                + '<div class="input-container flex-1"><label>Expiry Year</label><input type="text" id="f-expiryYear" class="md-input" maxlength="2" value="' + esc(i.expiryYear||'') + '" placeholder="YY" inputmode="numeric"></div></div>'
                 + '<div class="input-container"' + (i.type==='debit'?' style="display:none;"':'') + ' id="f-credit-fields"><label>Credit Limit (₹)</label><input type="number" id="f-creditLimit" class="md-input" value="' + (i.creditLimit||'') + '" placeholder="500000"></div>'
                 + '<div class="input-container" id="f-outstanding-container"><label>Outstanding Amount (₹)</label><input type="number" id="f-outstandingAmount" class="md-input" value="' + (i.outstandingAmount||'') + '" placeholder="0"></div>'
                 + '<div class="input-container"><label>Billing Date (day of month)</label><input type="number" id="f-billingDate" class="md-input" min="1" max="31" value="' + (i.billingDate||'') + '" placeholder="5"></div>'
