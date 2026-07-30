@@ -509,15 +509,17 @@ function buildUnifiedItemHTML(inv) {
     let dateStr = `${dObj.getDate()} ${dObj.toLocaleString('default', { month: 'short' })}`;
     let safeNote = escapeHtml(inv.note || inv.type);
     let safeType = escapeHtml(inv.type);
-    let tagsHtml = ""; if (inv.tags) { inv.tags.split(',').forEach(t => { if (t.trim()) tagsHtml += `<span class="roi-tag" style="background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);font-size:10px;margin:0 2px;">#${escapeHtml(t.trim())}</span> `; }); }
-    let intHtml = inv.interestRate ? `<span style="font-size:10px;color:var(--md-primary);font-weight:500;">${escapeHtml(inv.interestRate)}%</span>` : '';
+    let tagsHtml = ""; if (inv.tags) { inv.tags.split(',').forEach(t => { if (t.trim()) tagsHtml += `<span class="tag-chip">#${escapeHtml(t.trim())}</span> `; }); }
+    let intHtml = inv.interestRate ? `<span class="interest-badge">${escapeHtml(inv.interestRate)}%</span>` : '';
     let checked = window._ledgerSelection && window._ledgerSelection.has(inv.id) ? ' checked' : '';
     let selectBox = window._ledgerSelectMode
-        ? `<label class="ledger-check-wrap" onclick="event.stopPropagation();toggleLedgerItem('${inv.id}')" style="display:inline-flex;align-items:center;justify-content:center;width:40px;flex-shrink:0;cursor:pointer;">
+        ? `<label class="ledger-check-wrap flex items-center justify-center" onclick="event.stopPropagation();toggleLedgerItem('${inv.id}')" style="width:40px;flex-shrink:0;cursor:pointer;">
             <input type="checkbox" class="ledger-check"${checked} style="width:18px;height:18px;accent-color:var(--md-primary);cursor:pointer;">
            </label>`
         : '';
     let clickAction = window._ledgerSelectMode ? '' : `openInvestSheet('${inv.id}')`;
+    const amtColor = parseFloat(inv.amount) >= 0 ? 'var(--md-success)' : 'var(--md-error)';
+    const amtSign = parseFloat(inv.amount) >= 0 ? '+' : '';
     return `
             <div class="swipe-wrapper" data-id="${inv.id}">
                 <div class="unified-item"${clickAction ? ` onclick="${clickAction}"` : ''} style="${window._ledgerSelectMode ? 'cursor:default;' : ''}">
@@ -526,13 +528,13 @@ function buildUnifiedItemHTML(inv) {
                     <div class="unified-content">
                         <div class="unified-title">
                             <span class="title-text">${safeNote}</span>
-                            <span class="price" style="color:${parseFloat(inv.amount) >= 0 ? 'var(--md-success, #186D33)' : 'var(--md-error, #BA1A1A)'};">${parseFloat(inv.amount) >= 0 ? '+' : ''}${formatMoney(inv.amount)}</span>
+                            <span class="price" style="color:${amtColor};">${amtSign}${formatMoney(inv.amount)}</span>
                         </div>
                         <span class="unified-subtitle">${dateStr} • ${safeType}</span>
-                        ${intHtml || tagsHtml ? `<div style="margin-top:2px;display:flex;gap:4px;align-items:center;flex-wrap:wrap;">${intHtml}${tagsHtml}</div>` : ''}
+                        ${intHtml || tagsHtml ? `<div class="tags-row">${intHtml}${tagsHtml}</div>` : ''}
                     </div>
-                    <button class="icon-btn-sm" onclick="event.stopPropagation();copyInvestmentToCurrentMonth('${inv.id}')" title="Copy to this month" style="flex-shrink:0;width:32px;height:32px;border:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;color:var(--md-on-surface-variant);transition:background .15s;" onmouseover="this.style.background='var(--md-surface-container-highest)'" onmouseout="this.style.background='transparent'">
-                        <span class="material-symbols-rounded" style="font-size:18px;">content_copy</span>
+                    <button class="icon-btn-sm" onclick="event.stopPropagation();copyInvestmentToCurrentMonth('${inv.id}')" title="Copy to this month">
+                        <span class="material-symbols-rounded text-lg">content_copy</span>
                     </button>
                 </div>
             </div>`;
@@ -579,12 +581,12 @@ function getEmptyStateHTML(context = 'default') {
     };
 
     const state = emptyStates[context] || emptyStates.default;
-    return `<div class="empty-state-premium" style="padding: 40px 24px; text-align: center;">
-        <span class="material-symbols-rounded" style="font-size: 48px; color: var(--md-outline); margin-bottom: 16px;">${state.icon}</span>
-        <div class="es-title" style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--md-on-surface);">${state.title}</div>
-        <div style="font-size: 14px; color: var(--md-on-surface-variant); margin-bottom: 24px; max-width: 280px; margin-left: auto; margin-right: auto;">${state.subtitle}</div>
-        <button class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px;" onclick="${state.action.onclick}">
-            <span class="material-symbols-rounded" style="font-size: 18px;">${state.action.icon}</span>
+    return `<div class="empty-state-premium">
+        <span class="material-symbols-rounded empty-state-icon">${state.icon}</span>
+        <div class="empty-state-title">${state.title}</div>
+        <div class="empty-state-subtitle">${state.subtitle}</div>
+        <button class="btn-primary flex items-center gap-8" onclick="${state.action.onclick}">
+            <span class="material-symbols-rounded text-lg">${state.action.icon}</span>
             ${state.action.text}
         </button>
     </div>`;
@@ -922,26 +924,26 @@ window.aiPredictGoalTarget = async function () {
         raw = raw.replace(/```json|```/g, '').trim();
         let predictions = JSON.parse(raw);
         let total = predictions.reduce((s, p) => s + p.predicted, 0);
-        let html = `<div style="background:var(--md-primary-container);color:var(--md-on-primary-container);border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;">
-            <div style="font-size:12px;font-weight:500;opacity:0.8;">Predicted Monthly Investment</div>
-            <div style="font-size:28px;font-weight:600;margin:4px 0;">₹${fmtNum(total)}</div>
-            <button class="btn-primary" style="margin-top:8px;padding:6px 16px;font-size:12px;" onclick="document.getElementById('goal-target').value=${total};document.getElementById('goal-ai-prediction').style.display='none'"><span class="material-symbols-rounded" style="font-size:16px;">check</span> Apply as Target</button>
-        </div><div style="display:flex;flex-direction:column;gap:8px;">`;
+        let html = `<div class="bg-primary-container text-center p-16 mb-12" style="color:var(--md-on-primary-container);border-radius:16px;">
+            <div class="text-sm font-medium" style="opacity:0.8;">Predicted Monthly Investment</div>
+            <div class="text-2xl font-semibold" style="margin:4px 0;">₹${fmtNum(total)}</div>
+            <button class="btn-primary mt-8" style="padding:6px 16px;font-size:12px;" onclick="document.getElementById('goal-target').value=${total};document.getElementById('goal-ai-prediction').style.display='none'"><span class="material-symbols-rounded icon-sm">check</span> Apply as Target</button>
+        </div><div class="flex flex-col gap-8">`;
         predictions.forEach(p => {
             let meta = (db.categories || {})[p.category] || { color: '#8D6E63', icon: 'savings' };
             let trendIcon = p.trend === 'up' ? 'trending_up' : p.trend === 'down' ? 'trending_down' : 'trending_flat';
             let trendColor = p.trend === 'up' ? 'var(--md-success)' : p.trend === 'down' ? 'var(--md-error)' : 'var(--md-outline)';
             let trendBg = p.trend === 'up' ? 'var(--md-success-container)' : p.trend === 'down' ? 'var(--md-error-container)' : 'var(--md-surface-container-highest)';
-            html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--md-surface-container);border-radius:12px;border-left:3px solid ${escapeHtml(meta.color)};">
-                <div style="width:32px;height:32px;border-radius:8px;background:${escapeHtml(meta.color)}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <span class="material-symbols-rounded" style="font-size:16px;color:${escapeHtml(meta.color)};">${escapeHtml(meta.icon)}</span>
+            html += `<div class="flex items-center gap-10 card-surface" style="border-left:3px solid ${escapeHtml(meta.color)};">
+                <div class="icon-box-32 flex-shrink-0" style="background:${escapeHtml(meta.color)}20;">
+                    <span class="material-symbols-rounded icon-sm" style="color:${escapeHtml(meta.color)};">${escapeHtml(meta.icon)}</span>
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-size:13px;font-weight:500;">${escapeHtml(p.category)}</div>
-                    <div style="font-size:11px;color:var(--md-outline);">${escapeHtml(p.reason)}</div>
+                    <div class="text-sm text-muted">${escapeHtml(p.reason)}</div>
                 </div>
-                <div style="text-align:right;">
-                    <div style="font-size:14px;font-weight:600;">₹${fmtNum(p.predicted)}</div>
+                <div class="text-right">
+                    <div class="text-base font-semibold">₹${fmtNum(p.predicted)}</div>
                     <span style="display:inline-flex;align-items:center;gap:3px;margin-top:2px;background:${trendBg};padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;color:${trendColor};text-transform:capitalize;">
                         <span class="material-symbols-rounded" style="font-size:12px;">${trendIcon}</span>${p.trend}
                     </span>
@@ -1096,7 +1098,7 @@ function showNoteMonthHistory(type, note) {
         (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter));
     if (entries.length === 0) return;
 
-    document.getElementById('note-month-title').innerHTML = `<span style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-rounded" style="font-size:18px;">history</span> ${escapeHtml(note)}</span>`;
+    document.getElementById('note-month-title').innerHTML = `<span class="flex items-center gap-6"><span class="material-symbols-rounded icon-18">history</span> ${escapeHtml(note)}</span>`;
 
     const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const monthMap = {};
@@ -1165,21 +1167,21 @@ function showNoteMonthHistory(type, note) {
     const skipped = totalMonths - invested;
     const hasSkip = skipped > 0;
     document.getElementById('note-month-stats').innerHTML = `
-        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
-            <div style="font-size:18px;font-weight:700;color:var(--md-success);">${invested}</div>
-            <div style="font-size:11px;color:var(--md-on-surface-variant);">Months Invested</div>
+        <div class="stat-card">
+            <div class="text-xl font-bold" style="color:var(--md-success);">${invested}</div>
+            <div class="text-sm text-muted-variant">Months Invested</div>
         </div>
-        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
-            <div style="font-size:18px;font-weight:700;color:${hasSkip ? 'var(--md-error)' : 'var(--md-success)'};">${skipped}</div>
-            <div style="font-size:11px;color:var(--md-on-surface-variant);">Skipped</div>
+        <div class="stat-card">
+            <div class="text-xl font-bold" style="color:${hasSkip ? 'var(--md-error)' : 'var(--md-success)'};">${skipped}</div>
+            <div class="text-sm text-muted-variant">Skipped</div>
         </div>
-        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
-            <div style="font-size:18px;font-weight:700;color:var(--md-primary);">${fmt(totalAmt)}</div>
-            <div style="font-size:11px;color:var(--md-on-surface-variant);">Total Invested</div>
+        <div class="stat-card">
+            <div class="text-xl font-bold text-primary">${fmt(totalAmt)}</div>
+            <div class="text-sm text-muted-variant">Total Invested</div>
         </div>
-        <div style="background:var(--md-surface-container-highest);border-radius:10px;padding:10px;text-align:center;">
-            <div style="font-size:18px;font-weight:700;color:var(--md-on-surface);">${fmt(avgAmt)}</div>
-            <div style="font-size:11px;color:var(--md-on-surface-variant);">Avg / Month</div>
+        <div class="stat-card">
+            <div class="text-xl font-bold text-on-surface">${fmt(avgAmt)}</div>
+            <div class="text-sm text-muted-variant">Avg / Month</div>
         </div>`;
 
     openSheet('note-month-sheet');
@@ -1231,7 +1233,7 @@ function showGoalMonthHistory(goalId) {
         (window.activeAccountFilter === 'All' || i.account === window.activeAccountFilter));
     if (entries.length === 0) return showSnackbar("No entries for this category", "info");
 
-    document.getElementById('goal-month-title').innerHTML = `<span style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-rounded" style="font-size:18px;">history</span> ${escapeHtml(goal.name)}</span>`;
+    document.getElementById('goal-month-title').innerHTML = `<span class="flex items-center gap-6"><span class="material-symbols-rounded icon-18">history</span> ${escapeHtml(goal.name)}</span>`;
 
     const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const monthMap = {};
@@ -1666,8 +1668,8 @@ function renderSettingsSections() {
                 </span>`;
 
             catHtml += `
-        <div style="padding:12px;background:var(--md-surface-container-highest);border-radius:12px;margin-bottom:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="card-surface-high mb-8">
+            <div class="flex-between mb-8">
                 <span><span class="material-symbols-rounded" style="font-size:16px;color:${safeColor};vertical-align:text-bottom;margin-right:6px;">${safeIcon}</span>${escapeHtml(c)}</span>
                 ${delBtn}
             </div>

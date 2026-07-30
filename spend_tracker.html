@@ -6,6 +6,10 @@
     <meta name="theme-color" content="#F3F3F7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
     <title>Spend Tracker | TrackInvest</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TrackInvest">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
@@ -17,6 +21,7 @@
     ">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet">
+    <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -151,6 +156,12 @@
     </style>
 </head>
 <body>
+    <noscript>
+        <div style="padding:24px;text-align:center;font-family:sans-serif;">
+            <h2>JavaScript Required</h2>
+            <p>TrackInvest requires JavaScript to function. Please enable it in your browser settings.</p>
+        </div>
+    </noscript>
     <!-- Import Sheet -->
     <div class="import-scrim" id="import-scrim" onclick="closeImportSheet()"></div>
     <div class="import-sheet" id="import-sheet">
@@ -190,7 +201,7 @@
                         <span class="material-symbols-rounded text-base" style="color:#186D33;">receipt_long</span>
                         <span class="text-sm font-semibold">Needs (Bills, Food, Rent)</span>
                     </div>
-                    <input type="number" id="budget-needs-input" class="md-input" placeholder="0" inputmode="decimal">
+                    <input type="number" id="budget-needs-input" class="md-input" placeholder="0" min="0" step="100" inputmode="decimal">
                 </div>
             </div>
             <div class="budget-item-row">
@@ -199,7 +210,7 @@
                         <span class="material-symbols-rounded text-base" style="color:#E91E63;">favorite</span>
                         <span class="text-sm font-semibold">Wants (Fun, Shopping, Travel)</span>
                     </div>
-                    <input type="number" id="budget-wants-input" class="md-input" placeholder="0" inputmode="decimal">
+                    <input type="number" id="budget-wants-input" class="md-input" placeholder="0" min="0" step="100" inputmode="decimal">
                 </div>
             </div>
             <div class="budget-item-row">
@@ -208,7 +219,7 @@
                         <span class="material-symbols-rounded text-base" style="color:#F57C00;">trending_up</span>
                         <span class="text-sm font-semibold">Investments</span>
                     </div>
-                    <input type="number" id="budget-investments-input" class="md-input" placeholder="0" inputmode="decimal">
+                    <input type="number" id="budget-investments-input" class="md-input" placeholder="0" min="0" step="100" inputmode="decimal">
                 </div>
             </div>
         </div>
@@ -263,24 +274,24 @@
     <button class="fab" onclick="openSpendSheet()" title="Add Expense (N)"><span class="material-symbols-rounded">add</span> Add Expense</button>
 
     <header class="top-app-bar">
-        <button class="icon-btn" onclick="window.location.href='index.html'"><span class="material-symbols-rounded">arrow_back</span></button>
-        <div class="app-title grow">Spend Tracker</div>
+        <button class="icon-btn" onclick="window.location.href='index.html'" aria-label="Back to dashboard"><span class="material-symbols-rounded">arrow_back</span></button>
+        <h1 class="app-title grow">Spend Tracker</h1>
         <div class="header-actions">
-            <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" title="Monthly Planner"><span class="material-symbols-rounded">account_balance</span></button>
-            <button class="icon-btn" onclick="window.location.href='account_overview.html'" title="Account Overview"><span class="material-symbols-rounded">account_balance_wallet</span></button>
-            <button class="icon-btn" onclick="window.location.href='money_flow.html'" title="Money Flow"><span class="material-symbols-rounded">currency_exchange</span></button>
-            <button class="icon-btn" onclick="openImportSheet()" title="Import"><span class="material-symbols-rounded">file_upload</span></button>
-            <button class="icon-btn" onclick="showExportMenu()" title="Export"><span class="material-symbols-rounded">download</span></button>
-            <button class="icon-btn" onclick="document.getElementById('ai-insights-output').style.display='none';renderAll()" title="Refresh"><span class="material-symbols-rounded">refresh</span></button>
+            <button class="icon-btn" onclick="window.location.href='monthly_plan.html'" aria-label="Monthly Planner" title="Monthly Planner"><span class="material-symbols-rounded">account_balance</span></button>
+            <button class="icon-btn" onclick="window.location.href='account_overview.html'" aria-label="Account Overview" title="Account Overview"><span class="material-symbols-rounded">account_balance_wallet</span></button>
+            <button class="icon-btn" onclick="window.location.href='money_flow.html'" aria-label="Money Flow" title="Money Flow"><span class="material-symbols-rounded">currency_exchange</span></button>
+            <button class="icon-btn" onclick="openImportSheet()" aria-label="Import transactions" title="Import"><span class="material-symbols-rounded">file_upload</span></button>
+            <button class="icon-btn" onclick="showExportMenu()" aria-label="Export data" title="Export"><span class="material-symbols-rounded">download</span></button>
+            <button class="icon-btn" onclick="document.getElementById('ai-insights-output').style.display='none';renderAll()" aria-label="Refresh" title="Refresh"><span class="material-symbols-rounded">refresh</span></button>
         </div>
     </header>
 
     <main class="container" style="padding-top:0;">
         <!-- Month Picker -->
         <div class="month-nav">
-            <button class="icon-btn" onclick="shiftMonth(-1)"><span class="material-symbols-rounded">chevron_left</span></button>
+            <button class="icon-btn" onclick="shiftMonth(-1)" aria-label="Previous month"><span class="material-symbols-rounded">chevron_left</span></button>
             <div class="font-medium text-on-surface" style="font-size:13px;" id="month-label"></div>
-            <button class="icon-btn" onclick="shiftMonth(1)"><span class="material-symbols-rounded">chevron_right</span></button>
+            <button class="icon-btn" onclick="shiftMonth(1)" aria-label="Next month"><span class="material-symbols-rounded">chevron_right</span></button>
         </div>
 
         <!-- Hero -->

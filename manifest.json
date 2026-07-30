@@ -6,9 +6,13 @@
   "start_url": "./index.html?source=pwa",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "lang": "en",
   "dir": "ltr",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "background_color": "#111318",
   "theme_color": "#415F91",
   "categories": ["finance", "productivity"],

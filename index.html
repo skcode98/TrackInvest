@@ -33,7 +33,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap"
         rel="stylesheet">
 
     <link rel="stylesheet" href="./style.css">
@@ -41,6 +41,12 @@
 </head>
 
 <body>
+    <noscript>
+        <div style="padding:24px;text-align:center;font-family:sans-serif;">
+            <h2>JavaScript Required</h2>
+            <p>TrackInvest requires JavaScript to function. Please enable it in your browser settings.</p>
+        </div>
+    </noscript>
     <div id="app-lock-screen" style="display:none;">
         <span class="material-symbols-rounded"
             style="font-size:64px;color:var(--md-primary);margin-bottom:16px;">lock</span>
@@ -54,10 +60,10 @@
     <input type="file" id="csv-file" style="display:none;" accept=".csv" onchange="importCSV(event)">
 
     <header class="top-app-bar">
-        <div class="app-title"><span class="material-symbols-rounded text-primary">account_balance</span> TrackInvest</div>
+        <h1 class="app-title"><span class="material-symbols-rounded text-primary">account_balance</span> TrackInvest</h1>
         <div class="header-actions">
-            <button class="icon-btn" onclick="openInAppNotifications()" aria-label="Notifications" id="notif-bell-btn" style="position:relative;"><span
-                    class="material-symbols-rounded">notifications</span><span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--md-error);border:2px solid var(--md-surface);"></span></button>
+            <button class="icon-btn relative" onclick="openInAppNotifications()" aria-label="Notifications" id="notif-bell-btn"><span
+                    class="material-symbols-rounded">notifications</span><span id="notif-badge" class="block" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--md-error);border:2px solid var(--md-surface);"></span></button>
             <button class="icon-btn" onclick="togglePrivacy()" aria-label="Toggle Privacy"><span
                     class="material-symbols-rounded" id="privacy-icon">visibility</span></button>
             <button class="icon-btn" onclick="openSettings()" aria-label="Open Settings"><span
@@ -72,17 +78,17 @@
                 <div class="hero-slide">
                     <div class="hero-subtitle">Total Wealth (<span id="active-acc-label">All Accounts</span>)</div>
                     <div class="hero-title"><span id="networth-val">0</span></div>
-                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
+                    <div class="flex items-center gap-8 mt-8 flex-wrap">
                         <span id="hero-roi-badge" class="badge-pill badge-neutral">—</span>
                         <span style="font-size:13px;opacity:0.7;">Est. Tax: <span
                                 id="dash-tax-liab">₹0</span></span>
                     </div>
 
                     <div class="chart-filters">
-                        <div class="chart-chip active" onclick="setChartRange(3, this)">3M</div>
-                        <div class="chart-chip" onclick="setChartRange(6, this)">6M</div>
-                        <div class="chart-chip" onclick="setChartRange(12, this)">1Y</div>
-                        <div class="chart-chip" onclick="setChartRange(99, this)">MAX</div>
+                        <div class="chart-chip active" onclick="setChartRange(3, this)" role="button" tabindex="0" aria-pressed="true">3M</div>
+                        <div class="chart-chip" onclick="setChartRange(6, this)" role="button" tabindex="0" aria-pressed="false">6M</div>
+                        <div class="chart-chip" onclick="setChartRange(12, this)" role="button" tabindex="0" aria-pressed="false">1Y</div>
+                        <div class="chart-chip" onclick="setChartRange(99, this)" role="button" tabindex="0" aria-pressed="false">MAX</div>
                     </div>
 
                     <div class="chart-container" id="nw-chart-container">
@@ -107,36 +113,36 @@
                 </div>
 
                 <div class="hero-slide">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;opacity:0.75;">
-                            <span class="material-symbols-rounded" style="font-size:16px;">query_stats</span> Wealth Projection
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center gap-8 uppercase tracking-wide" style="font-size:13px;font-weight:500;opacity:0.75;">
+                            <span class="material-symbols-rounded text-lg">query_stats</span> Wealth Projection
                         </div>
                         <button class="icon-btn" onclick="copyNetWorth()" title="Copy Net Worth"
                             style="color:var(--md-on-primary-container);opacity:0.7;">
-                            <span class="material-symbols-rounded" style="font-size:20px;">content_copy</span>
+                            <span class="material-symbols-rounded text-xl">content_copy</span>
                         </button>
                     </div>
-                    <div style="flex:1;min-height:0;position:relative;height:140px;">
-                        <canvas id="hero-projection-chart" style="width:100%;height:100%;"></canvas>
+                    <div class="relative" style="flex:1;min-height:0;height:140px;">
+                        <canvas id="hero-projection-chart" class="w-full h-full"></canvas>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
-                        <div style="background:var(--md-surface-container);border-radius:10px;padding:8px;text-align:center;">
-                            <div style="font-size:9px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.2px;">EOY Projected</div>
-                            <div id="proj-card-eoy" style="font-size:15px;font-weight:700;color:var(--md-on-surface);margin-top:2px;">—</div>
+                    <div class="grid grid-cols-3 gap-8 mt-8">
+                        <div class="bg-surface-container rounded-sm text-center" style="padding:8px;">
+                            <div class="text-9px text-muted uppercase tracking-wide">EOY Projected</div>
+                            <div id="proj-card-eoy" class="font-bold text-on-surface" style="font-size:15px;margin-top:2px;">—</div>
                         </div>
-                        <div style="background:var(--md-surface-container);border-radius:10px;padding:8px;text-align:center;">
-                            <div style="font-size:9px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.2px;">Conservative</div>
-                            <div id="proj-card-conservative" style="font-size:15px;font-weight:700;color:var(--md-on-surface);margin-top:2px;">—</div>
+                        <div class="bg-surface-container rounded-sm text-center" style="padding:8px;">
+                            <div class="text-9px text-muted uppercase tracking-wide">Conservative</div>
+                            <div id="proj-card-conservative" class="font-bold text-on-surface" style="font-size:15px;margin-top:2px;">—</div>
                         </div>
-                        <div style="background:var(--md-surface-container);border-radius:10px;padding:8px;text-align:center;">
-                            <div style="font-size:9px;color:var(--md-outline);text-transform:uppercase;letter-spacing:0.2px;">Optimistic</div>
-                            <div id="proj-card-optimistic" style="font-size:15px;font-weight:700;color:var(--md-on-surface);margin-top:2px;">—</div>
+                        <div class="bg-surface-container rounded-sm text-center" style="padding:8px;">
+                            <div class="text-9px text-muted uppercase tracking-wide">Optimistic</div>
+                            <div id="proj-card-optimistic" class="font-bold text-on-surface" style="font-size:15px;margin-top:2px;">—</div>
                         </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-                        <span style="font-size:10px;color:var(--md-on-primary-container);opacity:0.6;min-width:16px;text-align:right;">1m</span>
-                        <input type="range" id="proj-slider" min="1" max="24" value="12" oninput="updateProjectionSlider()" onchange="haptic(10)" style="flex:1;accent-color:var(--md-primary);">
-                        <span style="font-size:10px;color:var(--md-on-primary-container);opacity:0.6;min-width:20px;">24m</span>
+                    <div class="flex items-center gap-8 mt-8">
+                        <span class="text-10px" style="color:var(--md-on-primary-container);opacity:0.6;min-width:16px;text-align:right;">1m</span>
+                        <input type="range" id="proj-slider" min="1" max="24" value="12" oninput="updateProjectionSlider()" onchange="haptic(10)" class="flex-1" style="accent-color:var(--md-primary);">
+                        <span class="text-10px" style="color:var(--md-on-primary-container);opacity:0.6;min-width:20px;">24m</span>
                     </div>
                 </div>
             </div>
@@ -149,24 +155,24 @@
             </div>
 
             <div class="md-card dashboard-insight-card" id="dashboard-insight-card" style="display:none; padding:16px 16px 14px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div class="flex justify-between items-start gap-8">
                     <div>
-                        <div class="dmc-header" style="margin-bottom:6px;"><span class="material-symbols-rounded">insights</span> At a glance</div>
-                        <div id="dashboard-insight-title" style="font-size:16px;font-weight:700;color:var(--md-on-surface);">Loading insights…</div>
-                        <div id="dashboard-insight-subtitle" style="font-size:12px;color:var(--md-on-surface-variant);margin-top:4px;">Your personalized snapshot will appear here.</div>
+                        <div class="dmc-header mb-8"><span class="material-symbols-rounded">insights</span> At a glance</div>
+                        <div id="dashboard-insight-title" class="text-lg font-bold text-on-surface">Loading insights…</div>
+                        <div id="dashboard-insight-subtitle" class="text-sm text-muted-variant mt-4">Your personalized snapshot will appear here.</div>
                     </div>
                     <div id="dashboard-insight-badge" class="badge-pill badge-neutral">—</div>
                 </div>
-                <div id="dashboard-insight-stats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;"></div>
+                <div id="dashboard-insight-stats" class="grid grid-cols-3 gap-8 mt-12"></div>
             </div>
 
             <div class="md-card dashboard-focus-card" id="dashboard-focus-card" style="display:none; padding:12px 14px; margin-top:-2px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-                    <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-                        <span class="material-symbols-rounded" id="dashboard-focus-icon" style="font-size:20px;color:var(--md-primary);">task_alt</span>
+                <div class="flex justify-between items-center" style="gap:10px;">
+                    <div class="flex items-center gap-8" style="min-width:0;">
+                        <span class="material-symbols-rounded text-xl text-primary" id="dashboard-focus-icon">task_alt</span>
                         <div style="min-width:0;">
-                            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--md-on-surface-variant);">Today's focus</div>
-                            <div id="dashboard-focus-title" style="font-size:14px;font-weight:700;color:var(--md-on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading focus…</div>
+                            <div class="text-11px font-semibold uppercase" style="letter-spacing:0.4px;color:var(--md-on-surface-variant);">Today's focus</div>
+                            <div id="dashboard-focus-title" class="text-base font-bold text-on-surface truncate">Loading focus…</div>
                         </div>
                     </div>
                     <button class="icon-btn" id="dashboard-focus-btn" style="display:none;" onclick=""><span class="material-symbols-rounded">arrow_forward</span></button>
@@ -176,82 +182,81 @@
             <!-- Frequent Actions Quick Navigation -->
             <div id="frequent-actions" style="margin-bottom:16px;"></div>
 
-            <!-- Dashboard Data Mini-Cards -->
             <div class="dash-mini-cards" id="dash-mini-cards">
                 <div class="dash-mini-card" id="dash-card-budget" onclick="window.location.href='monthly_plan.html'">
-                    <div class="dmc-header"><span class="material-symbols-rounded" style="font-size:16px;">account_balance_wallet</span> Monthly Budget</div>
+                    <div class="dmc-header"><span class="material-symbols-rounded text-lg">account_balance_wallet</span> Monthly Budget</div>
                     <div class="dmc-body">
                         <div class="dmc-row"><span>Income</span><span id="dmc-budget-income" class="dmc-val">—</span></div>
                         <div class="dmc-row"><span>Budget</span><span id="dmc-budget-total" class="dmc-val">—</span></div>
                         <div class="dmc-bar-track"><div class="dmc-bar-fill" id="dmc-budget-bar" style="width:0%;"></div></div>
-                        <div style="font-size:10px;color:var(--md-outline);margin-top:2px;" id="dmc-budget-status">No plan set</div>
+                        <div class="text-10px text-muted mt-4" id="dmc-budget-status">No plan set</div>
                     </div>
                 </div>
                 <div class="dash-mini-card" id="dash-card-spend" onclick="window.location.href='spend_tracker.html'">
-                    <div class="dmc-header"><span class="material-symbols-rounded" style="font-size:16px;">receipt_long</span> Spend This Month</div>
+                    <div class="dmc-header"><span class="material-symbols-rounded text-lg">receipt_long</span> Spend This Month</div>
                     <div class="dmc-body">
                         <div class="dmc-big-val" id="dmc-spend-total">—</div>
-                        <div style="display:flex;gap:4px;align-items:center;font-size:11px;" id="dmc-spend-delta"></div>
-                        <div style="font-size:10px;color:var(--md-outline);margin-top:4px;" id="dmc-spend-topcat"></div>
+                        <div class="flex items-center gap-4 text-11px" id="dmc-spend-delta"></div>
+                        <div class="text-10px text-muted mt-4" id="dmc-spend-topcat"></div>
                     </div>
                 </div>
                 <div class="dash-mini-card" id="dash-card-ao" onclick="window.location.href='account_overview.html'">
-                    <div class="dmc-header"><span class="material-symbols-rounded" style="font-size:16px;">account_balance</span> Accounts</div>
+                    <div class="dmc-header"><span class="material-symbols-rounded text-lg">account_balance</span> Accounts</div>
                     <div class="dmc-body">
-                        <div style="display:flex;gap:6px;margin-bottom:4px;">
-                            <div style="flex:1;background:var(--md-surface-container);border-radius:6px;padding:4px 6px;text-align:center;">
-                                <div style="font-size:8px;color:var(--md-outline);">Cards</div>
-                                <div id="dmc-ao-cards" style="font-size:12px;font-weight:600;">—</div>
+                        <div class="flex gap-8 mb-4">
+                            <div class="flex-1 bg-surface-container text-center" style="border-radius:6px;padding:4px 6px;">
+                                <div class="text-9px text-muted">Cards</div>
+                                <div id="dmc-ao-cards" class="font-semibold text-sm">—</div>
                             </div>
-                            <div style="flex:1;background:var(--md-surface-container);border-radius:6px;padding:4px 6px;text-align:center;">
-                                <div style="font-size:8px;color:var(--md-outline);">Bank</div>
-                                <div id="dmc-ao-banks" style="font-size:12px;font-weight:600;">—</div>
+                            <div class="flex-1 bg-surface-container text-center" style="border-radius:6px;padding:4px 6px;">
+                                <div class="text-9px text-muted">Bank</div>
+                                <div id="dmc-ao-banks" class="font-semibold text-sm">—</div>
                             </div>
-                            <div style="flex:1;background:var(--md-surface-container);border-radius:6px;padding:4px 6px;text-align:center;">
-                                <div style="font-size:8px;color:var(--md-outline);">PF</div>
-                                <div id="dmc-ao-pf" style="font-size:12px;font-weight:600;">—</div>
+                            <div class="flex-1 bg-surface-container text-center" style="border-radius:6px;padding:4px 6px;">
+                                <div class="text-9px text-muted">PF</div>
+                                <div id="dmc-ao-pf" class="font-semibold text-sm">—</div>
                             </div>
                         </div>
                         <div class="dmc-bar-track" style="height:4px;"><div class="dmc-bar-fill" id="dmc-ao-util-bar" style="width:0%;background:var(--md-success);"></div></div>
-                        <div style="font-size:9px;color:var(--md-outline);margin-top:2px;" id="dmc-ao-util-label"></div>
+                        <div class="text-9px text-muted mt-4" id="dmc-ao-util-label"></div>
                     </div>
                 </div>
                 <div class="dash-mini-card" id="dash-card-usable" onclick="window.location.href='money_flow.html'">
-                    <div class="dmc-header" style="justify-content:space-between; margin-bottom:8px;">
-                        <span style="display:flex;align-items:center;gap:5px;"><span class="material-symbols-rounded" style="font-size:16px;">currency_exchange</span> Money Flow</span>
+                    <div class="dmc-header flex justify-between mb-8">
+                        <span class="flex items-center gap-8"><span class="material-symbols-rounded text-lg">currency_exchange</span> Money Flow</span>
                         <button class="dmc-action-btn" type="button" onclick="event.stopPropagation(); window.location.href='money_flow.html'">Open</button>
                     </div>
                     <div class="dmc-body">
                         <div class="dmc-big-val" id="dmc-usable-total">₹0</div>
-                        <div class="dmc-row" style="margin-top:4px;"><span>Given / lent</span><span id="dmc-usable-immediate" class="dmc-val dmc-val-positive">₹0</span></div>
-                        <div class="dmc-row"><span>Borrowed / locked</span><span id="dmc-usable-emergency" class="dmc-val" style="color:var(--md-warning);">₹0</span></div>
-                        <div style="font-size:10px;color:var(--md-outline);margin-top:4px;">Unregistered money overview</div>
+                        <div class="dmc-row mt-4"><span>Given / lent</span><span id="dmc-usable-immediate" class="dmc-val dmc-val-positive">₹0</span></div>
+                        <div class="dmc-row"><span>Borrowed / locked</span><span id="dmc-usable-emergency" class="dmc-val text-warning">₹0</span></div>
+                        <div class="text-10px text-muted mt-4">Unregistered money overview</div>
                     </div>
                 </div>
             </div>
 
 
             <div id="maturity-section" style="display:none; margin-bottom:16px;">
-                <div class="section-title" style="margin-top:0;">⏰ Maturing Soon <span
+                <div class="section-title mt-0">⏰ Maturing Soon <span
                         class="text-sm text-muted">(Next 90 days)</span></div>
-                <div style="display:flex; gap:12px; overflow-x:auto; scrollbar-width:none; padding-bottom:8px;"
+                <div class="flex gap-12 overflow-x-auto" style="scrollbar-width:none; padding-bottom:8px;"
                     id="maturity-list"></div>
             </div>
 
             <div class="section-title">Performance Overview</div>
 
-            <div class="md-card"
-                style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px;">
-                <div style="display:flex; flex-direction:column; gap:12px; flex:1;">
-                    <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom: 1px solid var(--md-surface-container-highest); padding-bottom:8px; cursor:pointer;"
+            <div class="md-card flex items-center justify-between gap-16"
+                style="padding:20px;">
+                <div class="flex flex-col gap-12 flex-1">
+                    <div class="flex justify-between items-baseline" style="border-bottom:1px solid var(--md-surface-container-highest);padding-bottom:8px;cursor:pointer;"
                         onclick="openMonthDetails(0)">
-                        <span style="font-size:13px;color:var(--md-on-surface-variant);">Invested</span>
-                        <span style="font-weight:700;font-size:18px;" id="monthly-invested-display">₹0</span>
+                        <span class="text-sm text-muted-variant">Invested</span>
+                        <span class="font-bold" style="font-size:18px;" id="monthly-invested-display">₹0</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:baseline; cursor:pointer;"
+                    <div class="flex justify-between items-baseline" style="cursor:pointer;"
                         onclick="openMonthlyTargetSheet()">
-                        <span style="font-size:13px;color:var(--md-primary);font-weight:500;">Target 🎯</span>
-                        <span style="font-weight:500;font-size:14px;" id="monthly-target-display">₹0</span>
+                        <span class="text-sm text-primary font-semibold">Target 🎯</span>
+                        <span class="font-semibold text-base" id="monthly-target-display">₹0</span>
                     </div>
                 </div>
                 <div class="progress-ring" id="monthly-progress-ring">
@@ -264,71 +269,66 @@
                 </div>
             </div>
 
-            <!-- Sankey Flow Diagram (replaces stat chips) -->
             <div class="md-card sankey-card" style="padding:16px;">
                 <div class="sankey-header">
-                    <span class="material-symbols-rounded" style="font-size:16px;">account_tree</span> Monthly Flow
+                    <span class="material-symbols-rounded text-lg">account_tree</span> Monthly Flow
                 </div>
                 <canvas id="sankey-canvas"></canvas>
             </div>
-            <!-- hidden stat refs for backwards compat -->
-            <div style="display:none;"><span id="sc-invested"></span><span id="sc-pnl"></span><span id="sc-savings-rate"></span><span id="sc-best-month"></span><span id="sc-streak"></span></div>
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
-                <div class="summary-card" style="flex:1;" onclick="openMonthDetails(1)">
+            <div class="block" style="display:none;"><span id="sc-invested"></span><span id="sc-pnl"></span><span id="sc-savings-rate"></span><span id="sc-best-month"></span><span id="sc-streak"></span></div>
+            <div class="flex gap-8 mb-8">
+                <div class="summary-card flex-1" onclick="openMonthDetails(1)">
                     <div class="sum-label">Last Month</div>
                     <div class="sum-val" id="last-month-val">0</div>
                 </div>
-                <div class="summary-card editable" style="flex:1;" onclick="openProjectionSheet()">
+                <div class="summary-card editable flex-1" onclick="openProjectionSheet()">
                     <div class="sum-label">Goal Target</div>
                     <div class="sum-val" id="next-month-val">0</div>
                 </div>
             </div>
 
-            <div class="section-title">Financial Trackers <span class="material-symbols-rounded"
-                    style="font-size:16px;color:var(--md-outline);">swipe</span></div>
+            <div class="section-title">Financial Trackers <span class="material-symbols-rounded text-lg text-muted">swipe</span></div>
 
             <div class="widget-carousel">
                 <div class="carousel-card" onclick="openMonthDetails('tax')">
                     <div class="tax-header">80C Status <span id="tax-val"
-                            style="font-size:12px; color:var(--md-on-surface);">0 / 1.5L</span></div>
+                            class="text-sm text-on-surface">0 / 1.5L</span></div>
                     <div class="tax-track">
                         <div class="tax-fill" id="tax-fill"></div>
                     </div>
                     <div id="tax-rollover-alert"
-                        style="display:none; margin-top:8px; font-size:11px; color:var(--md-primary); background:var(--md-primary-container); padding:6px; border-radius:6px;">
+                        class="block text-11px text-primary bg-primary-container" style="display:none; margin-top:8px; padding:6px; border-radius:6px;">
                         💡 Limit Maxed! Queue new FY assets.
                     </div>
                 </div>
 
                 <div class="carousel-card" onclick="openFIRESheet()">
                     <div class="fire-header">
-                        <div class="fire-title" style="font-size:14px;"><span class="material-symbols-rounded"
-                                style="font-size:16px;">local_fire_department</span> FIRE</div>
-                        <div id="fire-eta" style="font-size: 11px;">Set Target ></div>
+                        <div class="fire-title" style="font-size:14px;"><span class="material-symbols-rounded text-lg">local_fire_department</span> FIRE</div>
+                        <div id="fire-eta" class="text-11px">Set Target ></div>
                     </div>
                     <div class="fire-track">
                         <div class="fire-fill" id="fire-fill" style="width:0%;"></div>
                     </div>
-                    <div class="fire-stats" style="font-size:11px;"><span id="fire-saved">0</span><span
+                    <div class="fire-stats text-11px"><span id="fire-saved">0</span><span
                             id="fire-target">Target: 0</span></div>
                 </div>
 
-                <div class="carousel-card ai-dependent"
-                    style="background:var(--md-secondary-container); color:var(--md-on-secondary-container); border:none; cursor:pointer;"
+                <div class="carousel-card ai-dependent bg-secondary-container"
+                    style="color:var(--md-on-secondary-container);border:none;cursor:pointer;"
                     onclick="openAIHub('reports')">
-                    <div
-                        style="font-size:13px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
-                        <span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span> AI Hub
+                    <div class="flex items-center gap-8 font-semibold mb-8" style="font-size:13px;">
+                        <span class="material-symbols-rounded text-lg">auto_awesome</span> AI Hub
                     </div>
                     <div style="font-size:12px; line-height:1.4; opacity:0.9;">
                         Chat, Reports & Wealth Blueprint...
                     </div>
                 </div>
 
-                <div class="carousel-card ai-dependent-info"
-                    style="background:var(--md-surface-container); color:var(--md-on-surface-variant); border:none; cursor:default;">
-                    <div style="font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px;">
-                        <span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span> AI Hub
+                <div class="carousel-card ai-dependent-info bg-surface-container"
+                    style="color:var(--md-on-surface-variant);border:none;cursor:default;">
+                    <div class="flex items-center gap-8 font-semibold" style="font-size:13px;">
+                        <span class="material-symbols-rounded text-lg">auto_awesome</span> AI Hub
                     </div>
                     <div style="font-size:12px; line-height:1.4; opacity:0.8; margin-top:4px;">
                         Enable AI in Settings → App to access AI chat, reports & insights.
@@ -336,43 +336,42 @@
                 </div>
 
                 <div class="carousel-card" id="portfolio-summary-card">
-                    <div
-                        style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-                        <span class="material-symbols-rounded" style="font-size:16px;">account_balance</span> Portfolio
+                    <div class="flex items-center gap-8 font-semibold mb-8" style="font-size:13px;">
+                        <span class="material-symbols-rounded text-lg">account_balance</span> Portfolio
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:6px;">
-                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span
-                                style="color:var(--md-on-surface-variant);">Invested</span><span id="ps-invested"
-                                style="font-weight:600;">₹0</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span
-                                style="color:var(--md-on-surface-variant);">Returns</span><span id="ps-returns"
-                                style="font-weight:600;">₹0</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12px;"><span
-                                style="color:var(--md-on-surface-variant);">Assets</span><span id="ps-count"
-                                style="font-weight:600;">0</span></div>
+                    <div class="flex flex-col gap-8">
+                        <div class="flex justify-between text-sm"><span
+                                class="text-muted-variant">Invested</span><span id="ps-invested"
+                                class="font-semibold">₹0</span></div>
+                        <div class="flex justify-between text-sm"><span
+                                class="text-muted-variant">Returns</span><span id="ps-returns"
+                                class="font-semibold">₹0</span></div>
+                        <div class="flex justify-between text-sm"><span
+                                class="text-muted-variant">Assets</span><span id="ps-count"
+                                class="font-semibold">0</span></div>
                     </div>
                 </div>
             </div>
 
             <div class="section-title" style="justify-content:flex-start;gap:8px;"><span
-                    class="material-symbols-rounded" style="font-size:16px;">calendar_month</span> Activity Calendar
+                    class="material-symbols-rounded text-lg">calendar_month</span> Activity Calendar
             </div>
             <div class="md-card" style="padding:20px;">
                 <div id="heatmap-section">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                    <div class="flex items-center gap-8 mb-12">
                         <button class="icon-btn" onclick="shiftHeatmapMonth(-1)" id="heatmap-prev"
-                            title="Previous month"><span class="material-symbols-rounded">chevron_left</span></button>
-                        <div style="font-size:15px;font-weight:500;color:var(--md-on-surface);flex:1;text-align:center;"
+                            aria-label="Previous month" title="Previous month"><span class="material-symbols-rounded">chevron_left</span></button>
+                        <div class="flex-1 text-center font-semibold text-on-surface" style="font-size:15px;"
                             id="heatmap-month-title">Activity Calendar</div>
                         <button class="icon-btn" onclick="shiftHeatmapMonth(1)" id="heatmap-next"
-                            title="Next month"><span class="material-symbols-rounded">chevron_right</span></button>
+                            aria-label="Next month" title="Next month"><span class="material-symbols-rounded">chevron_right</span></button>
                     </div>
                     <div class="heatmap-grid" id="heatmap-grid"></div>
                 </div>
             </div>
 
             <div class="section-title" style="justify-content:flex-start;gap:8px;"><span
-                    class="material-symbols-rounded" style="font-size:16px;">trending_up</span> 12‑Month Trend</div>
+                    class="material-symbols-rounded text-lg">trending_up</span> 12‑Month Trend</div>
             <div class="md-card" style="padding:20px;">
                 <div class="chart-container-js"><canvas id="rollingChart"></canvas></div>
             </div>
@@ -419,8 +418,8 @@
                 <div>
                     <button
                         style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;font-weight:500; margin-right:8px;"
-                        onclick="autoSetGoalsViaAI()"><span class="material-symbols-rounded"
-                            style="font-size:16px;vertical-align:text-bottom;">auto_awesome</span> AI Sync</button>
+                        onclick="autoSetGoalsViaAI()"><span class="material-symbols-rounded icon-sm"
+                            style="vertical-align:text-bottom;">auto_awesome</span> AI Sync</button>
                     <button
                         style="background:transparent;border:none;color:var(--md-primary);cursor:pointer;font-weight:500;"
                         onclick="openGoalSheet()">+ Add</button>
@@ -435,18 +434,18 @@
             <!-- Action buttons -->
             <div style="display:flex;gap:8px;margin-bottom:12px;">
                 <button class="action-btn primary" style="flex:1;" onclick="openSheet('recurring-sheet')"><span
-                        class="material-symbols-rounded" style="font-size:18px;">autorenew</span> SIPs</button>
+                        class="material-symbols-rounded icon-18">autorenew</span> SIPs</button>
                 <button class="action-btn" id="ledger-select-btn" onclick="toggleLedgerSelection()" title="Select entries"><span
-                        class="material-symbols-rounded" style="font-size:18px;">checklist</span></button>
-                <button class="action-btn" onclick="exportToCSV()" title="Export CSV"><span class="material-symbols-rounded"
-                        style="font-size:18px;">download</span></button>
+                        class="material-symbols-rounded icon-18">checklist</span></button>
+                <button class="action-btn" onclick="exportToCSV()" title="Export CSV"><span class="material-symbols-rounded icon-18"
+                        >download</span></button>
             </div>
 
             <!-- Batch action bar (hidden by default) -->
             <div id="ledger-batch-bar" style="display:none;align-items:center;gap:12px;margin-bottom:12px;padding:10px 14px;background:var(--md-error-container);border-radius:12px;">
                 <span style="font-size:14px;font-weight:500;color:var(--md-on-error-container);flex:1;" id="ledger-select-count">0 selected</span>
-                <button class="action-btn" onclick="selectAllLedgerEntries()" style="background:var(--md-surface-container);color:var(--md-on-surface);font-size:12px;padding:6px 12px;border-radius:8px;gap:4px;"><span class="material-symbols-rounded" style="font-size:16px;">select_all</span> All</button>
-                <button class="action-btn" onclick="deleteSelectedInvestments()" style="background:var(--md-error);color:var(--md-on-error);font-size:12px;padding:6px 14px;border-radius:8px;gap:4px;"><span class="material-symbols-rounded" style="font-size:16px;">delete</span> Delete</button>
+                <button class="action-btn" onclick="selectAllLedgerEntries()" style="background:var(--md-surface-container);color:var(--md-on-surface);font-size:12px;padding:6px 12px;border-radius:8px;gap:4px;"><span class="material-symbols-rounded icon-sm">select_all</span> All</button>
+                <button class="action-btn" onclick="deleteSelectedInvestments()" style="background:var(--md-error);color:var(--md-on-error);font-size:12px;padding:6px 14px;border-radius:8px;gap:4px;"><span class="material-symbols-rounded icon-sm">delete</span> Delete</button>
             </div>
 
             <!-- Search + Type Filter -->
@@ -454,7 +453,7 @@
                 <div style="flex:1;position:relative;">
                     <input type="text" id="search-history" class="search-box" style="margin-bottom:0;width:100%;padding-left:36px;"
                         placeholder="Search entries..." onkeyup="renderHistory()">
-                    <span class="material-symbols-rounded" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--md-outline);">search</span>
+                    <span class="material-symbols-rounded icon-18" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--md-outline);">search</span>
                 </div>
                 <select id="ledger-filter-type" class="search-box"
                     style="width:auto;margin-bottom:0;padding:0 14px;border-radius:28px;" onchange="renderHistory()">
@@ -502,15 +501,15 @@
     </main>
 
     <nav class="bottom-nav">
-        <div class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')">
+        <div class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')" aria-label="Dashboard">
             <div class="nav-icon-wrap"><span class="material-symbols-rounded">dashboard</span></div><span
                 class="nav-label">Dashboard</span>
         </div>
-        <div class="nav-item" id="nav-portfolio" onclick="switchTab('portfolio')">
+        <div class="nav-item" id="nav-portfolio" onclick="switchTab('portfolio')" aria-label="Portfolio">
             <div class="nav-icon-wrap"><span class="material-symbols-rounded">pie_chart</span></div><span
                 class="nav-label">Portfolio</span>
         </div>
-        <div class="nav-item" id="nav-ledger" onclick="switchTab('ledger')">
+        <div class="nav-item" id="nav-ledger" onclick="switchTab('ledger')" aria-label="Ledger">
             <div class="nav-icon-wrap"><span class="material-symbols-rounded">list_alt</span><span class="nav-badge"
                     id="ledger-entry-badge" style="display:none;"></span></div><span class="nav-label">Ledger</span>
         </div>
@@ -519,7 +518,7 @@
         title="Build version" class="version-badge"></div>
     <script>document.querySelector('.version-badge').textContent = APP_VERSION;</script>
 
-    <button class="fab" onclick="openInvestSheet()" title="Add Entry (N)"><span
+    <button class="fab" onclick="openInvestSheet()" title="Add Entry (N)" aria-label="Add investment entry"><span
             class="material-symbols-rounded">add</span> Add Entry</button>
     <div class="scrim" id="scrim" onclick="closeTopmost()"></div>
     <div class="scrim-sub" id="scrim-sub" onclick="closeSubSheet()"></div>
@@ -530,7 +529,7 @@
         <div class="sheet-title">
             <span style="display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded"
                     style="color:var(--md-primary);">autorenew</span> Recurring SIPs</span>
-            <button class="icon-btn" onclick="closeOverlays()"><span
+            <button class="icon-btn" onclick="closeOverlays()" aria-label="Close"><span
                     class="material-symbols-rounded">close</span></button>
         </div>
         <div class="scroll-y" style="flex:1; padding-bottom:20px;">
@@ -588,17 +587,17 @@
 
             <div id="dynamic-qty-price" class="input-row" style="display:none;">
                 <div class="input-container" style="flex:1"><label>Quantity / Units</label><input type="number"
-                        id="inv-qty" class="md-input" placeholder="0" step="0.0001" oninput="calculateDynamicTotal()">
+                        id="inv-qty" class="md-input" placeholder="0" step="0.0001" inputmode="decimal" oninput="calculateDynamicTotal()">
                 </div>
                 <div class="input-container" style="flex:1"><label>Price / NAV (₹)</label><input type="number"
-                        id="inv-price" class="md-input" placeholder="0.00" step="0.0001"
+                        id="inv-price" class="md-input" placeholder="0.00" step="0.0001" inputmode="decimal"
                         oninput="calculateDynamicTotal()">
                 </div>
             </div>
 
             <div id="dynamic-fd-fields" class="input-row" style="display:none;">
                 <div class="input-container" style="flex:1"><label>Interest Rate (% APY)</label><input type="number"
-                        id="inv-interest" class="md-input" placeholder="e.g. 7.1" step="0.1"></div>
+                        id="inv-interest" class="md-input" placeholder="e.g. 7.1" step="0.1" inputmode="decimal"></div>
                 <div class="input-container" style="flex:1"><label>Payout Type</label>
                     <select id="inv-payout" class="md-input">
                         <option value="quarterly">Cumulative (Quarterly)</option>
@@ -610,12 +609,12 @@
 
             <div id="dynamic-growth-fields" class="input-row" style="display:none;">
                 <div class="input-container" style="flex:1"><label>Expected Appreciation (% Yr)</label><input
-                        type="number" id="inv-growth" class="md-input" placeholder="e.g. 12" step="0.1"></div>
+                        type="number" id="inv-growth" class="md-input" placeholder="e.g. 12" step="0.1" inputmode="decimal"></div>
             </div>
 
             <div id="dynamic-sip-day-field" class="input-row" style="display:none;">
                 <div class="input-container" style="flex:1"><label>SIP Date (Day of Month)</label><input type="number"
-                        id="inv-sip-day" class="md-input" placeholder="e.g. 5" min="1" max="31"></div>
+                        id="inv-sip-day" class="md-input" placeholder="e.g. 5" min="1" max="31" inputmode="numeric"></div>
                 <div class="input-container" style="flex:1"><label>Investment Mode</label>
                     <select id="inv-mode" class="md-input">
                         <option value="monthly">Monthly SIP</option>
@@ -627,14 +626,14 @@
             <div id="dynamic-sip-fields" style="display:none; margin-bottom:16px;">
                 <div class="input-container" style="margin-bottom:0;">
                     <label>Initial Payment / Lump Sum (₹)</label>
-                    <input type="number" id="inv-initial-payment" class="md-input" placeholder="0.00">
+                    <input type="number" id="inv-initial-payment" class="md-input" placeholder="0.00" inputmode="decimal">
                 </div>
                 <div style="font-size:11px;color:var(--md-primary);margin-top:4px;">Logs an immediate one-time balance
                     alongside the recurring config.</div>
             </div>
 
             <div class="input-container"><label id="inv-amt-label">Amount (₹)</label><input type="number" id="inv-amt"
-                    class="md-input" placeholder="0.00" oninput="reverseCalculateUnits()"></div>
+                    class="md-input" placeholder="0.00" required min="0" step="0.01" inputmode="decimal" oninput="reverseCalculateUnits()"></div>
 
             <div class="input-row">
                 <div class="input-container" style="flex:2"><label>Asset Note / Name</label><input type="text"
@@ -687,7 +686,7 @@
             <div id="invest-smart-preview"
                 style="display:none; background:var(--md-primary-container); color:var(--md-on-primary-container); padding:16px; border-radius:16px; margin:16px 0; font-size:13px; line-height:1.5;">
                 <div style="font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-                    <span class="material-symbols-rounded" style="font-size:18px;">analytics</span>
+                    <span class="material-symbols-rounded icon-18">analytics</span>
                     Smart Insight
                 </div>
                 <div id="smart-preview-content"></div>
@@ -724,18 +723,18 @@
             </div>
             <div style="display:flex; gap:8px;">
                 <button id="ai-hub-tab-chat" class="ai-hub-tab active" onclick="switchAIHubTab('chat')"><span
-                        class="material-symbols-rounded" style="font-size:18px;">chat</span> Chat</button>
+                        class="material-symbols-rounded icon-18">chat</span> Chat</button>
                 <button id="ai-hub-tab-reports" class="ai-hub-tab" onclick="switchAIHubTab('reports')"><span
-                        class="material-symbols-rounded" style="font-size:18px;">description</span> Reports</button>
+                        class="material-symbols-rounded icon-18">description</span> Reports</button>
             </div>
         </div>
         <div class="scroll-y" id="ai-hub-body" style="flex:1; padding:0 20px 20px;">
             <div id="ai-hub-chat-tab">
                 <div style="display:flex; gap:8px; margin-bottom:12px;">
                     <button class="btn-secondary" style="flex:1; padding:8px;" onclick="startNewChatInHub()"><span
-                            class="material-symbols-rounded" style="font-size:16px;">add</span> New Chat</button>
+                            class="material-symbols-rounded icon-sm">add</span> New Chat</button>
                     <button class="btn-secondary" style="flex:1; padding:8px;" onclick="toggleChatHistory()"><span
-                            class="material-symbols-rounded" style="font-size:16px;">history</span> History</button>
+                            class="material-symbols-rounded icon-sm">history</span> History</button>
                 </div>
                 <div id="ai-hub-history-panel" style="display:none; margin-bottom:12px;"></div>
                 <div id="ai-hub-chat-messages" style="display:flex; flex-direction:column; min-height:180px;"></div>
@@ -743,16 +742,16 @@
             <div id="ai-hub-reports-tab" style="display:none;">
                 <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
                     <button class="ai-hub-report-btn" onclick="generateAIHubReport('full_report')"><span
-                            class="material-symbols-rounded" style="font-size:16px;">analytics</span> Full AI
+                            class="material-symbols-rounded icon-sm">analytics</span> Full AI
                         Report</button>
                     <button class="ai-hub-report-btn" onclick="generateAIHubReport('ledger')"><span
-                            class="material-symbols-rounded" style="font-size:16px;">receipt_long</span> Ledger
+                            class="material-symbols-rounded icon-sm">receipt_long</span> Ledger
                         Report</button>
                     <button class="ai-hub-report-btn" onclick="generateAIHubReport('blueprint')"><span
-                            class="material-symbols-rounded" style="font-size:16px;">account_balance</span> Wealth
+                            class="material-symbols-rounded icon-sm">account_balance</span> Wealth
                         Blueprint</button>
                     <button class="ai-hub-report-btn" onclick="generateAIHubReport('forecast')"><span
-                            class="material-symbols-rounded" style="font-size:16px;">trending_up</span>
+                            class="material-symbols-rounded icon-sm">trending_up</span>
                         Forecast</button>
                 </div>
                 <div id="ai-hub-report-content"></div>
@@ -767,9 +766,8 @@
                     placeholder="Ask about your wealth..."
                     onkeydown="if(event.key==='Enter'){event.preventDefault(); sendAIChatInHub();}">
                 <button id="ai-hub-send-btn"
-                    style="width:36px; height:36px; border-radius:12px; background:var(--md-primary); color:var(--md-on-primary); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;"
-                    onclick="sendAIChatInHub()"><span class="material-symbols-rounded"
-                        style="font-size:18px;">send</span></button>
+                    class="icon-box-36" style="background:var(--md-primary); color:var(--md-on-primary); border:none; cursor:pointer;"
+                    onclick="sendAIChatInHub()"><span class="material-symbols-rounded icon-18">send</span></button>
             </div>
         </div>
     </div>
@@ -779,7 +777,7 @@
         <div class="sheet-title"
             style="margin-bottom:12px; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
             <h3 id="cat-sheet-title" style="margin:0;">Category</h3>
-            <button class="icon-btn" onclick="closeOverlays()"><span
+            <button class="icon-btn" onclick="closeOverlays()" aria-label="Close"><span
                     class="material-symbols-rounded">close</span></button>
         </div>
 
@@ -908,7 +906,7 @@
         <div class="sheet-title mb-12 flex-shrink-0">
             <div class="flex items-center gap-8"><span class="material-symbols-rounded">settings</span>
                 Settings</div>
-            <button class="icon-btn" onclick="closeOverlays()"><span
+            <button class="icon-btn" onclick="closeOverlays()" aria-label="Close"><span
                     class="material-symbols-rounded">close</span></button>
         </div>
 
@@ -930,7 +928,7 @@
                 <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     Financial Profile</div>
                 <div class="input-container"><label>Gross Annual Salary (₹)</label><input type="number"
-                        id="settings-salary" class="md-input" placeholder="e.g. 1500000"></div>
+                        id="settings-salary" class="md-input" placeholder="e.g. 1500000" min="0" step="1000" inputmode="decimal"></div>
                 <div class="input-row">
                     <div class="input-container flex-1"><label>Tax Regime</label>
                         <select id="settings-regime" class="md-input">
@@ -939,7 +937,7 @@
                         </select>
                     </div>
                     <div class="input-container flex-1"><label>Monthly Expenses (₹)</label><input type="number"
-                            id="settings-expenses" class="md-input" placeholder="e.g. 50000"></div>
+                            id="settings-expenses" class="md-input" placeholder="e.g. 50000" min="0" step="100" inputmode="decimal"></div>
                 </div>
                 <div class="input-row">
                     <div class="input-container flex-1"><label>FY Start Month</label>
@@ -965,8 +963,7 @@
                     </div>
                 </div>
                 <div class="p-16 flex flex-col gap-16">
-                    <div class="flex items-center justify-between bg-surface-container-low"
-                        style="padding:12px 16px; border-radius:16px; border:1px solid var(--md-surface-container-highest);">
+                    <div class="setting-row bg-surface-container-low" style="border:1px solid var(--md-surface-container-highest);">
                         <div>
                             <div class="font-medium text-base text-on-surface">Date of Birth
                             </div>
@@ -982,7 +979,7 @@
                 
                 <div class="input-row">
                     <div class="input-container flex-1"><label>Credit Score</label><input type="number"
-                            id="settings-credit-score" class="md-input" placeholder="e.g. 750"></div>
+                            id="settings-credit-score" class="md-input" placeholder="e.g. 750" min="300" max="900" inputmode="numeric"></div>
                     <div class="input-container flex-1"><label>Risk Tolerance</label>
                         <select id="settings-risk" class="md-input">
                             <option value="moderate">Moderate</option>
@@ -993,7 +990,7 @@
                 </div>
                 <div class="input-row">
                     <div class="input-container flex-1"><label>Dependents</label><input type="number"
-                            id="settings-dependents" class="md-input" placeholder="e.g. 2"></div>
+                            id="settings-dependents" class="md-input" placeholder="e.g. 2" min="0" max="20" inputmode="numeric"></div>
                     <div class="input-container" style="flex:2"><label>Primary Financial Goal</label><input type="text"
                             id="settings-primary-goal" class="md-input" placeholder="e.g. Buy a house in 5 years"></div>
                 </div>
@@ -1001,7 +998,7 @@
                 <div class="text-sm font-semibold text-primary uppercase tracking-wide" style="margin:20px 0 12px;">
                     Dashboard Features</div>
 
-                <div class="flex items-center justify-between bg-surface-container mb-8" style="padding:14px 16px; border-radius:14px;">
+                <div class="setting-row bg-surface-container mb-8">
                     <div>
                         <div class="font-medium text-base text-on-surface">Monthly Planner</div>
                         <div class="text-sm text-muted-variant mt-4">Budget your
@@ -1011,7 +1008,7 @@
                             class="slider"></span></label>
                 </div>
 
-                <div class="flex items-center justify-between bg-surface-container mb-8" style="padding:14px 16px; border-radius:14px;">
+                <div class="setting-row bg-surface-container mb-8">
                     <div>
                         <div class="font-medium text-base text-on-surface">Spend Tracker</div>
                         <div class="text-sm text-muted-variant mt-4">Track expenses,
@@ -1021,7 +1018,7 @@
                             class="slider"></span></label>
                 </div>
 
-                <div class="flex items-center justify-between bg-surface-container mb-8" style="padding:14px 16px; border-radius:14px;">
+                <div class="setting-row bg-surface-container mb-8">
                     <div>
                         <div class="font-medium text-base text-on-surface">Account Overview</div>
                         <div class="text-sm text-muted-variant mt-4">Cards, bank accounts & PF details</div>
@@ -1054,10 +1051,10 @@
 
                 <div class="text-sm font-semibold text-primary uppercase tracking-wide mb-16">
                     AI Features</div>
-                <div class="flex items-center justify-between bg-surface-container mb-12" style="padding:14px 16px; border-radius:14px;">
+                <div class="setting-row bg-surface-container mb-12">
                     <div>
                         <div class="font-medium text-base text-on-surface">Enable AI</div>
-                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">AI chat, reports,
+                        <div class="setting-desc">AI chat, reports,
                             auto-categorize, forecasts</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="settings-ai-toggle" onchange="saveToggleState('ai', this.checked)"><span
@@ -1081,11 +1078,11 @@
 
                 <div class="text-sm font-semibold text-primary uppercase tracking-wide mt-24 mb-12">
                     Web Connectivity</div>
-                <div class="flex items-center justify-between bg-surface-container mb-12" style="padding:14px 16px; border-radius:14px;">
+                <div class="setting-row bg-surface-container mb-12">
                     <div>
                         <div class="font-medium text-base text-on-surface">Enable Web Access
                         </div>
-                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;">Live prices, NAV lookup,
+                        <div class="setting-desc">Live prices, NAV lookup,
                             exchange rates, gold rates</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="settings-web-toggle" onchange="saveToggleState('web', this.checked)"><span
@@ -1094,92 +1091,92 @@
 
                 <div class="text-sm font-semibold text-primary uppercase tracking-wide mt-24 mb-12">
                     Notifications</div>
-                <div class="flex items-center justify-between bg-surface-container mb-4" style="padding:14px 16px; border-radius:14px;">
+                <div class="setting-row bg-surface-container mb-4">
                     <div>
                         <div class="font-medium text-base text-on-surface">Master Toggle</div>
-                        <div style="font-size:11px; color:var(--md-outline); margin-top:2px;" id="notif-status-text">
+                        <div class="setting-desc" id="notif-status-text">
                             Requires browser permission</div>
                     </div>
                     <label class="switch"><input type="checkbox" id="notif-master-toggle"
                             onchange="toggleNotificationMaster(this.checked)"><span class="slider"></span></label>
                 </div>
-                <div id="notif-preferences" class="flex flex-col" style="gap:4px; margin-top:4px;">
-                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
+                <div id="notif-preferences" class="flex flex-col gap-4 mt-4">
+                    <div class="notif-row bg-surface-container-highest">
                         <div>
-                            <div style="font-weight:500; font-size:13px;">SIP Reminders</div>
-                            <div style="font-size:11px; color:var(--md-outline);">Notify when SIPs are due</div>
+                            <div class="notif-row-title">SIP Reminders</div>
+                            <div class="setting-desc">Notify when SIPs are due</div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="sipReminders"><span
                                 class="slider"></span></label>
                     </div>
-                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
+                    <div class="notif-row bg-surface-container-highest">
                         <div>
-                            <div style="font-weight:500; font-size:13px;">Maturity Alerts</div>
-                            <div style="font-size:11px; color:var(--md-outline);">Upcoming FD/PPF maturity reminders
+                            <div class="notif-row-title">Maturity Alerts</div>
+                            <div class="setting-desc">Upcoming FD/PPF maturity reminders
                             </div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="maturityAlerts"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
+                    <div class="notif-row bg-surface-container-highest">
                         <div>
-                            <div style="font-weight:500; font-size:13px;">Goal Progress</div>
-                            <div style="font-size:11px; color:var(--md-outline);">Monthly goal achievement updates</div>
+                            <div class="notif-row-title">Goal Progress</div>
+                            <div class="setting-desc">Monthly goal achievement updates</div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="goalProgressUpdates"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
+                    <div class="notif-row bg-surface-container-highest">
                         <div>
-                            <div style="font-weight:500; font-size:13px;">Weekly Digest</div>
-                            <div style="font-size:11px; color:var(--md-outline);">Weekly portfolio summary</div>
+                            <div class="notif-row-title">Weekly Digest</div>
+                            <div class="setting-desc">Weekly portfolio summary</div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="weeklyDigest"><span
                                 class="slider"></span></label>
                     </div>
-                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
+                    <div class="notif-row bg-surface-container-highest">
                         <div>
-                            <div style="font-weight:500; font-size:13px;">Price Alerts</div>
-                            <div style="font-size:11px; color:var(--md-outline);">Stock/MF price movement alerts</div>
+                            <div class="notif-row-title">Price Alerts</div>
+                            <div class="setting-desc">Stock/MF price movement alerts</div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle" data-key="priceAlerts"><span
                                 class="slider"></span></label>
                     </div>
-                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
+                    <div class="notif-row bg-surface-container-highest">
                         <div>
-                            <div style="font-weight:500; font-size:13px;">Spend Confirmations</div>
-                            <div style="font-size:11px; color:var(--md-outline);">Notify after adding spend entries
+                            <div class="notif-row-title">Spend Confirmations</div>
+                            <div class="setting-desc">Notify after adding spend entries
                             </div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="spendConfirmations"><span class="slider"></span></label>
                     </div>
-                    <div class="notif-row flex items-center justify-between bg-surface-container-highest" style="padding:12px 16px; border-radius:12px;">
+                    <div class="notif-row bg-surface-container-highest">
                         <div>
-                            <div style="font-weight:500; font-size:13px;">Daily Spend Summary</div>
-                            <div style="font-size:11px; color:var(--md-outline);">Daily total spent notification
+                            <div class="notif-row-title">Daily Spend Summary</div>
+                            <div class="setting-desc">Daily total spent notification
                             </div>
                         </div>
                         <label class="switch"><input type="checkbox" class="notif-toggle"
                                 data-key="dailySpendSummary"><span class="slider"></span></label>
                     </div>
                 </div>
-                <div style="font-size:11px; color:var(--md-outline); margin-top:8px;">Notifications work offline via
+                <div class="setting-desc">Notifications work offline via
                     service worker. No server needed.</div>
 
                 <div class="text-sm font-semibold text-primary uppercase tracking-wide mt-24 mb-16">
                     Color Scheme</div>
-                <div class="scheme-options flex gap-8" style="margin-bottom:20px;">
+                <div class="scheme-options flex gap-8 mb-20">
                     <button class="scheme-option scheme-auto active" onclick="setColorScheme('auto')">
-                        <span class="material-symbols-rounded" style="font-size:20px;">brightness_auto</span>
+                        <span class="material-symbols-rounded icon-lg">brightness_auto</span>
                         <span>System</span>
                     </button>
                     <button class="scheme-option scheme-light" onclick="setColorScheme('light')">
-                        <span class="material-symbols-rounded" style="font-size:20px;">light_mode</span>
+                        <span class="material-symbols-rounded icon-lg">light_mode</span>
                         <span>Light</span>
                     </button>
                     <button class="scheme-option scheme-dark" onclick="setColorScheme('dark')">
-                        <span class="material-symbols-rounded" style="font-size:20px;">dark_mode</span>
+                        <span class="material-symbols-rounded icon-lg">dark_mode</span>
                         <span>Dark</span>
                     </button>
                 </div>
@@ -1361,7 +1358,7 @@
         <div class="drag-handle"></div>
         <h3 class="sheet-title flex items-center justify-between w-full">
             <span id="month-sheet-title">Summary</span>
-            <button class="icon-btn" onclick="closeSubSheet()"><span
+            <button class="icon-btn" onclick="closeSubSheet()" aria-label="Close"><span
                     class="material-symbols-rounded">close</span></button>
         </h3>
         <div id="month-history-list" class="list" style="overflow-y:auto; padding-bottom:20px;"></div>
@@ -1386,7 +1383,7 @@
         <div class="drag-handle"></div>
         <div class="flex items-center justify-between w-full gap-8">
             <h3 class="sheet-title m-0 flex-1"><span class="material-symbols-rounded icon-md" style="vertical-align:middle;">currency_exchange</span> Withdrawable & Usable Money</h3>
-            <button class="icon-btn" onclick="closeUsableMoneyDetails()"><span class="material-symbols-rounded">close</span></button>
+            <button class="icon-btn" onclick="closeUsableMoneyDetails()" aria-label="Close"><span class="material-symbols-rounded">close</span></button>
         </div>
         <div id="usable-money-details-body" class="flex flex-col gap-12"></div>
     </div>
@@ -1430,9 +1427,9 @@
         <div class="flex justify-between items-center mb-12">
             <h3 class="sheet-title m-0"><span class="material-symbols-rounded" style="font-size:20px;vertical-align:middle;">notifications</span> Notifications</h3>
             <div class="flex gap-4">
-                <button class="icon-btn" onclick="markAllNotificationsRead()" title="Mark all read"><span class="material-symbols-rounded" style="font-size:18px;">done_all</span></button>
-                <button class="icon-btn" onclick="clearAllNotifications()" title="Clear all"><span class="material-symbols-rounded" style="font-size:18px;color:var(--md-error);">delete_sweep</span></button>
-                <button class="icon-btn" onclick="closeSubSheet()"><span class="material-symbols-rounded" style="font-size:18px;">close</span></button>
+                <button class="icon-btn" onclick="markAllNotificationsRead()" title="Mark all read"><span class="material-symbols-rounded icon-18">done_all</span></button>
+                <button class="icon-btn" onclick="clearAllNotifications()" title="Clear all"><span class="material-symbols-rounded icon-18" style="color:var(--md-error);">delete_sweep</span></button>
+                <button class="icon-btn" onclick="closeSubSheet()"><span class="material-symbols-rounded icon-18">close</span></button>
             </div>
         </div>
         <div id="notif-list" class="flex flex-col gap-4" style="max-height:55vh; overflow-y:auto;"></div>

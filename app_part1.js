@@ -1130,11 +1130,11 @@ function renderRecurringSheet() {
         if (typeof getEmptyStateHTML === 'function') {
             list.innerHTML = getEmptyStateHTML('recurring');
         } else {
-            list.innerHTML = `<div class="empty-state-premium" style="padding:40px 24px; text-align:center;">
-                <span class="material-symbols-rounded" style="font-size:48px; color:var(--md-outline); margin-bottom:16px;">autorenew</span>
-                <div style="font-size:18px; font-weight:600; margin-bottom:8px;">No Recurring SIPs</div>
-                <div style="font-size:14px; color:var(--md-on-surface-variant); margin-bottom:24px;">Set up automatic monthly investments to build wealth consistently</div>
-                <button class="btn-primary" style="display:inline-flex; align-items:center; gap:8px;" onclick="openRecurringSheet(); setTimeout(()=>{document.getElementById('inv-is-monthly').checked=true;}, 200)">
+            list.innerHTML = `<div class="empty-state-premium">
+                <span class="material-symbols-rounded empty-state-icon">autorenew</span>
+                <div class="empty-state-title">No Recurring SIPs</div>
+                <div class="empty-state-subtitle">Set up automatic monthly investments to build wealth consistently</div>
+                <button class="btn-primary flex items-center gap-8" onclick="openRecurringSheet(); setTimeout(()=>{document.getElementById('inv-is-monthly').checked=true;}, 200)">
                     <span class="material-symbols-rounded">schedule</span> Add SIP
                 </button>
             </div>`;
@@ -1145,13 +1145,13 @@ function renderRecurringSheet() {
         let meta = db.categories[r.type] || { color: '#8D6E63', icon: 'savings' };
         let next = new Date(r.nextRun).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
         return `<div class="sip-item">
-                    <div class="sip-item-icon" style="background:${escapeHtml(meta.color)};"><span class="material-symbols-rounded" style="font-size:18px;">${escapeHtml(meta.icon)}</span></div>
+                    <div class="sip-item-icon" style="background:${escapeHtml(meta.color)};"><span class="material-symbols-rounded icon-18">${escapeHtml(meta.icon)}</span></div>
                     <div class="sip-item-info">
                         <div class="sip-item-name">${escapeHtml(r.note || r.type)}</div>
                         <div class="sip-item-meta">${escapeHtml(r.type)} · Next: ${next} · ${escapeHtml(r.account || 'Default')}</div>
                     </div>
                     <div class="sip-item-amt">${formatMoney(r.amount)}</div>
-                    <button class="icon-btn" onclick="deleteRecurring('${r.id}')" style="width:36px;height:36px;color:var(--md-error);"><span class="material-symbols-rounded" style="font-size:18px;">delete</span></button>
+                    <button class="icon-btn flex-center" style="width:36px;height:36px;color:var(--md-error);"><span class="material-symbols-rounded icon-18">delete</span></button>
                 </div>`;
     }).join('');
 }
@@ -2019,9 +2019,9 @@ window.aiPredictNextMonth = async function () {
     if (!db.geminiKey && !db.groqKey) { showSnackbar('Add API Key in Settings', 'key'); return; }
     const resultDiv = document.getElementById('ai-prediction-result');
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = `<div style="padding:16px;text-align:center;color:var(--md-primary);">
+    resultDiv.innerHTML = `<div class="p-16 text-center" style="color:var(--md-primary);">
         <span class="material-symbols-rounded ai-loading-icon" style="font-size:28px;">autorenew</span>
-        <div style="margin-top:8px;font-size:13px;">Generating prediction...</div></div>`;
+        <div class="mt-8 text-sm">Generating prediction...</div></div>`;
 
     let now = new Date(); let catMonthly = {};
     (Object.keys(db.categories || {})).forEach(cat => { catMonthly[cat] = []; });
@@ -2043,26 +2043,26 @@ window.aiPredictNextMonth = async function () {
         raw = raw.replace(/```json|```/g, '').trim();
         let predictions = JSON.parse(raw);
         let total = predictions.reduce((s, p) => s + p.predicted, 0);
-        let html = `<div style="background:var(--md-primary-container);color:var(--md-on-primary-container);border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;">
-            <div style="font-size:12px;font-weight:500;opacity:0.8;">Predicted Total Next Month</div>
-            <div style="font-size:28px;font-weight:600;margin:4px 0;">₹${fmtNum(total)}</div>
-            <button class="btn-primary" style="margin-top:8px;padding:6px 16px;font-size:12px;" onclick="document.getElementById('monthly-target-amt').value=${total};saveMonthlyTarget()"><span class="material-symbols-rounded" style="font-size:16px;">check</span> Apply as Target</button>
-        </div><div style="display:flex;flex-direction:column;gap:8px;">`;
+        let html = `<div class="bg-primary-container text-center p-16 mb-12" style="color:var(--md-on-primary-container);border-radius:16px;">
+            <div class="text-sm font-medium" style="opacity:0.8;">Predicted Total Next Month</div>
+            <div class="text-2xl font-semibold" style="margin:4px 0;">₹${fmtNum(total)}</div>
+            <button class="btn-primary mt-8" style="padding:6px 16px;font-size:12px;" onclick="document.getElementById('monthly-target-amt').value=${total};saveMonthlyTarget()"><span class="material-symbols-rounded icon-sm">check</span> Apply as Target</button>
+        </div><div class="flex flex-col gap-8">`;
         predictions.forEach(p => {
             let meta = (db.categories || {})[p.category] || { color: '#8D6E63', icon: 'savings' };
             let trendIcon = p.trend === 'up' ? 'trending_up' : p.trend === 'down' ? 'trending_down' : 'trending_flat';
             let trendColor = p.trend === 'up' ? 'var(--md-success)' : p.trend === 'down' ? 'var(--md-error)' : 'var(--md-outline)';
             let trendBg = p.trend === 'up' ? 'var(--md-success-container)' : p.trend === 'down' ? 'var(--md-error-container)' : 'var(--md-surface-container-highest)';
-            html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--md-surface-container);border-radius:12px;border-left:3px solid ${escapeHtml(meta.color)};">
-                <div style="width:32px;height:32px;border-radius:8px;background:${escapeHtml(meta.color)}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <span class="material-symbols-rounded" style="font-size:16px;color:${escapeHtml(meta.color)};">${escapeHtml(meta.icon)}</span>
+            html += `<div class="flex items-center gap-10 card-surface" style="border-left:3px solid ${escapeHtml(meta.color)};">
+                <div class="icon-box-32 flex-shrink-0" style="background:${escapeHtml(meta.color)}20;">
+                    <span class="material-symbols-rounded icon-sm" style="color:${escapeHtml(meta.color)};">${escapeHtml(meta.icon)}</span>
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-size:13px;font-weight:500;">${escapeHtml(p.category)}</div>
-                    <div style="font-size:11px;color:var(--md-outline);">${escapeHtml(p.reason)}</div>
+                    <div class="text-sm text-muted">${escapeHtml(p.reason)}</div>
                 </div>
-                <div style="text-align:right;">
-                    <div style="font-size:14px;font-weight:600;">₹${fmtNum(p.predicted)}</div>
+                <div class="text-right">
+                    <div class="text-base font-semibold">₹${fmtNum(p.predicted)}</div>
                     <span style="display:inline-flex;align-items:center;gap:3px;margin-top:2px;background:${trendBg};padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;color:${trendColor};text-transform:capitalize;">
                         <span class="material-symbols-rounded" style="font-size:12px;">${trendIcon}</span>${p.trend}
                     </span>
@@ -3175,10 +3175,10 @@ function updateSmartPreview() {
             else currentVal = amt * (1 + (rate / 100) * years);
         }
 
-        html = `<div style="padding:12px; border-radius:12px; background:var(--md-primary-container); color:var(--md-on-primary-container);">
-            <div style="font-size:11px; opacity:0.8; margin-bottom:4px;">Accrued Value (${years.toFixed(1)}Y)</div>
-            <div style="font-size:20px; font-weight:600;">₹${fmtNum(currentVal.toFixed(0))}</div>
-            <div style="font-size:11px; margin-top:4px;">Interest: <span style="color:var(--md-success);">+₹${fmtNum((currentVal - amt).toFixed(0))}</span></div>
+        html = `<div class="preview-card preview-card-fd">
+            <div class="preview-label">Accrued Value (${years.toFixed(1)}Y)</div>
+            <div class="preview-value">₹${fmtNum(currentVal.toFixed(0))}</div>
+            <div class="preview-sub">Interest: <span class="preview-gain">+₹${fmtNum((currentVal - amt).toFixed(0))}</span></div>
         </div>`;
     } else if (type === 'SIP') {
         const isMonthly = document.getElementById('inv-is-monthly').checked;
@@ -3187,35 +3187,35 @@ function updateSmartPreview() {
             const totalInvested = amt * (months + 1);
             const r = rate / (100 * 12);
             const futureVal = amt * ((Math.pow(1 + r, months + 1) - 1) / r) * (1 + r);
-            html = `<div style="padding:12px; border-radius:12px; background:var(--md-secondary-container); color:var(--md-on-secondary-container);">
-                <div style="font-size:11px; opacity:0.8; margin-bottom:4px;">SIP Valuation (${months + 1} Months)</div>
-                <div style="font-size:20px; font-weight:600;">₹${fmtNum(futureVal.toFixed(0))}</div>
-                <div style="font-size:11px; margin-top:4px;">Invested: ₹${fmtNum(totalInvested)} | P&L: <span style="color:var(--md-success);">+₹${fmtNum((futureVal - totalInvested).toFixed(0))}</span></div>
+            html = `<div class="preview-card preview-card-sip">
+                <div class="preview-label">SIP Valuation (${months + 1} Months)</div>
+                <div class="preview-value">₹${fmtNum(futureVal.toFixed(0))}</div>
+                <div class="preview-sub">Invested: ₹${fmtNum(totalInvested)} | P&L: <span class="preview-gain">+₹${fmtNum((futureVal - totalInvested).toFixed(0))}</span></div>
             </div>`;
         } else {
             const currentVal = amt * Math.pow(1 + (rate / 100), years);
-            html = `<div style="padding:12px; border-radius:12px; background:var(--md-secondary-container); color:var(--md-on-secondary-container);">
-                <div style="font-size:11px; opacity:0.8; margin-bottom:4px;">Growth Forecast (${years.toFixed(1)}Y @ ${rate}%)</div>
-                <div style="font-size:20px; font-weight:600;">₹${fmtNum(currentVal.toFixed(0))}</div>
-                <div style="font-size:11px; margin-top:4px;">Gain: <span style="color:var(--md-success);">+₹${fmtNum((currentVal - amt).toFixed(0))}</span></div>
+            html = `<div class="preview-card preview-card-sip">
+                <div class="preview-label">Growth Forecast (${years.toFixed(1)}Y @ ${rate}%)</div>
+                <div class="preview-value">₹${fmtNum(currentVal.toFixed(0))}</div>
+                <div class="preview-sub">Gain: <span class="preview-gain">+₹${fmtNum((currentVal - amt).toFixed(0))}</span></div>
             </div>`;
         }
     } else if (type === 'PF' || type === 'PPF') {
         const rate = type === 'PF' ? 8.15 : 7.1;
         const currentVal = amt * Math.pow(1 + (rate / 100), years);
-        html = `<div style="padding:12px; border-radius:12px; background:var(--md-tertiary-container); color:var(--md-on-tertiary-container);">
-            <div style="font-size:11px; opacity:0.8; margin-bottom:4px;">Govt Compound Interest (${rate}%)</div>
-            <div style="font-size:20px; font-weight:600;">₹${fmtNum(currentVal.toFixed(0))}</div>
-            <div style="font-size:11px; margin-top:4px;">Interest: <span style="color:var(--md-success);">+₹${fmtNum((currentVal - amt).toFixed(0))}</span></div>
+        html = `<div class="preview-card preview-card-pf">
+            <div class="preview-label">Govt Compound Interest (${rate}%)</div>
+            <div class="preview-value">₹${fmtNum(currentVal.toFixed(0))}</div>
+            <div class="preview-sub">Interest: <span class="preview-gain">+₹${fmtNum((currentVal - amt).toFixed(0))}</span></div>
         </div>`;
     } else {
         // Default generic growth
         const rate = parseFloat(document.getElementById('inv-growth').value) || 0;
         const currentVal = amt * Math.pow(1 + (rate / 100), years);
         if (rate > 0) {
-            html = `<div style="padding:12px; border-radius:12px; border:1px solid var(--md-outline-variant);">
-                <div style="font-size:11px; opacity:0.8; margin-bottom:4px;">Forecasted Value (${rate}%)</div>
-                <div style="font-size:18px; font-weight:600;">₹${fmtNum(currentVal.toFixed(0))}</div>
+            html = `<div class="preview-card preview-card-generic">
+                <div class="preview-label">Forecasted Value (${rate}%)</div>
+                <div class="preview-value" style="font-size:18px;">₹${fmtNum(currentVal.toFixed(0))}</div>
             </div>`;
         }
     }

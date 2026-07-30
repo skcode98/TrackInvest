@@ -248,49 +248,17 @@ async function callAIProvider(keys, promptText, systemPrompt, messages) {
         }
     }
 
-    // Gemini
-    if (active.geminiKey && !responseText) {
-        await tryFetch('Gemini',
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-            { 'Content-Type': 'application/json', 'x-goog-api-key': keys.geminiKey, 'User-Agent': 'TrackInvest/1.0' },
-            { contents: [{ parts: [{ text: geminiText }] }], generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens, topK: 40, topP: 0.95 } }
-        );
-    }
-
-    // Groq
-    if (active.groqKey && !responseText) {
-        await tryFetch('Groq',
-            'https://api.groq.com/openai/v1/chat/completions',
-            { 'Authorization': 'Bearer ' + keys.groqKey, 'Content-Type': 'application/json', 'User-Agent': 'TrackInvest/1.0' },
-            { model: 'llama-3.3-70b-versatile', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }
-        );
-    }
-
-    // OpenRouter
-    if (active.openrouterKey && !responseText) {
-        await tryFetch('OpenRouter',
-            'https://openrouter.ai/api/v1/chat/completions',
-            { 'Authorization': 'Bearer ' + keys.openrouterKey, 'Content-Type': 'application/json', 'HTTP-Referer': (typeof window !== 'undefined' ? window.location.origin : ''), 'X-Title': 'TrackInvest' },
-            { model: 'openrouter/free', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }
-        );
-    }
-
-    // Cerebras
-    if (active.cerebrasKey && !responseText) {
-        await tryFetch('Cerebras',
-            'https://api.cerebras.ai/v1/chat/completions',
-            { 'Authorization': 'Bearer ' + keys.cerebrasKey, 'Content-Type': 'application/json' },
-            { model: 'gpt-oss-120b', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }
-        );
-    }
-
-    // GitHub Models
-    if (active.githubKey && !responseText) {
-        await tryFetch('GitHub Models',
-            'https://models.github.ai/inference/chat/completions',
-            { 'Authorization': 'Bearer ' + keys.githubKey, 'Content-Type': 'application/json' },
-            { model: 'gpt-4o-mini', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }
-        );
+    const providers = [
+        { key: 'geminiKey', name: 'Gemini', url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', headers(k) { return { 'Content-Type': 'application/json', 'x-goog-api-key': k, 'User-Agent': 'TrackInvest/1.0' }; }, body() { return { contents: [{ parts: [{ text: geminiText }] }], generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens, topK: 40, topP: 0.95 } }; } },
+        { key: 'groqKey', name: 'Groq', url: 'https://api.groq.com/openai/v1/chat/completions', headers(k) { return { 'Authorization': 'Bearer ' + k, 'Content-Type': 'application/json', 'User-Agent': 'TrackInvest/1.0' }; }, body() { return { model: 'llama-3.3-70b-versatile', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }; } },
+        { key: 'openrouterKey', name: 'OpenRouter', url: 'https://openrouter.ai/api/v1/chat/completions', headers(k) { return { 'Authorization': 'Bearer ' + k, 'Content-Type': 'application/json', 'HTTP-Referer': window.location.origin, 'X-Title': 'TrackInvest' }; }, body() { return { model: 'openrouter/free', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }; } },
+        { key: 'cerebrasKey', name: 'Cerebras', url: 'https://api.cerebras.ai/v1/chat/completions', headers(k) { return { 'Authorization': 'Bearer ' + k, 'Content-Type': 'application/json' }; }, body() { return { model: 'gpt-oss-120b', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }; } },
+        { key: 'githubKey', name: 'GitHub Models', url: 'https://models.github.ai/inference/chat/completions', headers(k) { return { 'Authorization': 'Bearer ' + k, 'Content-Type': 'application/json' }; }, body() { return { model: 'gpt-4o-mini', messages: chatMessages, max_tokens: maxTokens, temperature: 0.7 }; } }
+    ];
+    for (const p of providers) {
+        if (active[p.key] && !responseText) {
+            await tryFetch(p.name, p.url, p.headers(keys[p.key]), p.body());
+        }
     }
 
     if (!responseText) {
@@ -336,6 +304,28 @@ function setupSyncChannel(onMessage) {
         window.addEventListener('pagehide', () => ch.close());
         return ch;
     } catch(e) { return null; }
+}
+
+function safeGet(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (raw === null) return fallback;
+        return JSON.parse(raw);
+    } catch(e) {
+        console.warn('safeGet: corrupt data for', key, e);
+        return fallback;
+    }
+}
+
+function safeSet(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+    } catch(e) {
+        console.error('safeSet: failed for', key, e);
+        showSnackbar('Storage full — free up space', 'error');
+        return false;
+    }
 }
 
 function showSnackbar(msg, icon, timeout) {

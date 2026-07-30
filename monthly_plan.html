@@ -6,6 +6,10 @@
     <title>Monthly Planner | TrackInvest</title>
     <meta name="theme-color" content="#F3F3F7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TrackInvest">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;
@@ -17,6 +21,7 @@
     ">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet">
+    <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./style.css">
     <script src="./version.js"></script>
     <style>
@@ -359,24 +364,30 @@
     </style>
 </head>
 <body>
+    <noscript>
+        <div style="padding:24px;text-align:center;font-family:sans-serif;">
+            <h2>JavaScript Required</h2>
+            <p>TrackInvest requires JavaScript to function. Please enable it in your browser settings.</p>
+        </div>
+    </noscript>
     <header class="top-app-bar">
-        <button class="icon-btn" onclick="window.location.href='index.html'">
+        <button class="icon-btn" onclick="window.location.href='index.html'" aria-label="Back to dashboard">
             <span class="material-symbols-rounded">arrow_back</span>
         </button>
-        <div class="app-title grow">Monthly Planner</div>
+        <h1 class="app-title grow">Monthly Planner</h1>
         <div class="month-nav">
-            <button onclick="shiftMonth(-1)"><span class="material-symbols-rounded icon-sm">chevron_left</span></button>
+            <button onclick="shiftMonth(-1)" aria-label="Previous month"><span class="material-symbols-rounded icon-sm">chevron_left</span></button>
             <span id="month-label">—</span>
             <span id="month-saved-dot" style="display:none;width:6px;height:6px;border-radius:50%;background:var(--md-success);" title="Plan saved for this month"></span>
-            <button onclick="shiftMonth(1)"><span class="material-symbols-rounded icon-sm">chevron_right</span></button>
+            <button onclick="shiftMonth(1)" aria-label="Next month"><span class="material-symbols-rounded icon-sm">chevron_right</span></button>
         </div>
-        <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" title="Spend Tracker">
+        <button class="icon-btn" onclick="window.location.href='spend_tracker.html'" aria-label="Spend Tracker" title="Spend Tracker">
             <span class="material-symbols-rounded">receipt_long</span>
         </button>
-        <button class="icon-btn" onclick="window.location.href='account_overview.html'" title="Account Overview">
+        <button class="icon-btn" onclick="window.location.href='account_overview.html'" aria-label="Account Overview" title="Account Overview">
             <span class="material-symbols-rounded">account_balance_wallet</span>
         </button>
-        <button class="icon-btn" onclick="window.location.href='money_flow.html'" title="Money Flow">
+        <button class="icon-btn" onclick="window.location.href='money_flow.html'" aria-label="Money Flow" title="Money Flow">
             <span class="material-symbols-rounded">currency_exchange</span>
         </button>
     </header>
@@ -430,7 +441,7 @@
             </div>
             <div id="income-rows"></div>
             <button class="add-row-btn" onclick="addIncomeRow()">
-                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Income Source
+                <span class="material-symbols-rounded icon-18">add</span> Add Income Source
             </button>
             <div class="total-row">
                 <span>Total Income</span>
@@ -447,7 +458,7 @@
             <div id="invest-pva" class="pva-bar" style="display:none;"></div>
             <div id="investment-rows"></div>
             <button class="add-row-btn" onclick="addRow('investments')">
-                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Investment Plan
+                <span class="material-symbols-rounded icon-18">add</span> Add Investment Plan
             </button>
             <div class="total-row" style="cursor:pointer;" onclick="showInvestBreakdown()" title="Tap to see detailed investment entries">
                 <span>Total Investments</span>
@@ -464,7 +475,7 @@
             <div id="needs-pva" class="pva-bar" style="display:none;"></div>
             <div id="needs-container"></div>
             <button class="add-row-btn" onclick="addRow('needs')">
-                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Expense
+                <span class="material-symbols-rounded icon-18">add</span> Add Expense
             </button>
             <div class="total-row" style="cursor:pointer;" onclick="showSpendBreakdown('needs')" title="Tap to see detailed spend entries">
                 <span>Total Needs</span>
@@ -481,7 +492,7 @@
             <div id="wants-pva" class="pva-bar" style="display:none;"></div>
             <div id="wants-container"></div>
             <button class="add-row-btn" onclick="addRow('wants')">
-                <span class="material-symbols-rounded" style="font-size:18px;">add</span> Add Category
+                <span class="material-symbols-rounded icon-18">add</span> Add Category
             </button>
             <div class="total-row" style="cursor:pointer;" onclick="showSpendBreakdown('wants')" title="Tap to see detailed spend entries">
                 <span>Total Wants</span>
@@ -498,14 +509,14 @@
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
                 <span class="material-symbols-rounded" style="color:var(--md-primary);font-size:22px;">calendar_view_month</span>
                 <span style="font-weight:600;font-size:17px;flex:1;" id="yearly-title">Yearly Overview</span>
-                <button class="icon-btn" onclick="shiftYearlyView(-1)" title="Previous year">
+                <button class="icon-btn" onclick="shiftYearlyView(-1)" aria-label="Previous year" title="Previous year">
                     <span class="material-symbols-rounded">chevron_left</span>
                 </button>
-                <span style="font-weight:600;font-size:16px;min-width:60px;text-align:center;" id="yearly-year-label">2026</span>
-                <button class="icon-btn" onclick="shiftYearlyView(1)" title="Next year">
+                <span id="yearly-view-label" style="font-size:16px;font-weight:600;color:var(--md-on-surface);">2026</span>
+                <button class="icon-btn" onclick="shiftYearlyView(1)" aria-label="Next year" title="Next year">
                     <span class="material-symbols-rounded">chevron_right</span>
                 </button>
-                <button class="icon-btn" onclick="closeYearlyOverview()"><span class="material-symbols-rounded">close</span></button>
+                <button class="icon-btn" onclick="closeYearlyOverview()" aria-label="Close"><span class="material-symbols-rounded">close</span></button>
             </div>
             <div style="font-size:12px;color:var(--md-outline);margin-bottom:8px;">
                 <span class="material-symbols-rounded" style="font-size:12px;vertical-align:middle;">info</span>
@@ -534,7 +545,7 @@
             </button>
         </span>
         <button class="btn-primary" onclick="savePlanner()" style="flex:1;">
-            <span class="material-symbols-rounded" style="font-size:18px;">save</span> Save Plan
+            <span class="material-symbols-rounded icon-18">save</span> Save Plan
         </button>
     </div>
 
@@ -1581,7 +1592,7 @@ function makeIncomeRow(item, index) {
                 oninput="updateIncomeAmount(${index},this)">
         </div>
         ${canDelete ? `<button class="del-btn" onclick="removeIncomeRow(${index})" title="Remove">
-            <span class="material-symbols-rounded" style="font-size:18px;">delete</span></button>` : ''}
+            <span class="material-symbols-rounded icon-18">delete</span></button>` : ''}
     `;
     return wrap;
 }
@@ -1628,10 +1639,10 @@ function makeRow(item, index, type) {
             ${actualHtml}
         </div>
         <button class="del-btn" onclick="showRowDetail('${type}',${index})" title="View details">
-            <span class="material-symbols-rounded" style="font-size:18px;">visibility</span>
+            <span class="material-symbols-rounded icon-18">visibility</span>
         </button>
         <button class="del-btn" onclick="removeRow('${type}',${index})" title="Remove">
-            <span class="material-symbols-rounded" style="font-size:18px;">delete</span>
+            <span class="material-symbols-rounded icon-18">delete</span>
         </button>`;
     return wrap;
 }
